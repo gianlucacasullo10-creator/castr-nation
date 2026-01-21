@@ -1,26 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 const Leaderboards = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchLeaders = async () => {
-      // This query gets profiles and counts their catches
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          display_name,
-          catches (id)
-        `);
-
+      const { data } = await supabase.from('profiles').select('display_name, catches(id)');
       if (data) {
         const sorted = data
-          .map((user: any) => ({
-            name: user.display_name || "Unknown Angler",
-            count: user.catches?.length || 0
-          }))
+          .map((u: any) => ({ name: u.display_name || "New Angler", count: u.catches?.length || 0 }))
           .sort((a, b) => b.count - a.count);
         setLeaders(sorted);
       }
@@ -29,22 +19,16 @@ const Leaderboards = () => {
   }, []);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-md mx-auto pb-24 space-y-6">
       <div className="flex items-center gap-2">
         <Trophy className="text-yellow-500" />
-        <h1 className="text-2xl font-bold italic">RANKINGS</h1>
+        <h1 className="text-2xl font-black italic uppercase tracking-tighter">Rankings</h1>
       </div>
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {leaders.map((leader, index) => (
-          <div key={index} className="flex justify-between items-center p-4 border-b border-border last:border-0">
-            <div className="flex items-center gap-4">
-              <span className="font-bold text-muted-foreground w-4">{index + 1}</span>
-              <span className="font-semibold">{leader.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-primary font-bold">{leader.count}</span>
-              <span className="text-xs text-muted-foreground">Catches</span>
-            </div>
+      <div className="space-y-3">
+        {leaders.map((leader, i) => (
+          <div key={i} className="flex justify-between items-center p-4 bg-card border border-border rounded-2xl shadow-sm">
+            <span className="font-bold">{i + 1}. {leader.name}</span>
+            <span className="font-black text-primary">{leader.count} Catches</span>
           </div>
         ))}
       </div>

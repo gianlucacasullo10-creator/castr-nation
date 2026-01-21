@@ -8,14 +8,10 @@ export const BottomNav = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // 1. Initial check
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsLoggedIn(!!data.session);
-    };
-    checkUser();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
 
-    // 2. Real-time listener for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
     });
@@ -26,38 +22,40 @@ export const BottomNav = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border px-1 py-2 flex justify-around items-center z-50 max-w-screen-xl mx-auto">
-      <Link to="/" className={`flex flex-col items-center flex-1 transition-colors ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}>
-        <Home size={20} />
-        <span className="text-[10px] mt-1 font-medium">Home</span>
-      </Link>
-      
-      <Link to="/leaderboards" className={`flex flex-col items-center flex-1 transition-colors ${isActive('/leaderboards') ? 'text-primary' : 'text-muted-foreground'}`}>
-        <Trophy size={20} />
-        <span className="text-[10px] mt-1 font-medium">Ranks</span>
-      </Link>
-
-      <div className="flex-1 flex justify-center -mt-8">
-        <Link to="/capture" className="bg-primary text-white p-3 rounded-full shadow-lg border-4 border-background hover:scale-105 active:scale-95 transition-all">
-          <Camera size={24} />
+    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border z-50 flex justify-center pb-safe">
+      <div className="w-full max-w-md flex justify-between items-center px-1 py-1 h-16">
+        
+        <Link to="/" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <Home size={18} />
+          <span className="text-[9px] mt-1 truncate">Home</span>
         </Link>
+        
+        <Link to="/leaderboards" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/leaderboards') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <Trophy size={18} />
+          <span className="text-[9px] mt-1 truncate">Ranks</span>
+        </Link>
+
+        <div className="flex-1 flex justify-center -mt-6">
+          <Link to="/capture" className="bg-primary text-white p-3 rounded-full shadow-lg border-4 border-background active:scale-90 transition-transform">
+            <Camera size={22} />
+          </Link>
+        </div>
+
+        <Link to="/clubs" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <Users size={18} />
+          <span className="text-[9px] mt-1 truncate">Clubs</span>
+        </Link>
+
+        {isLoggedIn !== null && (
+          <Link 
+            to={isLoggedIn ? "/profile" : "/auth"} 
+            className={`flex flex-col items-center justify-center flex-1 min-w-0 ${(isActive('/profile') || isActive('/auth')) ? 'text-primary' : 'text-muted-foreground'}`}
+          >
+            {isLoggedIn ? <User size={18} /> : <LogIn size={18} />}
+            <span className="text-[9px] mt-1 truncate">{isLoggedIn ? "Profile" : "Login"}</span>
+          </Link>
+        )}
       </div>
-
-      <Link to="/clubs" className={`flex flex-col items-center flex-1 transition-colors ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
-        <Users size={20} />
-        <span className="text-[10px] mt-1 font-medium">Clubs</span>
-      </Link>
-
-      {/* Logic: If null (loading), show nothing. If logged in, show Profile. If not, show Login. */}
-      {isLoggedIn !== null && (
-        <Link 
-          to={isLoggedIn ? "/profile" : "/auth"} 
-          className={`flex flex-col items-center flex-1 transition-colors ${(isActive('/profile') || isActive('/auth')) ? 'text-primary' : 'text-muted-foreground'}`}
-        >
-          {isLoggedIn ? <User size={20} /> : <LogIn size={20} />}
-          <span className="text-[10px] mt-1 font-medium">{isLoggedIn ? "Profile" : "Login"}</span>
-        </Link>
-      )}
     </nav>
   );
 };

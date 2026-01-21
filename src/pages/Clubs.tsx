@@ -1,36 +1,50 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, ShieldCheck } from "lucide-react";
+import { Users, ShieldCheck, Loader2 } from "lucide-react";
 
 const Clubs = () => {
   const [clubs, setClubs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchClubs = async () => {
-      const { data } = await supabase.from('clubs').select('*');
-      if (data) setClubs(data);
+      try {
+        const { data, error } = await supabase.from('clubs').select('*');
+        if (error) throw error;
+        setClubs(data || []);
+      } catch (err) {
+        console.error("Clubs Error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchClubs();
   }, []);
 
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+
   return (
-    <div className="p-4 max-w-md mx-auto space-y-6 pb-24">
+    <div className="p-6 max-w-md mx-auto space-y-6 pb-24">
       <div className="flex items-center gap-2">
         <Users className="text-primary" />
-        <h1 className="text-2xl font-black italic tracking-tighter uppercase">CLUBS</h1>
+        <h1 className="text-2xl font-black italic tracking-tighter uppercase">Clubs</h1>
       </div>
       
       <div className="grid gap-4">
         {clubs.length === 0 ? (
-          <p className="text-muted-foreground text-center py-10">No clubs found yet.</p>
+          <div className="text-center py-10 bg-muted rounded-3xl border-2 border-dashed">
+             <p className="text-muted-foreground font-medium">No clubs found in the area.</p>
+          </div>
         ) : (
           clubs.map((club) => (
-            <div key={club.id} className="bg-card border border-border p-4 rounded-3xl shadow-md flex items-center justify-between">
+            <div key={club.id} className="bg-card border-2 border-border p-5 rounded-3xl shadow-sm flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-lg">{club.name}</h3>
-                <p className="text-xs text-muted-foreground">{club.description}</p>
+                <h3 className="font-black italic uppercase text-lg leading-none mb-1">{club.name}</h3>
+                <p className="text-xs text-muted-foreground font-medium">{club.description}</p>
               </div>
-              <ShieldCheck className="text-primary opacity-20" size={32} />
+              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <ShieldCheck className="text-primary" size={20} />
+              </div>
             </div>
           ))
         )}

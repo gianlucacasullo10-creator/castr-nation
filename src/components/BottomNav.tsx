@@ -1,36 +1,46 @@
-import { Home, Trophy, Camera, Users, LogIn } from "lucide-react";
+import { Home, Trophy, Camera, Users, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const BottomNav = () => {
   const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+  }, []);
+
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border px-2 py-2 flex justify-around items-center z-50 max-w-md mx-auto">
-      <Link to="/" className={`flex flex-col items-center min-w-[64px] ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}>
+    <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border px-2 py-2 flex justify-between items-center z-50 max-w-md mx-auto">
+      <Link to="/" className={`flex flex-col items-center flex-1 ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}>
         <Home size={20} />
-        <span className="text-[10px] mt-1 font-medium">Home</span>
+        <span className="text-[10px] mt-1">Home</span>
       </Link>
       
-      <Link to="/leaderboards" className={`flex flex-col items-center min-w-[64px] ${isActive('/leaderboards') ? 'text-primary' : 'text-muted-foreground'}`}>
+      <Link to="/leaderboards" className={`flex flex-col items-center flex-1 ${isActive('/leaderboards') ? 'text-primary' : 'text-muted-foreground'}`}>
         <Trophy size={20} />
-        <span className="text-[10px] mt-1 font-medium">Ranks</span>
+        <span className="text-[10px] mt-1">Ranks</span>
       </Link>
 
-      <div className="flex justify-center -mt-8 px-2">
-        <Link to="/capture" className="bg-primary text-white p-4 rounded-full shadow-lg hover:scale-105 transition-transform">
+      <div className="flex-1 flex justify-center -mt-8">
+        <Link to="/capture" className="bg-primary text-white p-3 rounded-full shadow-lg border-4 border-background">
           <Camera size={24} />
         </Link>
       </div>
 
-      <Link to="/clubs" className={`flex flex-col items-center min-w-[64px] ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
+      <Link to="/clubs" className={`flex flex-col items-center flex-1 ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
         <Users size={20} />
-        <span className="text-[10px] mt-1 font-medium">Clubs</span>
+        <span className="text-[10px] mt-1">Clubs</span>
       </Link>
 
-      <Link to="/auth" className={`flex flex-col items-center min-w-[64px] ${isActive('/auth') ? 'text-primary' : 'text-muted-foreground'}`}>
-        <LogIn size={20} />
-        <span className="text-[10px] mt-1 font-medium">Login</span>
+      <Link to={isLoggedIn ? "/profile" : "/auth"} className={`flex flex-col items-center flex-1 ${isActive('/profile') || isActive('/auth') ? 'text-primary' : 'text-muted-foreground'}`}>
+        <User size={20} />
+        <span className="text-[10px] mt-1">{isLoggedIn ? "Profile" : "Login"}</span>
       </Link>
     </nav>
   );

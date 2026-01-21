@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, UserCircle, LogOut, Trophy, Fish, Award, Settings } from "lucide-react";
+import { Loader2, UserCircle, LogOut, Trophy, Fish, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
@@ -13,6 +13,7 @@ const Profile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // This runs every time the component loads (like switching tabs)
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -20,13 +21,19 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/auth"); return; }
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
+      // Fetch logic that pulls your specific data by your unique user ID
       const { data, error } = await supabase
         .from('profiles')
         .select(`display_name, bio, catches(id)`)
         .eq('id', user.id)
         .single();
+
+      if (error) throw error;
 
       if (data) {
         setProfile({
@@ -36,24 +43,31 @@ const Profile = () => {
         });
       }
     } catch (error: any) {
-      console.error(error.message);
+      console.error("Fetch error:", error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdate = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: profile.display_name, bio: profile.bio })
-      .eq('id', user?.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Update logic using .eq('id', user.id) to match your RLS policy
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          display_name: profile.display_name, 
+          bio: profile.bio 
+        })
+        .eq('id', user?.id);
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+      if (error) throw error;
+
       toast({ title: "Success", description: "Profile updated!" });
-      setIsEditing(false); // This line sends you back to the "Normal" screen
+      setIsEditing(false); // Automatically closes the edit form
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -75,8 +89,14 @@ const Profile = () => {
 
           {isEditing ? (
             <div className="space-y-4">
-              <Input value={profile.display_name} onChange={(e) => setProfile({...profile, display_name: e.target.value})} placeholder="Username" />
-              <Input value={profile.bio} onChange={(e) => setProfile({...profile, bio: e.target.value})} placeholder="Bio" />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 text-primary">Display Name</label>
+                <Input value={profile.display_name} onChange={(e) => setProfile({...profile, display_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 text-primary">Bio</label>
+                <Input value={profile.bio} onChange={(e) => setProfile({...profile, bio: e.target.value})} />
+              </div>
               <Button onClick={handleUpdate} className="w-full font-black italic uppercase">Save Changes</Button>
             </div>
           ) : (
@@ -85,13 +105,14 @@ const Profile = () => {
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">{profile.display_name}</h2>
                 <p className="text-muted-foreground text-sm">{profile.bio}</p>
               </div>
+              
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-muted p-3 rounded-2xl text-center">
                   <Trophy size={16} className="mx-auto mb-1 text-yellow-500" />
                   <div className="font-black italic">0</div>
                   <div className="text-[10px] uppercase font-bold text-muted-foreground">Points</div>
                 </div>
-                <div className="bg-muted p-3 rounded-2xl text-center">
+                <div className="bg-muted p-3 rounded-2xl text-center border-x-2 border-background">
                   <Fish size={16} className="mx-auto mb-1 text-primary" />
                   <div className="font-black italic">{profile.catch_count}</div>
                   <div className="text-[10px] uppercase font-bold text-muted-foreground">Catches</div>
@@ -102,7 +123,8 @@ const Profile = () => {
                   <div className="text-[10px] uppercase font-bold text-muted-foreground">Titles</div>
                 </div>
               </div>
-              <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => supabase.auth.signOut()}>
+
+              <Button variant="ghost" className="w-full text-muted-foreground mt-4" onClick={() => supabase.auth.signOut()}>
                 <LogOut size={16} className="mr-2" /> Sign Out
               </Button>
             </div>

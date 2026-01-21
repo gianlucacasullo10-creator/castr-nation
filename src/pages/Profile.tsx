@@ -3,14 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, UserCircle, LogOut } from "lucide-react";
+import { Loader2, UserCircle, LogOut, Trophy, Fish, Award, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState({ display_name: "", bio: "", catch_count: 0 });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -21,129 +20,93 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+      if (!user) { navigate("/auth"); return; }
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, bio')
+        .select(`display_name, bio, catches(id)`)
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
-      
       if (data) {
-        setDisplayName(data.display_name || "");
-        setBio(data.bio || "");
+        setProfile({
+          display_name: data.display_name || "New Angler",
+          bio: data.bio || "No bio yet.",
+          catch_count: data.catches?.length || 0
+        });
       }
     } catch (error: any) {
-      console.error("Error fetching profile:", error.message);
+      console.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpdate = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // This .update().eq() method matches your "Allow update for owner" policy
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          display_name: displayName, 
-          bio: bio 
-        })
-        .eq('id', user?.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: profile.display_name, bio: profile.bio })
+      .eq('id', user?.id);
 
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Profile updated successfully!" });
-    } catch (error: any) {
-      toast({ 
-        title: "Update Failed", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    } finally {
-      setSaving(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Profile updated!" });
+      setIsEditing(false); // This line sends you back to the "Normal" screen
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={40} />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="p-6 max-w-md mx-auto min-h-screen bg-background pb-24 space-y-8">
-      {/* Profile Header */}
-      <div className="flex flex-col items-center space-y-4 pt-4">
-        <div className="relative">
-          <UserCircle size={100} className="text-muted-foreground" />
-          <div className="absolute bottom-0 right-0 bg-primary h-6 w-6 rounded-full border-4 border-background" />
-        </div>
-        <div className="text-center">
-          <h1 className="text-2xl font-black italic uppercase tracking-tighter">Profile Settings</h1>
-          <p className="text-xs text-muted-foreground font-bold tracking-widest uppercase">Angler Identity</p>
-        </div>
-      </div>
+    <div className="p-4 max-w-md mx-auto space-y-6 pb-24">
+      <div className="bg-card rounded-3xl overflow-hidden shadow-xl border border-border">
+        <div className="h-24 bg-slate-800" /> 
+        <div className="px-6 pb-6">
+          <div className="relative flex justify-between items-end -mt-12 mb-4">
+            <div className="h-24 w-24 rounded-full bg-primary border-4 border-background flex items-center justify-center text-white text-3xl font-black italic">
+              {profile.display_name.charAt(0).toUpperCase()}
+            </div>
+            <Button variant="outline" size="sm" className="rounded-full font-bold" onClick={() => setIsEditing(!isEditing)}>
+              {isEditing ? "Cancel" : "Edit Profile"}
+            </Button>
+          </div>
 
-      {/* Form Fields */}
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-            Display Name
-          </label>
-          <Input 
-            value={displayName} 
-            onChange={(e) => setDisplayName(e.target.value)} 
-            placeholder="Username" 
-            className="rounded-2xl border-2 h-12 focus-visible:ring-primary"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-            Bio
-          </label>
-          <Input 
-            value={bio} 
-            onChange={(e) => setBio(e.target.value)} 
-            placeholder="Tell us about your fishing style..." 
-            className="rounded-2xl border-2 h-12 focus-visible:ring-primary"
-          />
-        </div>
-
-        <div className="pt-4 space-y-3">
-          <Button 
-            onClick={handleUpdate} 
-            className="w-full font-black h-14 rounded-2xl shadow-lg text-lg italic uppercase" 
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="animate-spin mr-2" /> : null}
-            Save Changes
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            onClick={handleSignOut} 
-            className="w-full text-muted-foreground font-bold hover:text-destructive"
-          >
-            <LogOut size={18} className="mr-2" />
-            Sign Out
-          </Button>
+          {isEditing ? (
+            <div className="space-y-4">
+              <Input value={profile.display_name} onChange={(e) => setProfile({...profile, display_name: e.target.value})} placeholder="Username" />
+              <Input value={profile.bio} onChange={(e) => setProfile({...profile, bio: e.target.value})} placeholder="Bio" />
+              <Button onClick={handleUpdate} className="w-full font-black italic uppercase">Save Changes</Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">{profile.display_name}</h2>
+                <p className="text-muted-foreground text-sm">{profile.bio}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-muted p-3 rounded-2xl text-center">
+                  <Trophy size={16} className="mx-auto mb-1 text-yellow-500" />
+                  <div className="font-black italic">0</div>
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground">Points</div>
+                </div>
+                <div className="bg-muted p-3 rounded-2xl text-center">
+                  <Fish size={16} className="mx-auto mb-1 text-primary" />
+                  <div className="font-black italic">{profile.catch_count}</div>
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground">Catches</div>
+                </div>
+                <div className="bg-muted p-3 rounded-2xl text-center">
+                  <Award size={16} className="mx-auto mb-1 text-orange-500" />
+                  <div className="font-black italic">0</div>
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground">Titles</div>
+                </div>
+              </div>
+              <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => supabase.auth.signOut()}>
+                <LogOut size={16} className="mr-2" /> Sign Out
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

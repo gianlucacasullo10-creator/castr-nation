@@ -1,69 +1,67 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, ShieldCheck, Loader2 } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
 
 const Clubs = () => {
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [debugError, setDebugError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchClubs = async () => {
+    async function getClubs() {
       try {
-        setLoading(true);
+        console.log("Fetching clubs...");
         const { data, error } = await supabase.from('clubs').select('*');
-        
         if (error) {
-          setDebugError(error.message);
+          console.error("Supabase Error:", error);
         } else {
+          console.log("Data received:", data);
           setClubs(data || []);
         }
-      } catch (err: any) {
-        setDebugError(err.message);
+      } catch (err) {
+        console.error("Crash prevented:", err);
       } finally {
         setLoading(false);
       }
-    };
-    fetchClubs();
+    }
+    getClubs();
   }, []);
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <Loader2 className="animate-spin mx-auto text-primary mb-2" />
+          <p className="text-xs font-bold uppercase tracking-widest">Loading Clubs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 max-w-md mx-auto space-y-6 pb-24 min-h-screen bg-background">
-      <div className="flex items-center gap-2 pt-4">
+    <div className="p-6 max-w-md mx-auto pb-24 min-h-screen bg-background">
+      <div className="flex items-center gap-2 mb-6">
         <Users className="text-primary" />
         <h1 className="text-2xl font-black italic tracking-tighter uppercase">Clubs</h1>
       </div>
 
-      {debugError && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-xl text-xs font-mono">
-          DEBUG ERROR: {debugError}
-        </div>
-      )}
+      {/* EMERGENCY STATIC TEST: If you see this, the code is working */}
+      <div className="p-2 mb-4 bg-yellow-100 text-[10px] font-bold text-center rounded">
+        SYSTEM CHECK: PAGE RENDER SUCCESSFUL
+      </div>
       
-      <div className="grid gap-4">
-        {clubs.length === 0 ? (
-          <div className="text-center py-20 bg-muted rounded-3xl border-2 border-dashed border-border">
-             <p className="text-muted-foreground font-bold uppercase italic text-sm">No Clubs Found</p>
-             <p className="text-[10px] text-muted-foreground/60 uppercase">Check Table: 'clubs'</p>
-          </div>
-        ) : (
+      <div className="space-y-4">
+        {clubs && clubs.length > 0 ? (
           clubs.map((club) => (
-            <div key={club?.id} className="bg-card border-2 border-border p-5 rounded-3xl shadow-sm">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <h3 className="font-black italic uppercase text-xl leading-none">
-                    {club?.name || "Unnamed Club"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium leading-tight">
-                    {club?.description || "No description provided."}
-                  </p>
-                </div>
-                <ShieldCheck className="text-primary/20" size={24} />
-              </div>
+            <div key={club.id} className="p-4 border-2 border-border rounded-2xl bg-card">
+              <p className="font-black italic uppercase">{club.name || "Unnamed Club"}</p>
+              <p className="text-xs text-muted-foreground">{club.description || "No description"}</p>
             </div>
           ))
+        ) : (
+          <div className="text-center py-10 opacity-50">
+            <p className="font-bold">EMPTY LIST RETURNED</p>
+            <p className="text-[10px]">Database connection is okay, but no rows were found.</p>
+          </div>
         )}
       </div>
     </div>

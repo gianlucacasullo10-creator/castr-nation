@@ -1,99 +1,117 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AppHeader } from "@/components/AppHeader";
-import { BottomNav } from "@/components/BottomNav";
-import { FishPost } from "@/components/FishPost";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, MapPin, Fish } from "lucide-react";
 
 const Index = () => {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [catches, setCatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
+    const fetchCatches = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('catches')
+          .select(`
+            id,
+            species,
+            location,
+            weight,
+            length,
+            image_url, 
+            created_at,
+            profiles (
+              display_name,
+              avatar_url
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setCatches(data || []);
+      } catch (error: any) {
+        console.error("Error fetching feed:", error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchCatches();
   }, []);
 
-  async function fetchCatches() {
-    try {
-      setLoading(true);
-      // We fetch catches and JOIN with profiles to get the user's name/avatar
-      const { data, error } = await supabase
-        .from('catches')
-        .select(`
-          id,
-          species,
-          weight,
-          length,
-          location,
-          photo_url,
-          points,
-          caught_at,
-          user_id,
-          profiles:user_id (
-            display_name,
-            username,
-            avatar_url
-          )
-        `)
-        .order('caught_at', { ascending: false });
-
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error fetching feed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
   }
 
   return (
-    <div className="app-container bg-background">
-      <AppHeader title="Castr" showLogo={true} showNotifications />
-      
-      <main className="flex-1 p-4 space-y-4 safe-bottom">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <Loader2 className="w-8 h-8 animate-spin mb-2" />
-            <p>Scanning the waters...</p>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No catches yet.</p>
-            <p className="text-sm">Be the first to post a fish!</p>
-          </div>
-        ) : (
-          posts.map((post) => (
-            <FishPost
-              key={post.id}
-              user={{
-                name: post.profiles?.display_name || "Unknown Angler",
-                username: post.profiles?.username || "angler",
-                avatar_url: post.profiles?.avatar_url
-              }}
-              fish={{
-                species: post.species,
-                weight: post.weight,
-                length: post.length,
-                points: post.points,
-                imageUrl: post.photo_url
-              }}
-              location={post.location}
-              timeAgo={new Date(post.caught_at).toLocaleDateString()}
-              likes={0} // We can wire likes later
-              comments={0}
-              isLiked={false}
-            />
-          ))
-        )}
-      </main>
-      
-      <BottomNav />
+    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-black italic tracking-tighter text-primary">CASTR NATION</h1>
+      </div>
+
+      {catches.length === 0 ? (
+        <div className="text-center py-20 bg-muted rounded-3xl border-2 border-dashed">
+          <Fish className="mx-auto mb-4 text-muted-foreground" size={48} />
+          <p className="text-muted-foreground font-medium">Scanning the waters...<br/>No catches yet!</p>
+        </div>
+      ) : (
+        catches.map((catchItem) => (
+          <Card key={catchItem.id} className="overflow-hidden border-none shadow-xl bg-card rounded-3xl">
+            <CardHeader className="p-4 flex flex-row items-center space-x-3">
+              <Avatar className="h-10 w-10 border-2 border-primary">
+                <AvatarImage src={catchItem.profiles?.avatar_url} />
+                <AvatarFallback className="bg-primary text-white">
+                  {catchItem.profiles?.display_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-bold text-sm leading-none">
+                  {catchItem.profiles?.display_name || "New Angler"}
+                </p>
+                <div className="flex items-center text-[10px] text-muted-foreground mt-1">
+                  <MapPin size={10} className="mr-1" />
+                  {catchItem.location}
+                </div>
+              </div>
+            </CardHeader>
+            
+            <div className="aspect-square w-full bg-muted overflow-hidden">
+              {catchItem.image_url ? (
+                <img 
+                  src={catchItem.image_url} 
+                  alt={catchItem.species}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Fish className="text-muted-foreground opacity-20" size={64} />
+                </div>
+              )}
+            </div>
+
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-black uppercase italic leading-none">
+                  {catchItem.species}
+                </h3>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold">
+                  FRESHWATER
+                </Badge>
+              </div>
+              <div className="flex gap-4 text-xs font-medium text-muted-foreground">
+                <span>{catchItem.weight} lbs</span>
+                <span>{catchItem.length} in</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 };

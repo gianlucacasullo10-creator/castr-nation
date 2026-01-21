@@ -1,58 +1,33 @@
+import { Home, Trophy, Camera, Users, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Trophy, Camera, Award, User } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-const navItems = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/clubs", icon: Trophy, label: "Clubs" },
-  { path: "/capture", icon: Camera, label: "Capture", isMain: true },
-  { path: "/leaderboards", icon: Award, label: "Ranks" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
-
-export function BottomNav() {
+export const BottomNav = () => {
   const location = useLocation();
+  
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">
-      <div className="max-w-md mx-auto flex items-center justify-around px-2 py-2">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-
-          if (item.isMain) {
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="flex flex-col items-center -mt-6"
-              >
-                <div className="gradient-primary rounded-full p-4 shadow-lg">
-                  <Icon className="w-6 h-6 text-primary-foreground" />
-                </div>
-              </Link>
-            );
-          }
-
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-      {/* Safe area spacer */}
-      <div className="h-[env(safe-area-inset-bottom)]" />
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-3 flex justify-between items-center z-50">
+      <Link to="/" className={`flex flex-col items-center ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}>
+        <Home size={24} />
+        <span className="text-xs mt-1">Home</span>
+      </Link>
+      <Link to="/leaderboards" className={`flex flex-col items-center ${isActive('/leaderboards') ? 'text-primary' : 'text-muted-foreground'}`}>
+        <Trophy size={24} />
+        <span className="text-xs mt-1">Ranks</span>
+      </Link>
+      <Link to="/capture" className="bg-primary text-white p-4 rounded-full -mt-10 shadow-lg hover:bg-primary/90 transition-colors">
+        <Camera size={28} />
+      </Link>
+      <Link to="/clubs" className={`flex flex-col items-center ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
+        <Users size={24} />
+        <span className="text-xs mt-1">Clubs</span>
+      </Link>
+      {/* This is your new Login/Profile button */}
+      <Link to="/profile" className={`flex flex-col items-center ${isActive('/profile') || isActive('/auth') ? 'text-primary' : 'text-muted-foreground'}`}>
+        <User size={24} />
+        <span className="text-xs mt-1">Profile</span>
+      </Link>
     </nav>
   );
-}
+};

@@ -1,3 +1,4 @@
+import Auth from "./pages/Auth";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/clubs" element={<Clubs />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
           <Route path="/profile" element={<Profile />} />

@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AppHeader } from "@/components/AppHeader";
-import { BottomNav } from "@/components/BottomNav";
-import { ProfileHeader } from "@/components/ProfileHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Settings } from "lucide-react";
 
-const ProfilePage = () => {
-  const [profile, setProfile] = useState<any>(null);
+const Profile = () => {
   const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -17,71 +17,65 @@ const ProfilePage = () => {
 
   async function getProfile() {
     try {
-      setLoading(true);
-      // 1. Get the current logged-in user's ID
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (user) {
-        // 2. Fetch the row from your 'profiles' table
-        let { data, error } = await supabase
-          .from('profiles')
-          .select(`username, display_name, bio, avatar_url`)
-          .eq('id', user.id) // or user_id depending on your RLS
-          .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('display_name, bio')
+        .eq('id', user.id)
+        .single();
 
-        if (error) throw error;
-        setProfile(data);
+      if (data) {
+        setDisplayName(data.display_name || "");
+        setBio(data.bio || "");
       }
-    } catch (error: any) {
-      toast({
-        title: "Error loading profile",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading Castr Profile...</div>;
+  async function updateProfile() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase.from('profiles').upsert({
+      id: user?.id,
+      display_name: displayName,
+      bio: bio,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Profile updated!" });
+    }
+    setLoading(false);
   }
 
-  return (
-    <div className="app-container bg-background">
-      <AppHeader title="Profile" showLogo={false} showNotifications />
-      
-      <main className="flex-1 safe-bottom">
-        <div className="p-4">
-          <ProfileHeader
-            user={{
-              name: profile?.display_name || "New Angler",
-              username: profile?.username || "username",
-              bio: profile?.bio || "No bio yet. Tap edit to add one!",
-              avatar_url: profile?.avatar_url
-            }}
-            stats={{ totalPoints: 0, fishCaught: 0, titlesUnlocked: 0 }} // We will wire these next
-            onEditProfile={() => console.log("Now we can build the Edit Modal!")}
-          />
-        </div>
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
-        <Tabs defaultValue="catches" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="catches">Catches</TabsTrigger>
-            <TabsTrigger value="titles">Titles</TabsTrigger>
-          </TabsList>
-          <TabsContent value="catches" className="p-4">
-            <p className="text-center text-muted-foreground">No catches yet. Go fishing!</p>
-          </TabsContent>
-          <TabsContent value="titles" className="p-4">
-            <p className="text-center text-muted-foreground">Unlock titles by catching fish.</p>
-          </TabsContent>
-        </Tabs>
-      </main>
-      
-      <BottomNav />
+  return (
+    <div className="p-6 max-w-md mx-auto space-y-6">
+      <h1 className="text-2xl font-bold italic">EDIT PROFILE</h1>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium">Display Name</label>
+          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. BassMaster99" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Bio</label>
+          <Input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="I love topwater fishing..." />
+        </div>
+        <Button onClick={updateProfile} className="w-full" disabled={loading}>
+          {loading ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
     </div>
   );
 };
 
-export default ProfilePage;
+export default Profile;

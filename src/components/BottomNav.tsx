@@ -59,3 +59,4 @@ export const BottomNav = () => {
     </nav>
   );
 };
+export default BottomNav;

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -12,68 +12,54 @@ const Profile = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    getProfile();
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
+          setDisplayName(data.display_name || "");
+          setBio(data.bio || "");
+        }
+      }
+      setLoading(false);
+    };
+    fetchProfile();
   }, []);
 
-  async function getProfile() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('display_name, bio')
-        .eq('id', user.id)
-        .single();
-
-      if (data) {
-        setDisplayName(data.display_name || "");
-        setBio(data.bio || "");
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateProfile() {
+  const handleUpdate = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { error } = await supabase.from('profiles').upsert({
-      id: user?.id,
-      display_name: displayName,
-      bio: bio,
-      updated_at: new Date().toISOString(),
-    });
+    // We use .update() specifically. This matches the UPDATE policy you just made.
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayName, bio: bio })
+      .eq('id', user?.id);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Success", description: "Profile updated!" });
+      toast({ title: "Success", description: "Profile saved!" });
     }
     setLoading(false);
-  }
+  };
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="p-6 max-w-md mx-auto space-y-6">
-      <h1 className="text-2xl font-bold italic">EDIT PROFILE</h1>
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium">Display Name</label>
-          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. BassMaster99" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Bio</label>
-          <Input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="I love topwater fishing..." />
-        </div>
-        <Button onClick={updateProfile} className="w-full" disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
-        </Button>
+    <div className="p-6 max-w-md mx-auto space-y-4 pb-24">
+      <h1 className="text-2xl font-black italic uppercase">Profile Settings</h1>
+      <div className="space-y-2">
+        <label className="text-xs font-bold uppercase text-muted-foreground">Display Name</label>
+        <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
       </div>
+      <div className="space-y-2">
+        <label className="text-xs font-bold uppercase text-muted-foreground">Bio</label>
+        <Input value={bio} onChange={(e) => setBio(e.target.value)} />
+      </div>
+      <Button onClick={handleUpdate} className="w-full font-bold" disabled={loading}>
+        {loading ? "Saving..." : "SAVE CHANGES"}
+      </Button>
     </div>
   );
 };

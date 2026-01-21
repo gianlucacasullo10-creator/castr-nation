@@ -1,159 +1,96 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { FishPost } from "@/components/FishPost";
-import { ClubNotification } from "@/components/ClubNotification";
-import fishBass from "@/assets/fish-bass.jpg";
-import fishPike from "@/assets/fish-pike.jpg";
-import fishWalleye from "@/assets/fish-walleye.jpg";
-import fishTrout from "@/assets/fish-trout.jpg";
-
-// Mock data for posts
-const initialPosts = [
-  {
-    id: "1",
-    user: {
-      name: "Jake Wilson",
-      username: "jaketheangler",
-      title: "Bass Master",
-    },
-    fish: {
-      species: "Largemouth Bass",
-      weight: "4.2 lbs",
-      length: "18 inches",
-      points: 145,
-      imageUrl: fishBass,
-    },
-    likes: 47,
-    comments: 12,
-    isLiked: false,
-    timeAgo: "2h ago",
-  },
-  {
-    id: "2",
-    user: {
-      name: "Sarah Chen",
-      username: "sarahfishes",
-      title: "Pike Hunter",
-    },
-    fish: {
-      species: "Northern Pike",
-      weight: "8.7 lbs",
-      length: "32 inches",
-      points: 210,
-      imageUrl: fishPike,
-    },
-    likes: 89,
-    comments: 23,
-    isLiked: true,
-    timeAgo: "4h ago",
-  },
-  {
-    id: "3",
-    user: {
-      name: "Mike Thompson",
-      username: "mikewalleye",
-      title: "Freshwater Elite",
-    },
-    fish: {
-      species: "Walleye",
-      weight: "5.1 lbs",
-      length: "22 inches",
-      points: 178,
-      imageUrl: fishWalleye,
-    },
-    likes: 62,
-    comments: 8,
-    isLiked: false,
-    timeAgo: "6h ago",
-  },
-  {
-    id: "4",
-    user: {
-      name: "Emma Rivers",
-      username: "emmarivers",
-      title: "Trout Whisperer",
-    },
-    fish: {
-      species: "Rainbow Trout",
-      weight: "3.8 lbs",
-      length: "20 inches",
-      points: 132,
-      imageUrl: fishTrout,
-    },
-    likes: 35,
-    comments: 5,
-    isLiked: false,
-    timeAgo: "8h ago",
-  },
-];
-
-const clubNotifications = [
-  {
-    clubName: "Pike Supremacy",
-    user: { name: "Alex K." },
-    action: "catch" as const,
-    details: "Caught a 6.2lb Pike! +180 pts",
-    timeAgo: "1h ago",
-  },
-  {
-    clubName: "Bass Bandits",
-    user: { name: "Jordan M." },
-    action: "rank" as const,
-    details: "Club reached #2 in Newmarket!",
-    timeAgo: "3h ago",
-  },
-];
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
-  const [posts, setPosts] = useState(initialPosts);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleLike = (postId: string) => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          isLiked: !post.isLiked,
-          likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-        };
-      }
-      return post;
-    }));
-  };
+  useEffect(() => {
+    fetchCatches();
+  }, []);
+
+  async function fetchCatches() {
+    try {
+      setLoading(true);
+      // We fetch catches and JOIN with profiles to get the user's name/avatar
+      const { data, error } = await supabase
+        .from('catches')
+        .select(`
+          id,
+          species,
+          weight,
+          length,
+          location,
+          photo_url,
+          points,
+          caught_at,
+          user_id,
+          profiles:user_id (
+            display_name,
+            username,
+            avatar_url
+          )
+        `)
+        .order('caught_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching feed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="app-container bg-background">
-      <AppHeader showLogo showNotifications notificationCount={3} />
+      <AppHeader title="Castr" showLogo={true} showNotifications />
       
-      <main className="flex-1 safe-bottom">
-        <div className="px-4 py-4 space-y-4">
-          {/* Club Notification */}
-          <ClubNotification {...clubNotifications[0]} />
-          
-          {/* Posts */}
-          <FishPost
-            {...posts[0]}
-            onLike={() => handleLike(posts[0].id)}
-          />
-          
-          <FishPost
-            {...posts[1]}
-            onLike={() => handleLike(posts[1].id)}
-          />
-          
-          {/* Another Club Notification */}
-          <ClubNotification {...clubNotifications[1]} />
-          
-          <FishPost
-            {...posts[2]}
-            onLike={() => handleLike(posts[2].id)}
-          />
-          
-          <FishPost
-            {...posts[3]}
-            onLike={() => handleLike(posts[3].id)}
-          />
-        </div>
+      <main className="flex-1 p-4 space-y-4 safe-bottom">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin mb-2" />
+            <p>Scanning the waters...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">No catches yet.</p>
+            <p className="text-sm">Be the first to post a fish!</p>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <FishPost
+              key={post.id}
+              user={{
+                name: post.profiles?.display_name || "Unknown Angler",
+                username: post.profiles?.username || "angler",
+                avatar_url: post.profiles?.avatar_url
+              }}
+              fish={{
+                species: post.species,
+                weight: post.weight,
+                length: post.length,
+                points: post.points,
+                imageUrl: post.photo_url
+              }}
+              location={post.location}
+              timeAgo={new Date(post.caught_at).toLocaleDateString()}
+              likes={0} // We can wire likes later
+              comments={0}
+              isLiked={false}
+            />
+          ))
+        )}
       </main>
       
       <BottomNav />

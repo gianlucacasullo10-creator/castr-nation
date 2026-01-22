@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, Fish, Loader2, CheckCircle2, Globe } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -25,7 +26,7 @@ const Capture = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   
-  // GPS State
+  // GPS & Privacy State
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -33,14 +34,31 @@ const Capture = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // 1. Automatically grab GPS on mount
+  // 1. Detect City Name from Coordinates (Privacy-First)
+  const getCityName = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
+      );
+      const data = await response.json();
+      const city = data.address.city || data.address.town || data.address.village || data.address.county;
+      if (city) setLocationName(city);
+    } catch (error) {
+      console.error("Geocoding error:", error);
+    }
+  };
+
+  // 2. Grab GPS on mount
   useEffect(() => {
     if ("geolocation" in navigator) {
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lon);
+          getCityName(lat, lon);
           setIsLocating(false);
         },
         (error) => {
@@ -97,7 +115,7 @@ const Capture = () => {
         imageUrl = publicUrl;
       }
 
-      // AI Scoring Simulation (Species Base * Random Size Multiplier)
+      // AI Scoring Simulation
       let pointsScored = getFishPoints(species);
       const aiSizeMultiplier = Math.random() * (1.8 - 1.1) + 1.1; 
       pointsScored = Math.round(pointsScored * aiSizeMultiplier);
@@ -118,7 +136,7 @@ const Capture = () => {
 
       if (dbError) throw dbError;
 
-      toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS via GPS & AI.` });
+      toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS in ${locationName}.` });
       navigate("/");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
@@ -167,31 +185,32 @@ const Capture = () => {
             )}
           </div>
 
-          {/* GPS Enhanced Location Input */}
+          {/* Privacy-First Location Input */}
           <div className="relative">
             <MapPin className={`absolute left-3 top-3 ${latitude ? "text-primary" : "text-muted-foreground"}`} size={18} />
             <Input
-              placeholder={isLocating ? "Acquiring GPS..." : "Fishing Spot Name"}
-              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold"
+              placeholder={isLocating ? "Acquiring GPS..." : "Detecting General Area..."}
+              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold text-primary"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
               required
             />
-            {latitude && (
-              <div className="absolute right-3 top-3 flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full">
-                <Globe size={10} className="text-primary animate-spin" />
-                <span className="text-[8px] font-black text-primary uppercase">GPS Locked</span>
+            {locationName && !isLocating && (
+              <div className="absolute right-3 top-3">
+                <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black italic px-2">
+                  REGION DETECTED
+                </Badge>
               </div>
             )}
           </div>
 
-          {/* AI Processing Status */}
+          {/* AI Ref Engine Status */}
           <div className="bg-card p-4 rounded-3xl border border-primary/10 flex flex-col items-center gap-2">
             <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
               <div className={`h-full bg-primary transition-all duration-1000 ${previewUrl && species ? 'w-full' : 'w-1/4'}`}></div>
             </div>
             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-               AI REF: {previewUrl && species ? "Ready to Score" : "Scanning metadata..."}
+               AI REF: {previewUrl && species ? "Ready to Score" : "Analyzing Environment..."}
             </p>
           </div>
         </div>

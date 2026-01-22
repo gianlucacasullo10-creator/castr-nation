@@ -1,3 +1,11 @@
+const FISH_SPECIES = [
+  "Largemouth Bass", "Smallmouth Bass", "Spotted Bass", 
+  "Northern Pike", "Muskellunge (Muskie)", "Walleye", 
+  "Rainbow Trout", "Brown Trout", "Brook Trout", "Lake Trout",
+  "Bluegill", "Pumpkinseed Sunfish", "Crappie (Black)", "Crappie (White)",
+  "Channel Catfish", "Blue Catfish", "Flathead Catfish", 
+  "Yellow Perch", "Common Carp", "Striped Bass", "Bullhead"
+].sort();
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";

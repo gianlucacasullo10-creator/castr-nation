@@ -6,15 +6,33 @@ const Leaderboards = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchLeaders = async () => {
-      const { data } = await supabase.from('profiles').select('display_name, catches(id)');
-      if (data) {
-        const sorted = data
-          .map((u: any) => ({ name: u.display_name || "New Angler", count: u.catches?.length || 0 }))
-          .sort((a, b) => b.count - a.count);
-        setLeaders(sorted);
-      }
-    };
+    const fetchLeaderboard = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        display_name,
+        avatar_url,
+        catches (points)
+      `);
+
+    if (error) throw error;
+
+    // Calculate total points per user and sort by highest
+    const rankedUsers = data.map(user => {
+      // Summing up the points column for every fish that user has caught
+      const totalPoints = user.catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+      return {
+        ...user,
+        totalPoints
+      };
+    }).sort((a, b) => b.totalPoints - a.totalPoints);
+
+    setRankings(rankedUsers);
+  } catch (error: any) {
+    console.error("Leaderboard Error:", error.message);
+  }
+};
     fetchLeaders();
   }, []);
 

@@ -21,38 +21,50 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      // Fetch catches - using profiles:user_id to ensure the relationship maps correctly
-      const { data: catches, error: catchError } = await supabase
+      // 1. Fetch Raw Catches
+      const { data: catches } = await supabase
         .from('catches')
-        .select(`
-          *,
-          profiles:user_id (display_name, avatar_url, active_title),
-          likes(user_id),
-          comments(id, comment_text, profiles:user_id (display_name))
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch activities (achievements)
-      const { data: activities, error: activityError } = await supabase
+      // 2. Fetch Raw Activities
+      const { data: activities } = await supabase
         .from('activities')
-        .select(`
-          *,
-          profiles:user_id (display_name, avatar_url, active_title),
-          comments(id, comment_text, profiles:user_id (display_name))
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (catchError) console.error("Catch Fetch Error:", catchError);
-      if (activityError) console.error("Activity Fetch Error:", activityError);
+      // 3. Fetch All Profiles to map them manually (Fixes the "Missing Data" issue)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, active_title');
 
+      // 4. Fetch Likes/Comments counts
+      const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
+
+      // Create a mapping object for quick lookup
+      const profileMap = (profiles || []).reduce((acc: any, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
+
+      // 5. Combine and manually attach profile data
       const combined = [
-        ...(catches || []).map(c => ({ ...c, itemType: 'CATCH' })),
-        ...(activities || []).map(a => ({ ...a, itemType: 'ACTIVITY' }))
+        ...(catches || []).map(c => ({ 
+          ...c, 
+          itemType: 'CATCH', 
+          profiles: profileMap[c.user_id],
+          likes: (likes || []).filter(l => l.catch_id === c.id)
+        })),
+        ...(activities || []).map(a => ({ 
+          ...a, 
+          itemType: 'ACTIVITY', 
+          profiles: profileMap[a.user_id] 
+        }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setFeedItems(combined);
     } catch (error: any) {
-      console.error("Critical Feed Error:", error.message);
+      console.error("Feed Error:", error.message);
     } finally {
       setLoading(false);
     }
@@ -65,33 +77,13 @@ const Index = () => {
   const handleLike = async (catchId: string) => {
     if (!currentUser) return;
     const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
-    if (error) {
-      toast({ title: "Already Liked", variant: "destructive" });
-    } else {
-      fetchUnifiedFeed();
-    }
-  };
-
-  const handleSendComment = async (itemId: string, type: 'CATCH' | 'ACTIVITY') => {
-    if (!commentText.trim() || !currentUser) return;
-    const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
-    
-    const { error } = await supabase
-      .from('comments')
-      .insert([{ user_id: currentUser.id, [column]: itemId, comment_text: commentText }]);
-
-    if (!error) {
-      setCommentText("");
-      setActiveCommentId(null);
-      fetchUnifiedFeed();
-      toast({ title: "Comment Sent!" });
-    }
+    if (!error) fetchUnifiedFeed();
   };
 
   if (loading) return (
     <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="font-black italic uppercase text-primary tracking-tighter">Syncing The Nation...</p>
+      <p className="font-black italic uppercase text-primary">Syncing The Nation...</p>
     </div>
   );
 
@@ -112,21 +104,20 @@ const Index = () => {
       ) : (
         feedItems.map((item) => {
           const isLiked = item.likes?.some((l: any) => l.user_id === currentUser?.id);
-          const commentCount = item.comments?.length || 0;
-
+          
           return (
-            <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl transition-all ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
+            <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
               <CardHeader className="flex-row items-center justify-between space-y-0 p-4">
                 <div className="flex items-center gap-3 text-left">
                   <Avatar className={`h-10 w-10 border-2 ${item.itemType === 'ACTIVITY' ? 'border-primary' : 'border-primary/20'}`}>
                     <AvatarImage src={item.profiles?.avatar_url} />
-                    <AvatarFallback>{item.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{item.profiles?.display_name?.charAt(0) || '?'}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="font-black italic text-sm leading-none uppercase">
-                      {item.profiles?.display_name || "Castr"}
+                      {item.profiles?.display_name || "Unknown Castr"}
                     </span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest mt-1 ${item.profiles?.active_title === 'OG CASTR' ? 'text-yellow-500' : 'text-primary'}`}>
+                    <span className="text-[9px] font-black uppercase tracking-widest mt-1 text-primary">
                       {item.profiles?.active_title || "Beginner"}
                     </span>
                   </div>
@@ -134,9 +125,9 @@ const Index = () => {
               </CardHeader>
 
               {item.itemType === 'ACTIVITY' ? (
-                <div className="p-8 flex flex-col items-center text-center space-y-4">
+                <div className="p-8 flex flex-col items-center text-center">
                   <div className="bg-black px-6 py-6 rounded-[30px] border border-primary/30 flex flex-col items-center gap-3 shadow-2xl w-full">
-                    <Award className="text-yellow-500 animate-bounce" size={40} />
+                    <Award className="text-yellow-500" size={40} />
                     <span className="text-2xl font-black italic uppercase tracking-tighter text-white">
                       Unlocked {item.content}
                     </span>
@@ -154,7 +145,7 @@ const Index = () => {
                   <div className="text-left flex justify-between items-end">
                     <div>
                       <h3 className="text-2xl font-black uppercase italic leading-none tracking-tighter">{item.species}</h3>
-                      <div className="flex items-center gap-1 mt-1 opacity-60">
+                      <div className="flex items-center gap-1 mt-1 opacity-60 italic">
                          <MapPin size={10} />
                          <span className="text-[10px] font-bold uppercase">{item.location_name}</span>
                       </div>
@@ -170,39 +161,14 @@ const Index = () => {
                   {item.itemType === 'CATCH' && (
                     <button onClick={() => handleLike(item.id)} className={`flex items-center gap-2 ${isLiked ? "text-red-500" : "text-muted-foreground"}`}>
                       <Heart size={22} className={isLiked ? "fill-current" : ""} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0} Likes</span>
                     </button>
                   )}
-                  <button onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} className="flex items-center gap-2 text-muted-foreground">
+                  <button onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} className="flex items-center gap-2 text-muted-foreground hover:text-primary">
                     <MessageCircle size={22} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{commentCount} {commentCount === 1 ? 'Comment' : 'Comments'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Chat</span>
                   </button>
                 </div>
-
-                {activeCommentId === item.id && (
-                  <div className="pt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                    <div className="max-h-32 overflow-y-auto space-y-2 text-left">
-                      {item.comments?.map((c: any) => (
-                        <div key={c.id} className="bg-muted/30 p-2 rounded-xl border border-border/50">
-                          <span className="text-[10px] font-black uppercase text-primary mr-2 italic">{c.profiles?.display_name}:</span>
-                          <span className="text-xs font-medium">{c.comment_text}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="relative flex items-center">
-                      <Input 
-                        placeholder="Add a comment..." 
-                        className="h-10 pr-10 bg-muted border-none rounded-xl text-xs font-bold focus-visible:ring-primary"
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendComment(item.id, item.itemType)}
-                      />
-                      <button onClick={() => handleSendComment(item.id, item.itemType)} className="absolute right-2 text-primary p-1">
-                        <Send size={18} />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           );

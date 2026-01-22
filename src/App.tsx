@@ -9,6 +9,7 @@ import Leaderboards from "./pages/Leaderboards";
 import Capture from "./pages/Capture";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import Clubs from "./pages/Clubs"; // <--- MAKE SURE THIS IS HERE
 
 const queryClient = new QueryClient();
 
@@ -18,15 +19,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="min-h-screen bg-background pb-20"> {/* pb-20 prevents content from hiding behind nav */}
+        <div className="min-h-screen bg-background flex flex-col">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/leaderboards" element={<Leaderboards />} />
             <Route path="/capture" element={<Capture />} />
+            <Route path="/clubs" element={<Clubs />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/auth" element={<Auth />} />
           </Routes>
-          <BottomNav /> {/* This must be OUTSIDE <Routes> to show on every page */}
+          <BottomNav />
         </div>
       </BrowserRouter>
     </TooltipProvider>

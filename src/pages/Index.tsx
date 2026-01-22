@@ -11,32 +11,34 @@ const Index = () => {
 
   useEffect(() => {
     const fetchCatches = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('catches')
-          .select(`
-            id,
-            species,
-            location_name,
-            weight,
-            length,
-            image_url, 
-            created_at,
-            profiles (
-              display_name,
-              avatar_url
-            )
-          `)
-          .order('created_at', { ascending: false });
+  try {
+    const { data: { user } } = await supabase.auth.getUser(); // Get current user
+    
+    const { data, error } = await supabase
+      .from('catches')
+      .select(`
+        *,
+        profiles:user_id (display_name, avatar_url),
+        likes (user_id)
+      `)
+      .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setCatches(data || []);
-      } catch (error: any) {
-        console.error("Error fetching feed:", error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (error) throw error;
+
+    // Attach a "hasLiked" property to each catch for easy UI rendering
+    const catchesWithLikeStatus = data?.map(c => ({
+      ...c,
+      hasLiked: c.likes?.some((l: any) => l.user_id === user?.id),
+      likesCount: c.likes?.length || 0
+    }));
+
+    setCatches(catchesWithLikeStatus || []);
+  } catch (error: any) {
+    console.error("Error fetching feed:", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchCatches();
   }, []);

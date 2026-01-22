@@ -1,67 +1,67 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Loader2 } from "lucide-react";
+import { Users, ShieldCheck, Loader2, MapPin, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Clubs = () => {
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function getClubs() {
-      try {
-        console.log("Fetching clubs...");
-        const { data, error } = await supabase.from('clubs').select('*');
-        if (error) {
-          console.error("Supabase Error:", error);
-        } else {
-          console.log("Data received:", data);
-          setClubs(data || []);
-        }
-      } catch (err) {
-        console.error("Crash prevented:", err);
-      } finally {
-        setLoading(false);
+    const fetchClubs = async () => {
+      const { data, error } = await supabase
+        .from('clubs')
+        .select('*');
+      
+      if (!error && data) {
+        setClubs(data);
       }
-    }
-    getClubs();
+      setLoading(false);
+    };
+    fetchClubs();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="text-center">
-          <Loader2 className="animate-spin mx-auto text-primary mb-2" />
-          <p className="text-xs font-bold uppercase tracking-widest">Loading Clubs...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="p-6 max-w-md mx-auto pb-24 min-h-screen bg-background">
-      <div className="flex items-center gap-2 mb-6">
-        <Users className="text-primary" />
-        <h1 className="text-2xl font-black italic tracking-tighter uppercase">Clubs</h1>
-      </div>
-
-      {/* EMERGENCY STATIC TEST: If you see this, the code is working */}
-      <div className="p-2 mb-4 bg-yellow-100 text-[10px] font-bold text-center rounded">
-        SYSTEM CHECK: PAGE RENDER SUCCESSFUL
+    <div className="p-4 max-w-md mx-auto space-y-6 pb-24 min-h-screen bg-background">
+      <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center gap-2">
+          <Users className="text-primary" />
+          <h1 className="text-2xl font-black italic tracking-tighter uppercase">Clubs</h1>
+        </div>
+        <Button size="sm" className="rounded-full h-8 w-8 p-0">
+          <Plus size={18} />
+        </Button>
       </div>
       
-      <div className="space-y-4">
-        {clubs && clubs.length > 0 ? (
+      <div className="grid gap-4">
+        {clubs.length === 0 ? (
+          <div className="text-center py-20 bg-muted rounded-3xl border-2 border-dashed border-border">
+             <p className="text-muted-foreground font-bold uppercase italic text-sm">No Clubs Found</p>
+          </div>
+        ) : (
           clubs.map((club) => (
-            <div key={club.id} className="p-4 border-2 border-border rounded-2xl bg-card">
-              <p className="font-black italic uppercase">{club.name || "Unnamed Club"}</p>
-              <p className="text-xs text-muted-foreground">{club.description || "No description"}</p>
+            <div key={club.id} className="bg-card border-2 border-border p-5 rounded-3xl shadow-sm hover:border-primary/50 transition-colors">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <h3 className="font-black italic uppercase text-xl leading-none">
+                    {club.name || "Unnamed Club"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium leading-tight">
+                    {club.description || "No description provided."}
+                  </p>
+                  <div className="flex items-center gap-1 pt-2">
+                    <MapPin size={10} className="text-primary" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Global Region</span>
+                  </div>
+                </div>
+                <div className="h-12 w-12 bg-primary/5 rounded-2xl flex items-center justify-center border border-primary/10">
+                  <ShieldCheck className="text-primary" size={24} />
+                </div>
+              </div>
             </div>
           ))
-        ) : (
-          <div className="text-center py-10 opacity-50">
-            <p className="font-bold">EMPTY LIST RETURNED</p>
-            <p className="text-[10px]">Database connection is okay, but no rows were found.</p>
-          </div>
         )}
       </div>
     </div>

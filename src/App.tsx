@@ -20,7 +20,7 @@ const App = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // REAL-TIME NOTIFICATIONS ENGINE
+    // Listen for new likes
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -28,13 +28,27 @@ const App = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'likes', 
+          table: 'likes',
         },
-        (payload) => {
-          toast({
-            title: "🔥 SOMEONE LIKED YOUR TROPHY",
-            description: "Your catch is gaining heat on the feed!",
-          });
+        async (payload) => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Check if the liked catch belongs to the current user
+          const { data: likedCatch } = await supabase
+            .from('catches')
+            .select('user_id, species')
+            .eq('id', payload.new.catch_id)
+            .single();
+
+          // Only show toast if I am the owner AND someone else liked it
+          if (likedCatch && likedCatch.user_id === user.id && payload.new.user_id !== user.id) {
+            toast({
+              title: "🔥 TROPHY LIKED!",
+              description: `Someone liked your ${likedCatch.species}!`,
+              className: "bg-red-500 text-white font-black italic border-none",
+            });
+          }
         }
       )
       .subscribe();
@@ -43,7 +57,7 @@ const App = () => {
       supabase.removeChannel(channel);
     };
   }, [toast]);
-
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

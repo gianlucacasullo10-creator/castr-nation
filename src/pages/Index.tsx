@@ -97,4 +97,95 @@ const Index = () => {
         <h1 className="text-3xl font-black italic tracking-tighter text-primary">CASTR NATION</h1>
       </div>
 
-      {catches.length
+      {catches.length === 0 ? (
+        <div className="text-center py-20 bg-muted rounded-3xl border-2 border-dashed">
+          <Fish className="mx-auto mb-4 text-muted-foreground" size={48} />
+          <p className="text-muted-foreground font-medium">Scanning the waters...<br/>No catches yet!</p>
+        </div>
+      ) : (
+        catches.map((catchItem) => (
+          <Card key={catchItem.id} className="overflow-hidden border-none shadow-xl bg-card rounded-3xl">
+            <CardHeader className="p-4 flex flex-row items-center space-x-3">
+              <Avatar className="h-10 w-10 border-2 border-primary">
+                <AvatarImage src={catchItem.profiles?.avatar_url} />
+                <AvatarFallback className="bg-primary text-white">
+                  {catchItem.profiles?.display_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-bold text-sm leading-none">
+                  {catchItem.profiles?.display_name || "New Angler"}
+                </p>
+                <div className="flex items-center text-[10px] text-muted-foreground mt-1">
+                  <MapPin size={10} className="mr-1" />
+                  {catchItem.location_name || "Unknown Location"}
+                </div>
+              </div>
+              {currentUserId === catchItem.user_id && (
+                <button 
+                  onClick={() => deleteCatch(catchItem.id, catchItem.user_id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </CardHeader>
+            
+            <div className="aspect-square w-full bg-muted overflow-hidden">
+              {catchItem.image_url ? (
+                <img 
+                  src={catchItem.image_url} 
+                  alt={catchItem.species}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Fish className="text-muted-foreground opacity-20" size={64} />
+                </div>
+              )}
+            </div>
+
+            <CardContent className="p-4 space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black uppercase italic leading-none">
+                    {catchItem.species}
+                  </h3>
+                  <div className="flex gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <span>{catchItem.weight || 0} lbs</span>
+                    <span>{catchItem.length || 0} in</span>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-[10px]">
+                  FRESHWATER
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-6 pt-2 border-t border-border/50">
+                <button 
+                  onClick={() => toggleLike(catchItem.id)}
+                  className={`flex items-center gap-1.5 transition-all active:scale-125 ${
+                    catchItem.hasLiked ? "text-red-500" : "text-muted-foreground hover:text-red-400"
+                  }`}
+                >
+                  <Heart 
+                    size={20} 
+                    fill={catchItem.hasLiked ? "currentColor" : "none"} 
+                  />
+                  <span className="text-xs font-bold">{catchItem.likesCount}</span>
+                </button>
+
+                <button className="flex items-center gap-1.5 hover:text-primary transition-colors text-muted-foreground">
+                  <MessageCircle size={20} />
+                  <span className="text-xs font-bold">0</span>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default Index;

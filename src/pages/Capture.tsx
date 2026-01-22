@@ -90,7 +90,34 @@ const Capture = () => {
         imageUrl = publicUrl;
       }
 
-      const pointsScored = getFishPoints(species);
+      // 1. We start with the base species points
+let pointsScored = getFishPoints(species);
+
+// 2. THE AI HOOK: This is where the automated perception happens
+// For now, we simulate the AI "perceiving" the size
+if (image) {
+  console.log("AI is analyzing image for size and species match...");
+  
+  // FUTURE: This is where the API call to Gemini/OpenAI goes
+  // For now, we'll give a random "Size Bonus" between 1.1x and 2.0x 
+  // to represent the AI seeing a "Big" fish vs a "Small" one.
+  const aiSizeMultiplier = Math.random() * (2.0 - 1.1) + 1.1; 
+  
+  pointsScored = Math.round(pointsScored * aiSizeMultiplier);
+}
+
+// 3. Now we save the "AI Verified" total to the database
+const { error: dbError } = await supabase
+  .from('catches')
+  .insert([{
+    user_id: user.id,
+    species,
+    location_name: locationName,
+    points: pointsScored, // This is now the "Perceived" score
+    image_url: imageUrl,
+    weight: 0,
+    length: 0
+  }]);
 
       const { error: dbError } = await supabase
         .from('catches')

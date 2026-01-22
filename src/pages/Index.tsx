@@ -17,7 +17,7 @@ const Index = () => {
           .select(`
             id,
             species,
-            location,
+            location_name,
             weight,
             length,
             image_url, 
@@ -76,7 +76,7 @@ const Index = () => {
                 </p>
                 <div className="flex items-center text-[10px] text-muted-foreground mt-1">
                   <MapPin size={10} className="mr-1" />
-                  {catchItem.location}
+                  {catchItem.location_name}
                 </div>
               </div>
             </CardHeader>

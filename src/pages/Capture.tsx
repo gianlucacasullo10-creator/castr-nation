@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Camera, MapPin, Fish, Loader2, CheckCircle2, Globe } from "lucide-react";
+import { Camera, MapPin, Fish, Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const FISH_SPECIES = [
@@ -80,6 +79,7 @@ const Capture = () => {
         imageUrl = publicUrl;
       }
 
+      // AI Scoring Logic
       let pointsScored = Math.round(getFishPoints(species) * (Math.random() * (1.8 - 1.1) + 1.1));
 
       const { error: dbError } = await supabase.from('catches').insert([{
@@ -87,23 +87,38 @@ const Capture = () => {
       }]);
       if (dbError) throw dbError;
 
-      // --- CHALLENGE ENGINE ---
+      // --- CHALLENGE ENGINE & NOTIFICATIONS ---
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       const { data: userCatches } = await supabase.from('catches').select('id').eq('user_id', user.id);
       const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       
       let newTitles = [...(profile?.unlocked_titles || ['Beginner'])];
-      
-      // OG Title Check
+      let unlockedNew = false;
+
+      // OG Title Unlock
       if (totalUsers && totalUsers <= 1000 && !newTitles.includes("OG CASTR")) {
         newTitles.push("OG CASTR");
-      }
-      // Catch 5 Check
-      if (userCatches && userCatches.length >= 5 && !newTitles.includes("Fingerling")) {
-        newTitles.push("Fingerling");
+        unlockedNew = true;
+        toast({
+          title: "👑 OG STATUS ACHIEVED",
+          description: "You are one of the first 1,000 members. Equip your title!",
+          className: "bg-yellow-500 text-black font-black italic border-none",
+        });
       }
 
-      if (newTitles.length !== profile?.unlocked_titles?.length) {
+      // Fingerling Unlock (5 Catches)
+      if (userCatches && userCatches.length >= 5 && !newTitles.includes("Fingerling")) {
+        newTitles.push("Fingerling");
+        unlockedNew = true;
+        toast({
+          title: "🎖️ NEW TITLE UNLOCKED",
+          description: "You've earned the 'Fingerling' title for 5 catches!",
+          className: "bg-primary text-black font-black italic border-none",
+        });
+      }
+
+      // Save new titles if any were earned
+      if (unlockedNew) {
         await supabase.from('profiles').update({ unlocked_titles: newTitles }).eq('id', user.id);
       }
 
@@ -116,22 +131,22 @@ const Capture = () => {
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6 text-foreground">
-      <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Verify Catch</h1>
+      <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase leading-none">Log Catch</h1>
       <form onSubmit={handleCapture} className="space-y-6">
-        <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-[40px]">
-          {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Camera size={48} className="text-muted-foreground" />}
+        <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-[40px] shadow-inner">
+          {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="Fish Preview" /> : <Camera size={48} className="text-muted-foreground opacity-20" />}
           <input type="file" accept="image/*" capture="environment" onChange={(e) => {
             if (e.target.files?.[0]) {
               setImage(e.target.files[0]);
               setPreviewUrl(URL.createObjectURL(e.target.files[0]));
             }
-          }} className="absolute inset-0 opacity-0" required />
+          }} className="absolute inset-0 opacity-0 cursor-pointer" required />
         </Card>
 
         <div className="space-y-4">
           <div className="relative">
             <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
-            <Input placeholder="Search Species..." className="pl-10 h-12 bg-card border-none rounded-2xl font-bold" value={species} onChange={(e) => {
+            <Input placeholder="Search Species..." className="pl-10 h-12 bg-card border-none rounded-2xl font-bold focus-visible:ring-primary" value={species} onChange={(e) => {
               setSpecies(e.target.value);
               const filtered = FISH_SPECIES.filter(f => f.toLowerCase().includes(e.target.value.toLowerCase())).slice(0, 5);
               setSuggestions(filtered);
@@ -140,7 +155,7 @@ const Capture = () => {
             {showSuggestions && suggestions.length > 0 && (
               <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl bg-card/95 backdrop-blur-sm overflow-hidden">
                 {suggestions.map(s => (
-                  <button key={s} type="button" className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 flex justify-between" onClick={() => { setSpecies(s); setShowSuggestions(false); }}>
+                  <button key={s} type="button" className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 flex justify-between items-center transition-colors" onClick={() => { setSpecies(s); setShowSuggestions(false); }}>
                     {s} <CheckCircle2 size={14} className="text-primary" />
                   </button>
                 ))}
@@ -150,11 +165,16 @@ const Capture = () => {
 
           <div className="relative">
             <MapPin className="absolute left-3 top-3 text-primary" size={18} />
-            <Input placeholder="Location" className="pl-10 h-12 bg-card border-none rounded-2xl font-bold text-primary" value={locationName} onChange={(e) => setLocationName(e.target.value)} required />
+            <Input placeholder="Location" className="pl-10 h-12 bg-card border-none rounded-2xl font-bold text-primary" value={locationName} readOnly />
+            {locationName && (
+               <div className="absolute right-3 top-3">
+                 <span className="text-[8px] font-black text-primary uppercase bg-primary/10 px-2 py-1 rounded-full">GPS LOCKED</span>
+               </div>
+            )}
           </div>
         </div>
 
-        <Button type="submit" disabled={uploading} className="w-full h-14 text-lg font-black italic uppercase rounded-2xl">
+        <Button type="submit" disabled={uploading} className="w-full h-14 text-lg font-black italic uppercase rounded-2xl shadow-lg transition-transform active:scale-95">
           {uploading ? <Loader2 className="animate-spin" /> : "Verify & Submit"}
         </Button>
       </form>

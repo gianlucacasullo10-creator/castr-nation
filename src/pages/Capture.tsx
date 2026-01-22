@@ -1,3 +1,12 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Camera, MapPin, Fish, Loader2, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+
 const FISH_SPECIES = [
   "Largemouth Bass", "Smallmouth Bass", "Spotted Bass", 
   "Northern Pike", "Muskellunge (Muskie)", "Walleye", 
@@ -6,25 +15,44 @@ const FISH_SPECIES = [
   "Channel Catfish", "Blue Catfish", "Flathead Catfish", 
   "Yellow Perch", "Common Carp", "Striped Bass", "Bullhead"
 ].sort();
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Camera, MapPin, Fish, Weight, Ruler, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 const Capture = () => {
   const [species, setSpecies] = useState("");
   const [locationName, setLocationName] = useState("");
-  const [weight, setWeight] = useState(2.0); // Default to 2 lbs
-  const [length, setLength] = useState(12.0); // Default to 12 inches
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // SCORING ENGINE: Determines points based on species
+  const getFishPoints = (name: string) => {
+    const s = name.toLowerCase();
+    if (s.includes("muskie") || s.includes("muskellunge")) return 150;
+    if (s.includes("smallmouth")) return 85;
+    if (s.includes("largemouth")) return 75;
+    if (s.includes("walleye")) return 90;
+    if (s.includes("pike")) return 100;
+    if (s.includes("trout")) return 60;
+    if (s.includes("catfish")) return 50;
+    return 25; // Default for panfish/others
+  };
+
+  const handleSpeciesChange = (value: string) => {
+    setSpecies(value);
+    if (value.length > 1) {
+      const filtered = FISH_SPECIES.filter(f => 
+        f.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5);
+      setSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -62,20 +90,26 @@ const Capture = () => {
         imageUrl = publicUrl;
       }
 
+      const pointsScored = getFishPoints(species);
+
       const { error: dbError } = await supabase
         .from('catches')
         .insert([{
           user_id: user.id,
           species,
           location_name: locationName,
-          weight,
-          length,
+          points: pointsScored,
           image_url: imageUrl,
+          weight: 0, // Resetting to 0 as points take priority
+          length: 0
         }]);
 
       if (dbError) throw dbError;
 
-      toast({ title: "Trophy Logged!", description: "Your catch is live on the feed." });
+      toast({ 
+        title: "Trophy Verified!", 
+        description: `You earned ${pointsScored} points for that ${species}!` 
+      });
       navigate("/");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
@@ -109,15 +143,40 @@ const Capture = () => {
         </Card>
 
         <div className="space-y-4">
+          {/* SPECIES INPUT WITH AUTOCOMPLETE */}
           <div className="relative">
-            <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Species (e.g. Largemouth Bass)"
-              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold"
-              value={species}
-              onChange={(e) => setSpecies(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
+              <Input
+                placeholder="Search Species..."
+                className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold focus-visible:ring-primary"
+                value={species}
+                onChange={(e) => handleSpeciesChange(e.target.value)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                required
+              />
+            </div>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden bg-card/95 backdrop-blur-sm">
+                <div className="p-1">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 hover:text-primary transition-colors rounded-xl flex items-center justify-between"
+                      onClick={() => {
+                        setSpecies(suggestion);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {suggestion}
+                      <CheckCircle2 size={14} className="text-primary opacity-50" />
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
 
           <div className="relative">
@@ -131,36 +190,16 @@ const Capture = () => {
             />
           </div>
 
-          {/* WEIGHT SLIDER */}
-          <div className="bg-card p-4 rounded-2xl space-y-3 shadow-sm">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
-                <Weight size={12} /> Weight
-              </label>
-              <span className="text-lg font-black text-primary italic">{weight} LBS</span>
+          {/* AI SCORING PREVIEW */}
+          <div className="bg-card p-6 rounded-3xl border-2 border-primary/10 flex flex-col items-center justify-center space-y-2 shadow-inner">
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div 
+                className={`h-full bg-primary transition-all duration-700 ${previewUrl && species ? 'w-full' : 'w-1/3'}`}
+              ></div>
             </div>
-            <input
-              type="range" min="0" max="25" step="0.1"
-              value={weight}
-              onChange={(e) => setWeight(parseFloat(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-          </div>
-
-          {/* LENGTH SLIDER */}
-          <div className="bg-card p-4 rounded-2xl space-y-3 shadow-sm">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
-                <Ruler size={12} /> Length
-              </label>
-              <span className="text-lg font-black text-primary italic">{length} IN</span>
-            </div>
-            <input
-              type="range" min="0" max="60" step="0.5"
-              value={length}
-              onChange={(e) => setLength(parseFloat(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-            />
+            <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
+              {previewUrl && species ? "Ready for AI Verification" : "Awaiting Photo & Species"}
+            </p>
           </div>
         </div>
 

@@ -20,28 +20,21 @@ const App = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Listen for new likes
     const channel = supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'likes',
-        },
+        { event: 'INSERT', schema: 'public', table: 'likes' },
         async (payload) => {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
-          // Check if the liked catch belongs to the current user
           const { data: likedCatch } = await supabase
             .from('catches')
             .select('user_id, species')
             .eq('id', payload.new.catch_id)
             .single();
 
-          // Only show toast if I am the owner AND someone else liked it
           if (likedCatch && likedCatch.user_id === user.id && payload.new.user_id !== user.id) {
             toast({
               title: "🔥 TROPHY LIKED!",
@@ -57,7 +50,7 @@ const App = () => {
       supabase.removeChannel(channel);
     };
   }, [toast]);
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

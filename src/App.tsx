@@ -35,4 +35,29 @@ const App = () => (
   </QueryClientProvider>
 );
 
+useEffect(() => {
+  const channel = supabase
+    .channel('schema-db-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'likes', // Assuming you have a likes table
+      },
+      (payload) => {
+        // We'd check if the liked post belongs to the current user
+        toast({
+          title: "🔥 SOMEONE LIKED YOUR TROPHY",
+          description: "Your catch is gaining heat on the feed!",
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
+
 export default App;

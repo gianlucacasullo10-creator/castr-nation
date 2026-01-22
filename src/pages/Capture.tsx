@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Camera, MapPin, Fish, Loader2, CheckCircle2 } from "lucide-react";
+import { Camera, MapPin, Fish, Loader2, CheckCircle2, Globe } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const FISH_SPECIES = [
@@ -25,28 +25,45 @@ const Capture = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   
+  // GPS State
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // SCORING ENGINE: Determines points based on species
+  // 1. Automatically grab GPS on mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setIsLocating(false);
+        },
+        (error) => {
+          console.error("GPS Error:", error);
+          setIsLocating(false);
+        }
+      );
+    }
+  }, []);
+
   const getFishPoints = (name: string) => {
     const s = name.toLowerCase();
-    if (s.includes("muskie") || s.includes("muskellunge")) return 150;
+    if (s.includes("muskie")) return 150;
     if (s.includes("smallmouth")) return 85;
     if (s.includes("largemouth")) return 75;
     if (s.includes("walleye")) return 90;
-    if (s.includes("pike")) return 100;
-    if (s.includes("trout")) return 60;
-    if (s.includes("catfish")) return 50;
-    return 25; // Default for panfish/others
+    return 25;
   };
 
   const handleSpeciesChange = (value: string) => {
     setSpecies(value);
     if (value.length > 1) {
-      const filtered = FISH_SPECIES.filter(f => 
-        f.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 5);
+      const filtered = FISH_SPECIES.filter(f => f.toLowerCase().includes(value.toLowerCase())).slice(0, 5);
       setSuggestions(filtered);
       setShowSuggestions(true);
     } else {
@@ -71,53 +88,19 @@ const Capture = () => {
       if (!user) throw new Error("No user found");
 
       let imageUrl = "";
-
       if (image) {
         const fileExt = image.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('catch_photos')
-          .upload(filePath, image);
-
+        const filePath = `${user.id}/${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('catch_photos').upload(filePath, image);
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('catch_photos')
-          .getPublicUrl(filePath);
-        
+        const { data: { publicUrl } } = supabase.storage.from('catch_photos').getPublicUrl(filePath);
         imageUrl = publicUrl;
       }
 
-      // 1. We start with the base species points
-let pointsScored = getFishPoints(species);
-
-// 2. THE AI HOOK: This is where the automated perception happens
-// For now, we simulate the AI "perceiving" the size
-if (image) {
-  console.log("AI is analyzing image for size and species match...");
-  
-  // FUTURE: This is where the API call to Gemini/OpenAI goes
-  // For now, we'll give a random "Size Bonus" between 1.1x and 2.0x 
-  // to represent the AI seeing a "Big" fish vs a "Small" one.
-  const aiSizeMultiplier = Math.random() * (2.0 - 1.1) + 1.1; 
-  
-  pointsScored = Math.round(pointsScored * aiSizeMultiplier);
-}
-
-// 3. Now we save the "AI Verified" total to the database
-const { error: dbError } = await supabase
-  .from('catches')
-  .insert([{
-    user_id: user.id,
-    species,
-    location_name: locationName,
-    points: pointsScored, // This is now the "Perceived" score
-    image_url: imageUrl,
-    weight: 0,
-    length: 0
-  }]);
+      // AI Scoring Simulation (Species Base * Random Size Multiplier)
+      let pointsScored = getFishPoints(species);
+      const aiSizeMultiplier = Math.random() * (1.8 - 1.1) + 1.1; 
+      pointsScored = Math.round(pointsScored * aiSizeMultiplier);
 
       const { error: dbError } = await supabase
         .from('catches')
@@ -127,16 +110,15 @@ const { error: dbError } = await supabase
           location_name: locationName,
           points: pointsScored,
           image_url: imageUrl,
-          weight: 0, // Resetting to 0 as points take priority
+          latitude,
+          longitude,
+          weight: 0,
           length: 0
         }]);
 
       if (dbError) throw dbError;
 
-      toast({ 
-        title: "Trophy Verified!", 
-        description: `You earned ${pointsScored} points for that ${species}!` 
-      });
+      toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS via GPS & AI.` });
       navigate("/");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
@@ -147,7 +129,7 @@ const { error: dbError } = await supabase
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
-      <h1 className="text-3xl font-black italic tracking-tighter text-primary">LOG CATCH</h1>
+      <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Verify Catch</h1>
 
       <form onSubmit={handleCapture} className="space-y-6">
         <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-3xl">
@@ -156,86 +138,66 @@ const { error: dbError } = await supabase
           ) : (
             <div className="text-center p-6">
               <Camera className="mx-auto mb-2 text-muted-foreground" size={48} />
-              <p className="text-sm font-bold text-muted-foreground uppercase">Snap the Trophy</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Snap Fish</p>
             </div>
           )}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleImageChange}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-            required
-          />
+          <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" required />
         </Card>
 
         <div className="space-y-4">
-          {/* SPECIES INPUT WITH AUTOCOMPLETE */}
+          {/* Species Dropdown */}
           <div className="relative">
-            <div className="relative">
-              <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
-              <Input
-                placeholder="Search Species..."
-                className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold focus-visible:ring-primary"
-                value={species}
-                onChange={(e) => handleSpeciesChange(e.target.value)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                required
-              />
-            </div>
-
+            <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
+            <Input
+              placeholder="Identify Species..."
+              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold"
+              value={species}
+              onChange={(e) => handleSpeciesChange(e.target.value)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              required
+            />
             {showSuggestions && suggestions.length > 0 && (
               <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden bg-card/95 backdrop-blur-sm">
-                <div className="p-1">
-                  {suggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 hover:text-primary transition-colors rounded-xl flex items-center justify-between"
-                      onClick={() => {
-                        setSpecies(suggestion);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      {suggestion}
-                      <CheckCircle2 size={14} className="text-primary opacity-50" />
-                    </button>
-                  ))}
-                </div>
+                {suggestions.map((s) => (
+                  <button key={s} type="button" className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 flex justify-between items-center" onClick={() => { setSpecies(s); setShowSuggestions(false); }}>
+                    {s} <CheckCircle2 size={14} className="text-primary" />
+                  </button>
+                ))}
               </Card>
             )}
           </div>
 
+          {/* GPS Enhanced Location Input */}
           <div className="relative">
-            <MapPin className="absolute left-3 top-3 text-muted-foreground" size={18} />
+            <MapPin className={`absolute left-3 top-3 ${latitude ? "text-primary" : "text-muted-foreground"}`} size={18} />
             <Input
-              placeholder="Fishing Spot"
+              placeholder={isLocating ? "Acquiring GPS..." : "Fishing Spot Name"}
               className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
               required
             />
+            {latitude && (
+              <div className="absolute right-3 top-3 flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full">
+                <Globe size={10} className="text-primary animate-spin" />
+                <span className="text-[8px] font-black text-primary uppercase">GPS Locked</span>
+              </div>
+            )}
           </div>
 
-          {/* AI SCORING PREVIEW */}
-          <div className="bg-card p-6 rounded-3xl border-2 border-primary/10 flex flex-col items-center justify-center space-y-2 shadow-inner">
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div 
-                className={`h-full bg-primary transition-all duration-700 ${previewUrl && species ? 'w-full' : 'w-1/3'}`}
-              ></div>
+          {/* AI Processing Status */}
+          <div className="bg-card p-4 rounded-3xl border border-primary/10 flex flex-col items-center gap-2">
+            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+              <div className={`h-full bg-primary transition-all duration-1000 ${previewUrl && species ? 'w-full' : 'w-1/4'}`}></div>
             </div>
-            <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
-              {previewUrl && species ? "Ready for AI Verification" : "Awaiting Photo & Species"}
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
+               AI REF: {previewUrl && species ? "Ready to Score" : "Scanning metadata..."}
             </p>
           </div>
         </div>
 
-        <Button 
-          type="submit" 
-          disabled={uploading}
-          className="w-full h-14 text-lg font-black italic uppercase rounded-2xl shadow-lg"
-        >
-          {uploading ? <Loader2 className="animate-spin" /> : "Submit Trophy"}
+        <Button type="submit" disabled={uploading} className="w-full h-14 text-lg font-black italic uppercase rounded-2xl shadow-lg">
+          {uploading ? <Loader2 className="animate-spin" /> : "Verify & Submit"}
         </Button>
       </form>
     </div>

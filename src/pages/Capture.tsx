@@ -26,7 +26,6 @@ const Capture = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   
-  // GPS & Privacy State
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -34,38 +33,24 @@ const Capture = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // 1. Detect City Name from Coordinates (Privacy-First)
   const getCityName = async (lat: number, lon: number) => {
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
-      );
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
       const data = await response.json();
       const city = data.address.city || data.address.town || data.address.village || data.address.county;
       if (city) setLocationName(city);
-    } catch (error) {
-      console.error("Geocoding error:", error);
-    }
+    } catch (error) { console.error("Geocoding error:", error); }
   };
 
-  // 2. Grab GPS on mount
   useEffect(() => {
     if ("geolocation" in navigator) {
       setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          setLatitude(lat);
-          setLongitude(lon);
-          getCityName(lat, lon);
-          setIsLocating(false);
-        },
-        (error) => {
-          console.error("GPS Error:", error);
-          setIsLocating(false);
-        }
-      );
+      navigator.geolocation.getCurrentPosition((position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+        getCityName(position.coords.latitude, position.coords.longitude);
+        setIsLocating(false);
+      }, () => setIsLocating(false));
     }
   }, []);
 
@@ -78,25 +63,6 @@ const Capture = () => {
     return 25;
   };
 
-  const handleSpeciesChange = (value: string) => {
-    setSpecies(value);
-    if (value.length > 1) {
-      const filtered = FISH_SPECIES.filter(f => f.toLowerCase().includes(value.toLowerCase())).slice(0, 5);
-      setSuggestions(filtered);
-      setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
   const handleCapture = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
@@ -107,77 +73,74 @@ const Capture = () => {
 
       let imageUrl = "";
       if (image) {
-        const fileExt = image.name.split('.').pop();
-        const filePath = `${user.id}/${Math.random()}.${fileExt}`;
+        const filePath = `${user.id}/${Math.random()}.jpg`;
         const { error: uploadError } = await supabase.storage.from('catch_photos').upload(filePath, image);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('catch_photos').getPublicUrl(filePath);
         imageUrl = publicUrl;
       }
 
-      // AI Scoring Simulation
-      let pointsScored = getFishPoints(species);
-      const aiSizeMultiplier = Math.random() * (1.8 - 1.1) + 1.1; 
-      pointsScored = Math.round(pointsScored * aiSizeMultiplier);
+      let pointsScored = Math.round(getFishPoints(species) * (Math.random() * (1.8 - 1.1) + 1.1));
 
-      const { error: dbError } = await supabase
-        .from('catches')
-        .insert([{
-          user_id: user.id,
-          species,
-          location_name: locationName,
-          points: pointsScored,
-          image_url: imageUrl,
-          latitude,
-          longitude,
-          weight: 0,
-          length: 0
-        }]);
-
+      const { error: dbError } = await supabase.from('catches').insert([{
+        user_id: user.id, species, location_name: locationName, points: pointsScored, image_url: imageUrl, latitude, longitude
+      }]);
       if (dbError) throw dbError;
 
-      toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS in ${locationName}.` });
+      // --- CHALLENGE ENGINE ---
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data: userCatches } = await supabase.from('catches').select('id').eq('user_id', user.id);
+      const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      
+      let newTitles = [...(profile?.unlocked_titles || ['Beginner'])];
+      
+      // OG Title Check
+      if (totalUsers && totalUsers <= 1000 && !newTitles.includes("OG CASTR")) {
+        newTitles.push("OG CASTR");
+      }
+      // Catch 5 Check
+      if (userCatches && userCatches.length >= 5 && !newTitles.includes("Fingerling")) {
+        newTitles.push("Fingerling");
+      }
+
+      if (newTitles.length !== profile?.unlocked_titles?.length) {
+        await supabase.from('profiles').update({ unlocked_titles: newTitles }).eq('id', user.id);
+      }
+
+      toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS.` });
       navigate("/");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: error.message });
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   return (
-    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6 text-foreground">
       <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Verify Catch</h1>
-
       <form onSubmit={handleCapture} className="space-y-6">
-        <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-3xl">
-          {previewUrl ? (
-            <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
-          ) : (
-            <div className="text-center p-6">
-              <Camera className="mx-auto mb-2 text-muted-foreground" size={48} />
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Snap Fish</p>
-            </div>
-          )}
-          <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" required />
+        <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-[40px]">
+          {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Camera size={48} className="text-muted-foreground" />}
+          <input type="file" accept="image/*" capture="environment" onChange={(e) => {
+            if (e.target.files?.[0]) {
+              setImage(e.target.files[0]);
+              setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+            }
+          }} className="absolute inset-0 opacity-0" required />
         </Card>
 
         <div className="space-y-4">
-          {/* Species Dropdown */}
           <div className="relative">
             <Fish className="absolute left-3 top-3 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Identify Species..."
-              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold"
-              value={species}
-              onChange={(e) => handleSpeciesChange(e.target.value)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              required
-            />
+            <Input placeholder="Search Species..." className="pl-10 h-12 bg-card border-none rounded-2xl font-bold" value={species} onChange={(e) => {
+              setSpecies(e.target.value);
+              const filtered = FISH_SPECIES.filter(f => f.toLowerCase().includes(e.target.value.toLowerCase())).slice(0, 5);
+              setSuggestions(filtered);
+              setShowSuggestions(true);
+            }} required />
             {showSuggestions && suggestions.length > 0 && (
-              <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden bg-card/95 backdrop-blur-sm">
-                {suggestions.map((s) => (
-                  <button key={s} type="button" className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 flex justify-between items-center" onClick={() => { setSpecies(s); setShowSuggestions(false); }}>
+              <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl bg-card/95 backdrop-blur-sm overflow-hidden">
+                {suggestions.map(s => (
+                  <button key={s} type="button" className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-primary/10 flex justify-between" onClick={() => { setSpecies(s); setShowSuggestions(false); }}>
                     {s} <CheckCircle2 size={14} className="text-primary" />
                   </button>
                 ))}
@@ -185,37 +148,13 @@ const Capture = () => {
             )}
           </div>
 
-          {/* Privacy-First Location Input */}
           <div className="relative">
-            <MapPin className={`absolute left-3 top-3 ${latitude ? "text-primary" : "text-muted-foreground"}`} size={18} />
-            <Input
-              placeholder={isLocating ? "Acquiring GPS..." : "Detecting General Area..."}
-              className="pl-10 h-12 bg-card border-none rounded-2xl shadow-sm font-bold text-primary"
-              value={locationName}
-              onChange={(e) => setLocationName(e.target.value)}
-              required
-            />
-            {locationName && !isLocating && (
-              <div className="absolute right-3 top-3">
-                <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black italic px-2">
-                  REGION DETECTED
-                </Badge>
-              </div>
-            )}
-          </div>
-
-          {/* AI Ref Engine Status */}
-          <div className="bg-card p-4 rounded-3xl border border-primary/10 flex flex-col items-center gap-2">
-            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-              <div className={`h-full bg-primary transition-all duration-1000 ${previewUrl && species ? 'w-full' : 'w-1/4'}`}></div>
-            </div>
-            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-               AI REF: {previewUrl && species ? "Ready to Score" : "Analyzing Environment..."}
-            </p>
+            <MapPin className="absolute left-3 top-3 text-primary" size={18} />
+            <Input placeholder="Location" className="pl-10 h-12 bg-card border-none rounded-2xl font-bold text-primary" value={locationName} onChange={(e) => setLocationName(e.target.value)} required />
           </div>
         </div>
 
-        <Button type="submit" disabled={uploading} className="w-full h-14 text-lg font-black italic uppercase rounded-2xl shadow-lg">
+        <Button type="submit" disabled={uploading} className="w-full h-14 text-lg font-black italic uppercase rounded-2xl">
           {uploading ? <Loader2 className="animate-spin" /> : "Verify & Submit"}
         </Button>
       </form>

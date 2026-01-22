@@ -120,6 +120,19 @@ const Capture = () => {
       // Save new titles if any were earned
       if (unlockedNew) {
         await supabase.from('profiles').update({ unlocked_titles: newTitles }).eq('id', user.id);
+        // Inside Capture.tsx after updating titles
+if (unlockedNew) {
+  // Log each new title as an activity
+  const activityInserts = newTitles
+    .filter(t => !(profile?.unlocked_titles || []).includes(t))
+    .map(t => ({
+      user_id: user.id,
+      type: 'TITLE_UNLOCK',
+      content: t
+    }));
+
+  await supabase.from('activities').insert(activityInserts);
+}
       }
 
       toast({ title: "Trophy Verified!", description: `Earned ${pointsScored} PTS.` });

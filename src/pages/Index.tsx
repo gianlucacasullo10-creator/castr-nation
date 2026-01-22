@@ -97,20 +97,31 @@ const Index = () => {
               )}
             </div>
 
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-black uppercase italic leading-none">
-                  {catchItem.species}
-                </h3>
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold">
-                  FRESHWATER
-                </Badge>
-              </div>
-              <div className="flex gap-4 text-xs font-medium text-muted-foreground">
-                <span>{catchItem.weight} lbs</span>
-                <span>{catchItem.length} in</span>
-              </div>
-            </CardContent>
+            <CardContent className="p-4 space-y-4">
+  {/* ... existing species and badge code ... */}
+
+  <div className="flex items-center gap-6 pt-2 border-t border-border/50">
+    {/* THIS IS THE HEART BUTTON */}
+    <button 
+      onClick={() => toggleLike(catchItem.id)}
+      className={`flex items-center gap-1.5 transition-all active:scale-125 ${
+        catchItem.hasLiked ? "text-red-500" : "text-muted-foreground hover:text-red-400"
+      }`}
+    >
+      <Heart 
+        size={20} 
+        fill={catchItem.hasLiked ? "currentColor" : "none"} 
+      />
+      <span className="text-xs font-bold">{catchItem.likesCount || 0}</span>
+    </button>
+
+    {/* Placeholder for Comments */}
+    <button className="flex items-center gap-1.5 hover:text-primary transition-colors text-muted-foreground">
+      <MessageCircle size={20} />
+      <span className="text-xs font-bold">0</span>
+    </button>
+  </div>
+</CardContent>
           </Card>
         ))
       )}

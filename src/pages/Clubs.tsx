@@ -51,7 +51,7 @@ const Clubs = () => {
         .select('user_id, points')
         .in('user_id', memberIds);
 
-      // 3. Map them together to show club rankings
+      // 3. Map together to show club rankings
       const memberStats = (profiles || [])
         .filter(p => memberIds.includes(p.id))
         .map(p => ({
@@ -76,6 +76,7 @@ const Clubs = () => {
       if (!user) return;
 
       if (isMember) {
+        // LEAVE LOGIC
         const { error } = await supabase
           .from('club_members')
           .delete()
@@ -85,6 +86,23 @@ const Clubs = () => {
         if (error) throw error;
         toast({ title: "Left Club", description: `You are no longer in ${selectedClub.name}` });
       } else {
+        // ONE CLUB CHECK: Check if the user is already in ANY other club
+        const { data: existingMembership } = await supabase
+          .from('club_members')
+          .select('club_id, clubs(name)')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingMembership) {
+          toast({ 
+            variant: "destructive", 
+            title: "Loyalty Required", 
+            description: `Leave ${(existingMembership.clubs as any)?.name} before joining a new club!` 
+          });
+          return;
+        }
+
+        // JOIN LOGIC
         const { error } = await supabase
           .from('club_members')
           .insert([{ user_id: user.id, club_id: selectedClub.id }]);
@@ -158,7 +176,7 @@ const Clubs = () => {
               variant={isMember ? "outline" : "default"}
               className="rounded-xl font-black italic uppercase text-xs h-9 px-6"
             >
-              {isMember ? "Leave" : "Join Club"}
+              {isMember ? "Leave Club" : "Join Club"}
             </Button>
           </div>
 

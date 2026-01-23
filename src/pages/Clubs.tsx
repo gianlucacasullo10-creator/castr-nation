@@ -35,7 +35,6 @@ const Clubs = () => {
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // NEW: Editing State
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
@@ -60,37 +59,55 @@ const Clubs = () => {
       if (!file || !selectedClub) return;
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `clubs/${selectedClub.id}-${Math.random()}.${fileExt}`;
+      const fileName = `club-${selectedClub.id}-${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars') // Using your avatars bucket
-        .upload(filePath, file);
+      // 1. Upload to Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      // 2. Get the Public URL
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
-      await supabase.from('clubs').update({ image_url: publicUrl }).eq('id', selectedClub.id);
-      
+      // 3. Update Database with safety check
+      const { error: dbError } = await supabase
+        .from('clubs')
+        .update({ image_url: publicUrl })
+        .eq('id', selectedClub.id)
+        .select();
+
+      if (dbError) throw dbError;
+
+      // 4. Update local state immediately
       setSelectedClub({ ...selectedClub, image_url: publicUrl });
-      toast({ title: "Club Logo Updated!" });
-      fetchClubs();
+      
+      // Update the main list so directory icons change instantly
+      setClubs(prev => prev.map(c => c.id === selectedClub.id ? { ...c, image_url: publicUrl } : c));
+
+      toast({ title: "Club Identity Saved!", description: "Your colors are now live." });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Upload failed", description: error.message });
+      console.error("Upload process error:", error);
+      toast({ variant: "destructive", title: "Save Failed", description: error.message });
     }
   };
 
   const updateClubDetails = async () => {
-    const { error } = await supabase
-      .from('clubs')
-      .update({ name: editName, region: editRegion })
-      .eq('id', selectedClub.id);
+    try {
+      const { error } = await supabase
+        .from('clubs')
+        .update({ name: editName, region: editRegion })
+        .eq('id', selectedClub.id);
 
-    if (!error) {
+      if (error) throw error;
+
       setSelectedClub({ ...selectedClub, name: editName, region: editRegion });
+      setClubs(prev => prev.map(c => c.id === selectedClub.id ? { ...c, name: editName, region: editRegion } : c));
       setIsEditing(false);
       toast({ title: "Club Details Updated!" });
-      fetchClubs();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: error.message });
     }
   };
 
@@ -228,7 +245,6 @@ const Clubs = () => {
           {view === 'INFO' ? (
             <div className="space-y-6">
               <div className="flex flex-col items-center">
-                {/* CLUB LOGO WITH UPLOAD */}
                 <div className="relative group mb-4">
                    <img src={selectedClub.image_url || "/placeholder.svg"} className="h-24 w-24 rounded-[32px] object-cover border-4 border-card shadow-2xl" />
                    {currentUser?.id === selectedClub.created_by && (
@@ -268,7 +284,6 @@ const Clubs = () => {
                 </div>
               </div>
 
-              {/* POWER CARD (Dynamic UI from your original) */}
               <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary shadow-[0_0_40px_rgba(var(--primary),0.3)]' : 'bg-black border border-white/10'}`}>
                 <div className="relative z-10 text-left">
                   <div className="flex justify-between items-start mb-8">
@@ -320,7 +335,6 @@ const Clubs = () => {
               </div>
             </div>
           ) : (
-            /* CLUB CHAT (Your existing logic) */
             <div className="flex flex-col h-[65vh] animate-in fade-in zoom-in-95 duration-300">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-left text-2xl font-black italic uppercase tracking-tighter text-primary">Club Chat</h2>

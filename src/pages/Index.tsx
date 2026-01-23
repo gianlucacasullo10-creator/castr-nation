@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Share2, MapPin, Award, Send, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Heart, MessageCircle, MapPin, Award, Send, Loader2, RefreshCw } from "lucide-react";
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
@@ -21,33 +22,18 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      // 1. Fetch Raw Catches
-      const { data: catches } = await supabase
-        .from('catches')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // 2. Fetch Raw Activities
-      const { data: activities } = await supabase
-        .from('activities')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // 3. Fetch All Profiles to map them manually (Fixes the "Missing Data" issue)
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url, active_title');
-
-      // 4. Fetch Likes/Comments counts
+      // 1. Fetch Raw Data
+      const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
+      const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
+      const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url, active_title');
       const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
 
-      // Create a mapping object for quick lookup
       const profileMap = (profiles || []).reduce((acc: any, p) => {
         acc[p.id] = p;
         return acc;
       }, {});
 
-      // 5. Combine and manually attach profile data
+      // 2. Combine and manually attach profile data
       const combined = [
         ...(catches || []).map(c => ({ 
           ...c, 
@@ -80,6 +66,30 @@ const Index = () => {
     if (!error) fetchUnifiedFeed();
   };
 
+  const handleSendComment = async (itemId: string, type: string) => {
+    if (!commentText.trim() || !currentUser) return;
+    
+    try {
+      const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
+      const { error } = await supabase
+        .from('comments')
+        .insert([{ 
+          user_id: currentUser.id, 
+          [column]: itemId, 
+          comment_text: commentText 
+        }]);
+
+      if (error) throw error;
+
+      toast({ title: "Comment Posted!" });
+      setCommentText("");
+      setActiveCommentId(null);
+      fetchUnifiedFeed();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: "Make sure the comments table exists in Supabase." });
+    }
+  };
+
   if (loading) return (
     <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -99,7 +109,6 @@ const Index = () => {
       {feedItems.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed border-muted rounded-[40px]">
           <p className="font-black italic uppercase text-muted-foreground">No activity found</p>
-          <p className="text-[10px] uppercase font-bold text-muted-foreground/50 mt-2 tracking-widest">Go log a catch to start the feed</p>
         </div>
       ) : (
         feedItems.map((item) => {
@@ -107,19 +116,15 @@ const Index = () => {
           
           return (
             <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
-              <CardHeader className="flex-row items-center justify-between space-y-0 p-4">
-                <div className="flex items-center gap-3 text-left">
+              <CardHeader className="flex-row items-center justify-between space-y-0 p-4 text-left">
+                <div className="flex items-center gap-3">
                   <Avatar className={`h-10 w-10 border-2 ${item.itemType === 'ACTIVITY' ? 'border-primary' : 'border-primary/20'}`}>
                     <AvatarImage src={item.profiles?.avatar_url} />
                     <AvatarFallback>{item.profiles?.display_name?.charAt(0) || '?'}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                    <span className="font-black italic text-sm leading-none uppercase">
-                      {item.profiles?.display_name || "Unknown Castr"}
-                    </span>
-                    <span className="text-[9px] font-black uppercase tracking-widest mt-1 text-primary">
-                      {item.profiles?.active_title || "Beginner"}
-                    </span>
+                    <span className="font-black italic text-sm leading-none uppercase">{item.profiles?.display_name || "Unknown Castr"}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest mt-1 text-primary">{item.profiles?.active_title || "Beginner"}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -128,9 +133,7 @@ const Index = () => {
                 <div className="p-8 flex flex-col items-center text-center">
                   <div className="bg-black px-6 py-6 rounded-[30px] border border-primary/30 flex flex-col items-center gap-3 shadow-2xl w-full">
                     <Award className="text-yellow-500" size={40} />
-                    <span className="text-2xl font-black italic uppercase tracking-tighter text-white">
-                      Unlocked {item.content}
-                    </span>
+                    <span className="text-xl font-black italic uppercase tracking-tighter text-white">Unlocked {item.content}</span>
                   </div>
                 </div>
               ) : (
@@ -145,14 +148,13 @@ const Index = () => {
                   <div className="text-left flex justify-between items-end">
                     <div>
                       <h3 className="text-2xl font-black uppercase italic leading-none tracking-tighter">{item.species}</h3>
-                      <div className="flex items-center gap-1 mt-1 opacity-60 italic">
-                         <MapPin size={10} />
-                         <span className="text-[10px] font-bold uppercase">{item.location_name}</span>
+                      <div className="flex items-center gap-1 mt-1 opacity-60 italic uppercase text-[10px] font-bold">
+                         <MapPin size={10} /> {item.location_name}
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="text-3xl font-black text-primary italic leading-none">{item.points}</span>
-                      <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Points</span>
+                      <span className="text-[8px] font-black text-muted-foreground uppercase">Points</span>
                     </div>
                   </div>
                 )}
@@ -161,14 +163,37 @@ const Index = () => {
                   {item.itemType === 'CATCH' && (
                     <button onClick={() => handleLike(item.id)} className={`flex items-center gap-2 ${isLiked ? "text-red-500" : "text-muted-foreground"}`}>
                       <Heart size={22} className={isLiked ? "fill-current" : ""} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0} Likes</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0}</span>
                     </button>
                   )}
-                  <button onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} className="flex items-center gap-2 text-muted-foreground hover:text-primary">
+                  <button 
+                    onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} 
+                    className={`flex items-center gap-2 ${activeCommentId === item.id ? "text-primary" : "text-muted-foreground"}`}
+                  >
                     <MessageCircle size={22} />
                     <span className="text-[10px] font-black uppercase tracking-widest">Chat</span>
                   </button>
                 </div>
+
+                {/* --- THE MISSING COMMENT BOX --- */}
+                {activeCommentId === item.id && (
+                  <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-200">
+                    <Input
+                      placeholder="Add to the conversation..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      className="h-10 bg-muted border-none rounded-xl text-xs font-bold"
+                      autoFocus
+                    />
+                    <Button 
+                      size="icon" 
+                      onClick={() => handleSendComment(item.id, item.itemType)}
+                      className="h-10 w-10 rounded-xl bg-primary text-black shrink-0"
+                    >
+                      <Send size={16} />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

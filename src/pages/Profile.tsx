@@ -37,7 +37,6 @@ const Profile = () => {
       setProfile(profileData);
       setCatches(currentCatches);
 
-      // Check which titles are earned based on logic
       const earned = TITLE_REQUIREMENTS
         .filter(t => t.check(currentCatches))
         .map(t => t.name);
@@ -78,26 +77,33 @@ const Profile = () => {
         </Button>
       </div>
 
-      {/* IDENTITY CARD */}
-      <Card className="border-none bg-card rounded-[40px] overflow-hidden shadow-2xl p-8 text-center relative border-t-4 border-primary">
-        <Avatar className="h-28 w-28 border-4 border-background shadow-xl mx-auto mb-4">
-          <AvatarImage src={profile?.avatar_url} />
-          <AvatarFallback className="text-2xl font-black">{profile?.display_name?.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-none">{profile?.display_name}</h2>
-        <p className="text-primary font-black italic uppercase text-[10px] tracking-widest mt-2">
-          {profile?.equipped_title || "Novice Castr"}
-        </p>
+      {/* IDENTITY CARD - FIXED THE TITLE DISPLAY HERE */}
+      <Card className="border-none bg-card rounded-[40px] overflow-hidden shadow-2xl p-10 text-center relative border-t-8 border-primary">
+        <div className="relative inline-block">
+          <Avatar className="h-32 w-32 border-4 border-background shadow-2xl mx-auto mb-6">
+            <AvatarImage src={profile?.avatar_url} />
+            <AvatarFallback className="text-3xl font-black">{profile?.display_name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+        </div>
+        
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none mb-2">{profile?.display_name}</h2>
+        
+        {/* THIS IS THE PART THAT WAS GONE */}
+        <div className="inline-block px-6 py-1 bg-primary/10 rounded-full border border-primary/20">
+          <p className="text-primary font-black italic uppercase text-[12px] tracking-widest">
+            {profile?.equipped_title || "Novice Castr"}
+          </p>
+        </div>
       </Card>
 
       {/* TITLE VAULT */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-2">
-          <Trophy size={16} className="text-yellow-500" />
+          <Trophy size={18} className="text-yellow-500" />
           <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">Title Vault</h3>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-3">
           {TITLE_REQUIREMENTS.map((t) => {
             const isUnlocked = unlockedTitles.includes(t.name);
             const isEquipped = profile?.equipped_title === t.name;
@@ -106,22 +112,28 @@ const Profile = () => {
               <div 
                 key={t.name}
                 onClick={() => isUnlocked && equipTitle(t.name)}
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                  isEquipped ? "border-primary bg-primary/5" : isUnlocked ? "border-muted bg-card hover:border-primary/50" : "border-transparent bg-muted/20 opacity-50"
+                className={`flex items-center justify-between p-5 rounded-[24px] border-2 transition-all duration-300 transform active:scale-95 cursor-pointer ${
+                  isEquipped 
+                    ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
+                    : isUnlocked 
+                      ? "border-muted bg-card hover:border-primary/40 shadow-sm" 
+                      : "border-transparent bg-muted/10 opacity-40 grayscale"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{t.icon}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl">{t.icon}</span>
                   <div className="text-left">
-                    <p className="text-xs font-black uppercase italic leading-none">{t.name}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{t.description}</p>
+                    <p className={`text-xs font-black uppercase italic leading-none ${isEquipped ? 'text-primary' : 'text-foreground'}`}>{t.name}</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1.5 tracking-tight">{t.description}</p>
                   </div>
                 </div>
                 {isEquipped ? (
-                  <CheckCircle2 size={16} className="text-primary" />
+                  <CheckCircle2 size={18} className="text-primary animate-in zoom-in" />
                 ) : !isUnlocked ? (
-                  <Lock size={14} className="text-muted-foreground" />
-                ) : null}
+                  <Lock size={14} className="text-muted-foreground/50" />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-primary/30" />
+                )}
               </div>
             );
           })}
@@ -131,15 +143,15 @@ const Profile = () => {
       {/* CATCH HISTORY GRID */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-2">
-          <Fish size={16} className="text-primary" />
-          <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">Recent Catches</h3>
+          <Fish size={18} className="text-primary" />
+          <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">Catch Log</h3>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {catches.map((c) => (
-            <div key={c.id} className="aspect-square rounded-xl overflow-hidden bg-muted relative group">
-              <img src={c.image_url} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <span className="text-[8px] font-black text-white uppercase italic">{c.species}</span>
+            <div key={c.id} className="aspect-square rounded-2xl overflow-hidden bg-muted border border-border/50 relative group shadow-sm">
+              <img src={c.image_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 flex items-end justify-center p-2 transition-opacity">
+                <span className="text-[7px] font-black text-white uppercase italic tracking-tighter">{c.species}</span>
               </div>
             </div>
           ))}

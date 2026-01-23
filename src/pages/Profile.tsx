@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Fish, Trophy, Lock, CheckCircle2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,7 +15,14 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const TITLE_REQUIREMENTS = [
+  // These are your heritage titles that stay unlocked forever
+  const BASE_TITLES = [
+    { name: "OG CASTR", icon: "⚡", description: "Alpha Member Status" },
+    { name: "Beginner", icon: "🎣", description: "The Journey Begins" },
+    { name: "Novice Castr", icon: "🐣", description: "Default Status" }
+  ];
+
+  const CHALLENGE_TITLES = [
     { name: "Musky Magician", icon: "🪄", description: "Catch a Musky", check: (c: any[]) => c.some(f => f.species?.toLowerCase().includes('musk')) },
     { name: "Walleye Wizard", icon: "🧙", description: "Catch a Walleye", check: (c: any[]) => c.some(f => f.species?.toLowerCase().includes('walley')) },
     { name: "Ruler of Pikes", icon: "👑", description: "Catch 3 Pikes", check: (c: any[]) => c.filter(f => f.species?.toLowerCase().includes('pike')).length >= 3 },
@@ -37,13 +43,13 @@ const Profile = () => {
       setProfile(profileData);
       setCatches(currentCatches);
 
-      // Auto-unlock logic based on catch history
-      const earned = TITLE_REQUIREMENTS
+      // Auto-unlock challenge titles
+      const earnedChallenges = CHALLENGE_TITLES
         .filter(t => t.check(currentCatches))
         .map(t => t.name);
       
-      // Always allow "Novice Castr" as a fallback
-      setUnlockedTitles([...earned, "Novice Castr"]);
+      // Merge with BASE_TITLES
+      setUnlockedTitles([...BASE_TITLES.map(b => b.name), ...earnedChallenges]);
     } finally { setLoading(false); }
   };
 
@@ -55,16 +61,15 @@ const Profile = () => {
 
     if (!error) {
       setProfile({ ...profile, equipped_title: titleName });
-      toast({ title: "Title Equipped!", description: `You are now known as the ${titleName}` });
+      toast({ title: "Identity Updated", description: `Equipped: ${titleName}` });
     }
   };
 
   useEffect(() => { fetchProfileData(); }, []);
 
   if (loading) return (
-    <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
+    <div className="flex h-[80vh] flex-col items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="font-black italic uppercase text-primary">Syncing Angler ID...</p>
     </div>
   );
 
@@ -77,59 +82,66 @@ const Profile = () => {
         </Button>
       </div>
 
-      {/* Main Identity Card */}
-      <Card className="border-none bg-card rounded-[40px] shadow-2xl p-10 text-center relative border-t-8 border-primary overflow-hidden">
-        {/* Subtle Background Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-primary/20 blur-[60px] rounded-full" />
-        
-        <Avatar className="h-32 w-32 border-4 border-background shadow-2xl mx-auto mb-6 relative z-10">
+      {/* Profile Identity Card */}
+      <Card className="border-none bg-card rounded-[40px] shadow-2xl p-10 text-center relative border-t-8 border-primary">
+        <Avatar className="h-32 w-32 border-4 border-background shadow-2xl mx-auto mb-6">
           <AvatarImage src={profile?.avatar_url} />
           <AvatarFallback className="text-3xl font-black">{profile?.display_name?.charAt(0)}</AvatarFallback>
         </Avatar>
-        
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-3 relative z-10">{profile?.display_name}</h2>
-        
-        <div className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-black rounded-full shadow-lg transform -rotate-1">
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">{profile?.display_name}</h2>
+        <div className="inline-flex items-center gap-2 px-8 py-2 bg-primary text-black rounded-full shadow-lg">
           <Trophy size={14} />
-          <p className="font-black italic uppercase text-[12px] tracking-widest">
-            {profile?.equipped_title || "Novice Castr"}
+          <p className="font-black italic uppercase text-[14px] tracking-widest leading-none">
+            {profile?.equipped_title || "OG CASTR"}
           </p>
         </div>
       </Card>
 
       {/* Title Vault */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2">
-            <Trophy size={18} className="text-yellow-500" />
-            <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">Title Vault</h3>
-          </div>
-          <span className="text-[10px] font-black text-primary uppercase bg-primary/10 px-2 py-0.5 rounded">
-            {unlockedTitles.length - 1} / 5 Earned
-          </span>
-        </div>
+        <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Title Vault</h3>
         
-        <div className="space-y-3">
-          {TITLE_REQUIREMENTS.map((t) => {
+        {/* Heritage Titles (Always Unlocked) */}
+        <div className="space-y-2 mb-6">
+          {BASE_TITLES.map((t) => (
+            <div 
+              key={t.name}
+              onClick={() => equipTitle(t.name)}
+              className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                profile?.equipped_title === t.name ? "border-primary bg-primary/5" : "border-muted bg-card hover:border-primary/30"
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-xl">{t.icon}</span>
+                <div className="text-left">
+                  <p className="text-xs font-black uppercase italic leading-none">{t.name}</p>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Heritage Status</p>
+                </div>
+              </div>
+              {profile?.equipped_title === t.name && <CheckCircle2 size={18} className="text-primary" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Challenge Titles */}
+        <div className="space-y-2">
+          <p className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] px-2 mb-2">Earned Achievements</p>
+          {CHALLENGE_TITLES.map((t) => {
             const isUnlocked = unlockedTitles.includes(t.name);
-            const isEquipped = (profile?.equipped_title || "Novice Castr") === t.name;
+            const isEquipped = profile?.equipped_title === t.name;
 
             return (
               <div 
                 key={t.name}
                 onClick={() => isUnlocked && equipTitle(t.name)}
-                className={`flex items-center justify-between p-5 rounded-[24px] border-2 transition-all duration-300 ${
-                  isEquipped 
-                    ? "border-primary bg-primary/5 scale-[1.02]" 
-                    : isUnlocked 
-                      ? "border-muted bg-card hover:border-primary/40 cursor-pointer" 
-                      : "border-transparent bg-muted/10 opacity-30 cursor-not-allowed"
+                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                  isEquipped ? "border-primary bg-primary/5" : isUnlocked ? "border-muted bg-card hover:border-primary/30 cursor-pointer" : "bg-muted/10 opacity-30 grayscale cursor-not-allowed"
                 }`}
               >
                 <div className="flex items-center gap-4 text-left">
-                  <span className="text-2xl">{isUnlocked ? t.icon : "🔒"}</span>
+                  <span className="text-xl">{isUnlocked ? t.icon : "🔒"}</span>
                   <div>
-                    <p className={`text-xs font-black uppercase italic ${isEquipped ? 'text-primary' : 'text-foreground'}`}>{t.name}</p>
+                    <p className="text-xs font-black uppercase italic leading-none">{t.name}</p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{t.description}</p>
                   </div>
                 </div>
@@ -137,18 +149,6 @@ const Profile = () => {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Catch Grid */}
-      <div className="space-y-4">
-        <h3 className="text-left text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Catch Log</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {catches.map((c) => (
-            <div key={c.id} className="aspect-square rounded-2xl overflow-hidden bg-muted border border-border/50">
-              <img src={c.image_url} className="w-full h-full object-cover" />
-            </div>
-          ))}
         </div>
       </div>
     </div>

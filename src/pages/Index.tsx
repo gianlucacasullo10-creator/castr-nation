@@ -11,7 +11,6 @@ import { Heart, MessageCircle, MapPin, Award, Send, Loader2, RefreshCw } from "l
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const { toast } = useToast();
@@ -19,32 +18,41 @@ const Index = () => {
   const fetchUnifiedFeed = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-
+      
       // 1. Fetch Raw Data
       const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
       const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
       const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url, active_title');
       const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
+      
+      // 2. Fetch Comments and include author info
+      const { data: comments } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles (display_name, avatar_url)
+        `)
+        .order('created_at', { ascending: true });
 
       const profileMap = (profiles || []).reduce((acc: any, p) => {
         acc[p.id] = p;
         return acc;
       }, {});
 
-      // 2. Combine and manually attach profile data
+      // 3. Combine and manually attach data
       const combined = [
         ...(catches || []).map(c => ({ 
           ...c, 
           itemType: 'CATCH', 
           profiles: profileMap[c.user_id],
-          likes: (likes || []).filter(l => l.catch_id === c.id)
+          likes: (likes || []).filter(l => l.catch_id === c.id),
+          comments: (comments || []).filter(com => com.catch_id === c.id)
         })),
         ...(activities || []).map(a => ({ 
           ...a, 
           itemType: 'ACTIVITY', 
-          profiles: profileMap[a.user_id] 
+          profiles: profileMap[a.user_id],
+          comments: (comments || []).filter(com => com.activity_id === a.id)
         }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -61,32 +69,40 @@ const Index = () => {
   }, []);
 
   const handleLike = async (catchId: string) => {
-    if (!currentUser) return;
-    const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from('likes').insert([{ user_id: user.id, catch_id: catchId }]);
     if (!error) fetchUnifiedFeed();
   };
 
   const handleSendComment = async (itemId: string, type: string) => {
-    if (!commentText.trim() || !currentUser) return;
+    if (!commentText.trim()) return;
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ variant: "destructive", title: "Sign in required" });
+        return;
+      }
+
       const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
       const { error } = await supabase
         .from('comments')
         .insert([{ 
-          user_id: currentUser.id, 
+          user_id: user.id, 
           [column]: itemId, 
           comment_text: commentText 
         }]);
 
       if (error) throw error;
 
-      toast({ title: "Comment Posted!" });
       setCommentText("");
       setActiveCommentId(null);
       fetchUnifiedFeed();
+      toast({ title: "Comment Posted!" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: "Make sure the comments table exists in Supabase." });
+      console.error("Post Error:", error);
+      toast({ variant: "destructive", title: "Post Failed", description: error.message });
     }
   };
 
@@ -112,8 +128,6 @@ const Index = () => {
         </div>
       ) : (
         feedItems.map((item) => {
-          const isLiked = item.likes?.some((l: any) => l.user_id === currentUser?.id);
-          
           return (
             <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
               <CardHeader className="flex-row items-center justify-between space-y-0 p-4 text-left">
@@ -139,7 +153,7 @@ const Index = () => {
               ) : (
                 <div className="aspect-square relative overflow-hidden">
                   <img src={item.image_url} className="w-full h-full object-cover" alt="Catch" />
-                  <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1">AI VERIFIED</Badge>
+                  <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase">AI Verified</Badge>
                 </div>
               )}
 
@@ -161,8 +175,8 @@ const Index = () => {
 
                 <div className="flex items-center gap-6 pt-4 border-t border-border/40">
                   {item.itemType === 'CATCH' && (
-                    <button onClick={() => handleLike(item.id)} className={`flex items-center gap-2 ${isLiked ? "text-red-500" : "text-muted-foreground"}`}>
-                      <Heart size={22} className={isLiked ? "fill-current" : ""} />
+                    <button onClick={() => handleLike(item.id)} className="flex items-center gap-2 text-muted-foreground hover:text-red-500">
+                      <Heart size={22} />
                       <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0}</span>
                     </button>
                   )}
@@ -171,11 +185,35 @@ const Index = () => {
                     className={`flex items-center gap-2 ${activeCommentId === item.id ? "text-primary" : "text-muted-foreground"}`}
                   >
                     <MessageCircle size={22} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Chat</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      Chat ({item.comments?.length || 0})
+                    </span>
                   </button>
                 </div>
 
-                {/* --- THE MISSING COMMENT BOX --- */}
+                {/* --- COMMENTS LIST --- */}
+                {item.comments?.length > 0 && (
+                  <div className="space-y-3 pt-2 text-left">
+                    {item.comments.map((comment: any) => (
+                      <div key={comment.id} className="flex gap-2 items-start">
+                        <Avatar className="h-5 w-5 border border-primary/20">
+                          <AvatarImage src={comment.profiles?.avatar_url} />
+                          <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
+                          <p className="text-[9px] font-black uppercase text-primary italic leading-none mb-1">
+                            {comment.profiles?.display_name}
+                          </p>
+                          <p className="text-[11px] font-medium leading-tight text-foreground/80">
+                            {comment.comment_text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* --- COMMENT INPUT --- */}
                 {activeCommentId === item.id && (
                   <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-200">
                     <Input

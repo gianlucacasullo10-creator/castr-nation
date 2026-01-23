@@ -61,10 +61,39 @@ const Clubs = () => {
   }, [selectedClub, view]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  if (!newMessage.trim()) return;
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to chat." });
+      return;
+    }
+
+    // Prepare the message for the database
+    const { error } = await supabase.from('club_messages').insert([
+      { 
+        club_id: selectedClub.id, 
+        user_id: user.id, 
+        message_text: newMessage 
+      }
+    ]);
+
+    if (error) throw error;
+
+    // Clear the input and refresh the messages
+    setNewMessage("");
+    fetchMessages(selectedClub.id); 
+    
+  } catch (err: any) {
+    console.error("Chat Error:", err);
+    toast({ 
+      variant: "destructive", 
+      title: "Chat Failed", 
+      description: err.message 
+    });
+  }
+};
 
       const { error } = await supabase.from('club_messages').insert([
         { club_id: selectedClub.id, user_id: user.id, message_text: newMessage }

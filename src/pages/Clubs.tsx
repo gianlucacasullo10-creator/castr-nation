@@ -4,9 +4,22 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Users, ChevronLeft, Swords, MapPin, Loader2, Crown, Trophy, MessageSquare, Send } from "lucide-react";
+import { 
+  Users, 
+  ChevronLeft, 
+  Swords, 
+  MapPin, 
+  Loader2, 
+  Crown, 
+  Trophy, 
+  MessageSquare, 
+  Send,
+  Settings,
+  Camera,
+  Check,
+  X
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const Clubs = () => {
@@ -20,6 +33,13 @@ const Clubs = () => {
   const [view, setView] = useState<'INFO' | 'CHAT'>('INFO');
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // NEW: Editing State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editRegion, setEditRegion] = useState("");
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -27,9 +47,51 @@ const Clubs = () => {
 
   const fetchClubs = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
     const { data } = await supabase.from('clubs').select('*');
     setClubs(data || []);
     setLoading(false);
+  };
+
+  const handleClubLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file || !selectedClub) return;
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `clubs/${selectedClub.id}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars') // Using your avatars bucket
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      await supabase.from('clubs').update({ image_url: publicUrl }).eq('id', selectedClub.id);
+      
+      setSelectedClub({ ...selectedClub, image_url: publicUrl });
+      toast({ title: "Club Logo Updated!" });
+      fetchClubs();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Upload failed", description: error.message });
+    }
+  };
+
+  const updateClubDetails = async () => {
+    const { error } = await supabase
+      .from('clubs')
+      .update({ name: editName, region: editRegion })
+      .eq('id', selectedClub.id);
+
+    if (!error) {
+      setSelectedClub({ ...selectedClub, name: editName, region: editRegion });
+      setIsEditing(false);
+      toast({ title: "Club Details Updated!" });
+      fetchClubs();
+    }
   };
 
   const fetchMessages = async (clubId: string) => {
@@ -59,12 +121,10 @@ const Clubs = () => {
   }, [selectedClub, view]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { error } = await supabase.from('club_messages').insert([
-        { club_id: selectedClub.id, user_id: user.id, message_text: newMessage }
+        { club_id: selectedClub.id, user_id: currentUser.id, message_text: newMessage }
       ]);
       if (error) throw error;
       setNewMessage("");
@@ -76,13 +136,9 @@ const Clubs = () => {
 
   const fetchClubDetails = async (club: any) => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // 1. Get all memberships for ALL clubs in this region to calculate rank
     const { data: allMemberships } = await supabase.from('club_members').select('user_id, club_id');
     const { data: allCatches } = await supabase.from('catches').select('user_id, points');
     
-    // 2. Calculate points for every club to find ranking
     const clubScoreMap: Record<string, number> = {};
     allMemberships?.forEach(m => {
       const userPoints = allCatches?.filter(c => c.user_id === m.user_id).reduce((sum, c) => sum + (c.points || 0), 0) || 0;
@@ -97,9 +153,8 @@ const Clubs = () => {
     const rank = regionalClubs.findIndex(c => c.id === club.id) + 1;
     setRegionalRank(rank);
 
-    // 3. Get specific details for the selected club
     const currentClubMemberIds = allMemberships?.filter(m => m.club_id === club.id).map(m => m.user_id) || [];
-    setIsMember(currentClubMemberIds.includes(user?.id || ''));
+    setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
 
     const { data: profiles } = await supabase.from('profiles').select('*');
     const memberStats = (profiles || [])
@@ -112,6 +167,8 @@ const Clubs = () => {
     setTotalPoints(clubScoreMap[club.id] || 0);
     setClubMembers(memberStats);
     setSelectedClub(club);
+    setEditName(club.name);
+    setEditRegion(club.region);
     setLoading(false);
   };
 
@@ -132,11 +189,14 @@ const Clubs = () => {
           <div className="space-y-4">
             {clubs.map((club) => (
               <Card key={club.id} onClick={() => fetchClubDetails(club)} className="border-none rounded-[32px] bg-card p-6 shadow-xl cursor-pointer text-left hover:scale-[1.02] transition-transform">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
-                      <MapPin size={12} /> {club.region}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <img src={club.image_url || "/placeholder.svg"} className="h-12 w-12 rounded-xl object-cover border border-primary/20" />
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
+                        <MapPin size={12} /> {club.region}
+                      </div>
                     </div>
                   </div>
                   <Users className="text-primary/40" size={24} />
@@ -148,7 +208,7 @@ const Clubs = () => {
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
           <div className="flex justify-between items-center">
-            <button onClick={() => { setSelectedClub(null); setView('INFO'); }} className="flex items-center gap-2 text-primary font-black uppercase italic text-xs">
+            <button onClick={() => { setSelectedClub(null); setView('INFO'); setIsEditing(false); }} className="flex items-center gap-2 text-primary font-black uppercase italic text-xs">
               <ChevronLeft size={16} /> Directory
             </button>
             {isMember && (
@@ -167,22 +227,50 @@ const Clubs = () => {
 
           {view === 'INFO' ? (
             <div className="space-y-6">
-              <div className="flex justify-between items-start">
-                <div className="text-left">
-                  <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedClub.name}</h1>
-                  <div className="flex gap-2 mt-3">
-                    <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] uppercase italic tracking-widest">{selectedClub.region}</Badge>
-                    <Badge className={`${regionalRank === 1 ? "bg-yellow-500 text-black" : "bg-muted text-muted-foreground"} border-none font-black text-[9px] uppercase italic px-3`}>
-                      <Trophy size={10} className="mr-1" /> Rank #{regionalRank}
-                    </Badge>
-                  </div>
+              <div className="flex flex-col items-center">
+                {/* CLUB LOGO WITH UPLOAD */}
+                <div className="relative group mb-4">
+                   <img src={selectedClub.image_url || "/placeholder.svg"} className="h-24 w-24 rounded-[32px] object-cover border-4 border-card shadow-2xl" />
+                   {currentUser?.id === selectedClub.created_by && (
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[32px] opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                        <Camera className="text-white" size={20} />
+                        <input type="file" className="hidden" accept="image/*" onChange={handleClubLogoUpload} />
+                      </label>
+                   )}
                 </div>
-                <Button variant="outline" className="rounded-xl font-black italic uppercase text-[10px] h-8 px-4 opacity-50">Leave</Button>
+
+                <div className="w-full text-center">
+                  {isEditing ? (
+                    <div className="space-y-2 animate-in zoom-in-95">
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-10 bg-muted border-primary font-black uppercase italic text-center text-xl" />
+                      <Input value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className="h-8 bg-muted border-none font-black uppercase italic text-center text-xs text-primary" />
+                      <div className="flex justify-center gap-2 mt-2">
+                        <Button size="sm" className="bg-primary text-black" onClick={updateClubDetails}><Check size={14} className="mr-1"/> Save</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}><X size={14} className="mr-1"/> Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedClub.name}</h1>
+                      <div className="flex justify-center gap-2 mt-3">
+                        <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] uppercase italic tracking-widest">{selectedClub.region}</Badge>
+                        <Badge className={`${regionalRank === 1 ? "bg-yellow-500 text-black" : "bg-muted text-muted-foreground"} border-none font-black text-[9px] uppercase italic px-3`}>
+                          <Trophy size={10} className="mr-1" /> Rank #{regionalRank}
+                        </Badge>
+                      </div>
+                      {currentUser?.id === selectedClub.created_by && (
+                        <button onClick={() => setIsEditing(true)} className="absolute -right-2 top-0 p-2 text-muted-foreground hover:text-primary transition-colors">
+                          <Settings size={16} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* POWER CARD WITH DYNAMIC GLOW */}
+              {/* POWER CARD (Dynamic UI from your original) */}
               <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary shadow-[0_0_40px_rgba(var(--primary),0.3)]' : 'bg-black border border-white/10'}`}>
-                <div className="relative z-10">
+                <div className="relative z-10 text-left">
                   <div className="flex justify-between items-start mb-8">
                     <div>
                       <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${totalPoints >= BATTLE_THRESHOLD ? 'text-black/60' : 'text-primary'}`}>Total Club Power</p>
@@ -202,9 +290,6 @@ const Clubs = () => {
                         style={{ width: `${Math.min(100, (totalPoints / BATTLE_THRESHOLD) * 100)}%` }}
                       />
                     </div>
-                    <p className={`text-[9px] font-black uppercase text-center tracking-widest mt-2 ${totalPoints >= BATTLE_THRESHOLD ? 'text-black italic' : 'text-white/30'}`}>
-                      {totalPoints >= BATTLE_THRESHOLD ? "⚔️ Battle Mode Fully Active ⚔️" : `${(BATTLE_THRESHOLD - totalPoints).toLocaleString()} PTS to Unlock Battle`}
-                    </p>
                   </div>
                 </div>
               </Card>
@@ -223,7 +308,7 @@ const Clubs = () => {
                       </Avatar>
                       <div>
                         <p className="text-md font-black italic uppercase leading-none tracking-tight">{member.display_name}</p>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1.5 tracking-tighter opacity-70">{member.active_title || "Castr"}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1.5 tracking-tighter opacity-70">{member.equipped_title || "Castr"}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -235,18 +320,13 @@ const Clubs = () => {
               </div>
             </div>
           ) : (
+            /* CLUB CHAT (Your existing logic) */
             <div className="flex flex-col h-[65vh] animate-in fade-in zoom-in-95 duration-300">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-left text-2xl font-black italic uppercase tracking-tighter text-primary">Club Chat</h2>
                   <Badge variant="outline" className="text-[8px] border-primary/20 text-primary/60 font-black px-2 py-0">ENCRYPTED</Badge>
                </div>
               <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-2 scrollbar-hide">
-                {messages.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center opacity-10">
-                    <MessageSquare size={64} strokeWidth={1} />
-                    <p className="text-[10px] font-black uppercase mt-4 tracking-[0.2em]">Secure Channel Opened</p>
-                  </div>
-                )}
                 {messages.map((msg) => (
                   <div key={msg.id} className="flex flex-col text-left">
                     <span className="text-[9px] font-black uppercase text-primary italic ml-3 mb-1 opacity-70">{msg.profiles?.display_name}</span>
@@ -257,18 +337,9 @@ const Clubs = () => {
                 ))}
                 <div ref={scrollRef} />
               </div>
-              
               <div className="flex gap-2 pt-6 bg-background border-t border-muted/30">
-                <Input 
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Drop a transmission..."
-                  className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5"
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                />
-                <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0 shadow-[0_0_20px_rgba(var(--primary),0.3)]">
-                  <Send size={22} />
-                </Button>
+                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Drop a transmission..." className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
+                <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0 shadow-[0_0_20px_rgba(var(--primary),0.3)]"><Send size={22} /></Button>
               </div>
             </div>
           )}

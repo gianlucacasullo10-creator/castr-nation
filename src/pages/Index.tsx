@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import Feed from "@/components/Feed";
-import CreatePost from "@/components/CreatePost";
+// Using dynamic imports or ensuring paths match your file tree
+import Feed from "../components/Feed"; 
+import CreatePost from "../components/CreatePost";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,6 @@ import {
   LayoutDashboard, 
   PlusCircle, 
   Trophy, 
-  TrendingUp, 
   Search,
   Zap
 } from "lucide-react";
@@ -25,12 +25,10 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -53,9 +51,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* DYNAMINC HEADER 
-          Includes the login/signup button or profile link
-      */}
       <header className="pt-8 px-6 flex justify-between items-center sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-primary/5 pb-4">
         <div className="text-left">
           <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
@@ -89,7 +84,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* FEED SUB-NAVIGATION */}
       <main className="max-w-md mx-auto px-4 pt-6">
         <Tabs defaultValue="all" className="w-full mb-6" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between mb-4">
@@ -111,9 +105,8 @@ const Index = () => {
             <Feed filter="all" />
           </TabsContent>
           <TabsContent value="following" className="mt-0">
-             {/* If not logged in, show a CTA instead of the regional feed */}
              {!session ? (
-               <Card className="p-12 border-dashed border-2 border-muted bg-transparent text-center rounded-[32px]">
+               <Card className="p-12 border-dashed border-2 border-muted bg-transparent text-center rounded-[32px] overflow-hidden">
                  <Search className="mx-auto mb-4 text-muted-foreground opacity-20" size={40} />
                  <p className="font-black italic uppercase text-xs text-muted-foreground mb-4">Regional feed is for members only</p>
                  <Button onClick={() => navigate("/auth")} variant="outline" className="rounded-xl font-black italic uppercase text-[10px]">
@@ -127,7 +120,6 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* CREATE POST OVERLAY */}
       {showCreatePost && (
         <div className="fixed inset-0 z-[100] bg-background animate-in slide-in-from-bottom duration-300">
           <div className="p-4 flex justify-between items-center border-b">
@@ -140,15 +132,14 @@ const Index = () => {
         </div>
       )}
 
-      {/* GUEST CTA TOAST (Fixed at bottom) */}
       {!session && (
         <div className="fixed bottom-24 left-4 right-4 z-40">
-          <div className="bg-primary p-4 rounded-[24px] shadow-2xl flex items-center justify-between animate-bounce-subtle">
+          <div className="bg-primary p-4 rounded-[24px] shadow-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-black rounded-full p-2">
                 <Trophy size={16} className="text-primary" />
               </div>
-              <div>
+              <div className="text-left">
                 <p className="text-black font-black italic uppercase text-[10px] leading-tight">Claim your Titles</p>
                 <p className="text-black/60 font-bold text-[8px] uppercase">Join Pike Agartha Today</p>
               </div>

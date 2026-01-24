@@ -12,7 +12,8 @@ import Capture from "./pages/Capture";
 import Leaderboards from "./pages/Leaderboards";
 import Profile from "./pages/Profile";
 import Clubs from "./pages/Clubs";
-import Auth from "./pages/Auth"; // 1. ADD THIS IMPORT
+import Auth from "./pages/Auth";
+import PublicProfile from "./pages/PublicProfile"; // <--- ADD THIS IMPORT
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,10 +62,14 @@ const App = () => {
           <div className="min-h-screen bg-background pb-20">
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} /> {/* 2. ADD THIS ROUTE */}
+              <Route path="/auth" element={<Auth />} />
               <Route path="/capture" element={<Capture />} />
               <Route path="/leaderboards" element={<Leaderboards />} />
               <Route path="/profile" element={<Profile />} />
+              
+              {/* PUBLIC PROFILE ROUTE WITH ID PARAMETER */}
+              <Route path="/profile/:id" element={<PublicProfile />} />
+              
               <Route path="/clubs" element={<Clubs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

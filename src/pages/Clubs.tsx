@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // Added for routing
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,12 +19,12 @@ import {
   Settings,
   Camera,
   Check,
-  X,
-  Anchor
+  X
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const Clubs = () => {
+  const navigate = useNavigate();
   const [clubs, setClubs] = useState<any[]>([]);
   const [selectedClub, setSelectedClub] = useState<any>(null);
   const [clubMembers, setClubMembers] = useState<any[]>([]);
@@ -31,15 +32,11 @@ const Clubs = () => {
   const [loading, setLoading] = useState(true);
   const [totalPoints, setTotalPoints] = useState(0);
   const [regionalRank, setRegionalRank] = useState(1);
-  const [view, setView] = useState<'INFO' | 'CHAT' | 'PUBLIC_PROFILE'>('INFO');
+  const [view, setView] = useState<'INFO' | 'CHAT'>('INFO'); // Removed PUBLIC_PROFILE view
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // Profile Discovery State
-  const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
-  const [selectedUserStats, setSelectedUserStats] = useState({ totalPoints: 0, catchCount: 0 });
-
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
@@ -90,22 +87,9 @@ const Clubs = () => {
     }
   };
 
-  const handleUserClick = async (userId: string) => {
-    setLoading(true);
-    try {
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      const { data: catches } = await supabase.from('catches').select('points').eq('user_id', userId);
-      
-      const total = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
-      
-      setSelectedUserProfile(profile);
-      setSelectedUserStats({ totalPoints: total, catchCount: catches?.length || 0 });
-      setView('PUBLIC_PROFILE');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Profile Error" });
-    } finally {
-      setLoading(false);
-    }
+  // Updated to use the new Route!
+  const handleUserClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
   };
 
   const handleClubLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,16 +222,12 @@ const Clubs = () => {
         </>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-          {/* HEADER NAVIGATION */}
           <div className="flex justify-between items-center">
             <button 
-              onClick={() => { 
-                if (view === 'PUBLIC_PROFILE') setView('INFO');
-                else { setSelectedClub(null); setView('INFO'); setIsEditing(false); }
-              }} 
+              onClick={() => { setSelectedClub(null); setView('INFO'); setIsEditing(false); }} 
               className="flex items-center gap-2 text-primary font-black uppercase italic text-xs"
             >
-              <ChevronLeft size={16} /> {view === 'PUBLIC_PROFILE' ? 'Back to Club' : 'Directory'}
+              <ChevronLeft size={16} /> Directory
             </button>
             {isMember && view === 'INFO' && (
               <Button variant="ghost" onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} className="text-primary font-black uppercase text-[10px] italic">
@@ -300,7 +280,6 @@ const Clubs = () => {
                 </div>
               </div>
 
-              {/* POWER CARD */}
               <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary' : 'bg-black border border-white/10'}`}>
                 <div className="relative z-10 text-left">
                   <div className="flex justify-between items-start mb-8">
@@ -318,7 +297,6 @@ const Clubs = () => {
                 </div>
               </Card>
 
-              {/* JOIN / LEAVE ACTION */}
               <div className="px-2">
                 {!isMember ? (
                   <Button onClick={joinClub} className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase italic shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:scale-[1.02] transition-transform">
@@ -333,13 +311,12 @@ const Clubs = () => {
                 )}
               </div>
 
-              {/* MEMBER LIST */}
               <div className="space-y-4">
                 <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Member Rankings</h3>
                 {clubMembers.map((member, index) => (
                   <div 
                     key={member.id} 
-                    onClick={() => handleUserClick(member.id)}
+                    onClick={() => handleUserClick(member.id)} // Navigates to dedicated page
                     className="flex items-center justify-between p-4 bg-card rounded-[24px] border border-border/50 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-4 text-left">
@@ -385,43 +362,6 @@ const Clubs = () => {
               <div className="flex gap-2 pt-6 bg-background border-t border-muted/30">
                 <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Drop a transmission..." className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
                 <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0"><Send size={22} /></Button>
-              </div>
-            </div>
-          )}
-
-          {view === 'PUBLIC_PROFILE' && selectedUserProfile && (
-            <div className="space-y-6 animate-in zoom-in-95 duration-300">
-              <div className="flex flex-col items-center space-y-4">
-                <img 
-                  src={selectedUserProfile.avatar_url || "/placeholder.svg"} 
-                  className="h-32 w-32 rounded-[40px] object-cover border-4 border-primary/20 shadow-2xl" 
-                />
-                <div className="text-center">
-                  <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedUserProfile.display_name}</h1>
-                  <p className="text-primary font-black uppercase italic text-[10px] tracking-widest mt-2">
-                    {selectedUserProfile.equipped_title || "PRO CASTR"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-card p-6 rounded-[32px] text-center border border-white/5 shadow-xl">
-                  <Trophy className="mx-auto mb-2 text-primary" size={20} />
-                  <p className="text-2xl font-black italic">{selectedUserStats.totalPoints.toLocaleString()}</p>
-                  <p className="text-[8px] font-black uppercase opacity-40">Total Points</p>
-                </div>
-                <div className="bg-card p-6 rounded-[32px] text-center border border-white/5 shadow-xl">
-                  <Anchor className="mx-auto mb-2 text-primary" size={20} />
-                  <p className="text-2xl font-black italic">{selectedUserStats.catchCount}</p>
-                  <p className="text-[8px] font-black uppercase opacity-40">Catches</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-2xl">
-                  <MapPin size={16} className="text-primary" />
-                  <span className="font-black uppercase italic text-xs">{selectedUserProfile.region || "Unknown Waters"}</span>
-                </div>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom"; // Added for navigation
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ const Index = () => {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const { toast } = useToast();
-  const navigate = useNavigate(); // Hook for the login button
+  const navigate = useNavigate();
 
   const fetchUnifiedFeed = async (showLoading = true) => {
     try {
@@ -36,7 +36,7 @@ const Index = () => {
 
       const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
       const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
-      const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title'); // Changed to equipped_title
+      const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title');
       const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
       const { data: comments } = await supabase.from('comments').select('*, profiles(display_name, avatar_url)').order('created_at', { ascending: true });
 
@@ -68,8 +68,6 @@ const Index = () => {
 
   useEffect(() => {
     fetchUnifiedFeed();
-    
-    // Listen for auth changes to update the button state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
     });
@@ -111,7 +109,6 @@ const Index = () => {
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
-      {/* HEADER WITH NEW LOGIN BUTTON */}
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
         <div className="flex flex-col">
           <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">The Nation</h1>
@@ -145,8 +142,12 @@ const Index = () => {
         const isLiked = item.likes?.some((l: any) => l.user_id === currentUser?.id);
 
         return (
-          <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
-            <CardHeader className="flex-row items-center justify-between space-y-0 p-4 text-left">
+          <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl transition-all ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
+            {/* Header: Now Clickable for Profile Discovery */}
+            <CardHeader 
+              onClick={() => navigate(`/profile/${item.user_id}`)}
+              className="flex-row items-center justify-between space-y-0 p-4 text-left cursor-pointer hover:bg-muted/30 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <Avatar className={`h-10 w-10 border-2 ${item.itemType === 'ACTIVITY' ? 'border-primary' : 'border-primary/20'}`}>
                   <AvatarImage src={item.profiles?.avatar_url} />
@@ -208,16 +209,25 @@ const Index = () => {
                 </button>
               </div>
 
+              {/* Comments Section: Also clickable names/avatars */}
               {item.comments?.length > 0 && (
                 <div className="space-y-3 pt-2 text-left">
                   {item.comments.map((comment: any) => (
                     <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
-                      <Avatar className="h-5 w-5 border border-primary/20">
+                      <Avatar 
+                        className="h-5 w-5 border border-primary/20 cursor-pointer"
+                        onClick={() => navigate(`/profile/${comment.user_id}`)}
+                      >
                         <AvatarImage src={comment.profiles?.avatar_url} />
                         <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
-                        <p className="text-[9px] font-black uppercase text-primary italic leading-none mb-1">{comment.profiles?.display_name}</p>
+                        <p 
+                          className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
+                          onClick={() => navigate(`/profile/${comment.user_id}`)}
+                        >
+                          {comment.profiles?.display_name}
+                        </p>
                         <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
                       </div>
                     </div>

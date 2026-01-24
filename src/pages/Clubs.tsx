@@ -18,7 +18,8 @@ import {
   Settings,
   Camera,
   Check,
-  X
+  X,
+  Anchor
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -30,11 +31,15 @@ const Clubs = () => {
   const [loading, setLoading] = useState(true);
   const [totalPoints, setTotalPoints] = useState(0);
   const [regionalRank, setRegionalRank] = useState(1);
-  const [view, setView] = useState<'INFO' | 'CHAT'>('INFO');
+  const [view, setView] = useState<'INFO' | 'CHAT' | 'PUBLIC_PROFILE'>('INFO');
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   
+  // Profile Discovery State
+  const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [selectedUserStats, setSelectedUserStats] = useState({ totalPoints: 0, catchCount: 0 });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
@@ -53,55 +58,82 @@ const Clubs = () => {
     setLoading(false);
   };
 
+  const joinClub = async () => {
+    if (!currentUser || !selectedClub) return;
+    try {
+      const { error } = await supabase
+        .from('club_members')
+        .insert([{ club_id: selectedClub.id, user_id: currentUser.id }]);
+      if (error) throw error;
+      setIsMember(true);
+      fetchClubDetails(selectedClub);
+      toast({ title: "SQUAD JOINED", description: "Welcome to the ranks." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Join Failed", description: error.message });
+    }
+  };
+
+  const leaveClub = async () => {
+    if (!currentUser || !selectedClub) return;
+    try {
+      const { error } = await supabase
+        .from('club_members')
+        .delete()
+        .eq('club_id', selectedClub.id)
+        .eq('user_id', currentUser.id);
+      if (error) throw error;
+      setIsMember(false);
+      fetchClubDetails(selectedClub);
+      toast({ title: "FREE AGENT", description: "You have left the club." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Action Failed", description: error.message });
+    }
+  };
+
+  const handleUserClick = async (userId: string) => {
+    setLoading(true);
+    try {
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      const { data: catches } = await supabase.from('catches').select('points').eq('user_id', userId);
+      
+      const total = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+      
+      setSelectedUserProfile(profile);
+      setSelectedUserStats({ totalPoints: total, catchCount: catches?.length || 0 });
+      setView('PUBLIC_PROFILE');
+    } catch (error) {
+      toast({ variant: "destructive", title: "Profile Error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClubLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = event.target.files?.[0];
       if (!file || !selectedClub) return;
-
       const fileExt = file.name.split('.').pop();
       const fileName = `club-${selectedClub.id}-${Date.now()}.${fileExt}`;
 
-      // 1. Upload to Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file);
-
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
 
-      // 2. Get the Public URL
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-
-      // 3. Update Database with safety check
-      const { error: dbError } = await supabase
-        .from('clubs')
-        .update({ image_url: publicUrl })
-        .eq('id', selectedClub.id)
-        .select();
-
+      const { error: dbError } = await supabase.from('clubs').update({ image_url: publicUrl }).eq('id', selectedClub.id).select();
       if (dbError) throw dbError;
 
-      // 4. Update local state immediately
       setSelectedClub({ ...selectedClub, image_url: publicUrl });
-      
-      // Update the main list so directory icons change instantly
       setClubs(prev => prev.map(c => c.id === selectedClub.id ? { ...c, image_url: publicUrl } : c));
-
-      toast({ title: "Club Identity Saved!", description: "Your colors are now live." });
+      toast({ title: "Club Identity Saved!" });
     } catch (error: any) {
-      console.error("Upload process error:", error);
       toast({ variant: "destructive", title: "Save Failed", description: error.message });
     }
   };
 
   const updateClubDetails = async () => {
     try {
-      const { error } = await supabase
-        .from('clubs')
-        .update({ name: editName, region: editRegion })
-        .eq('id', selectedClub.id);
-
+      const { error } = await supabase.from('clubs').update({ name: editName, region: editRegion }).eq('id', selectedClub.id);
       if (error) throw error;
-
       setSelectedClub({ ...selectedClub, name: editName, region: editRegion });
       setClubs(prev => prev.map(c => c.id === selectedClub.id ? { ...c, name: editName, region: editRegion } : c));
       setIsEditing(false);
@@ -112,37 +144,24 @@ const Clubs = () => {
   };
 
   const fetchMessages = async (clubId: string) => {
-    const { data } = await supabase
-      .from('club_messages')
-      .select('*, profiles(display_name, avatar_url)')
-      .eq('club_id', clubId)
-      .order('created_at', { ascending: true });
+    const { data } = await supabase.from('club_messages').select('*, profiles(display_name, avatar_url)').eq('club_id', clubId).order('created_at', { ascending: true });
     setMessages(data || []);
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   useEffect(() => {
     if (!selectedClub || view !== 'CHAT') return;
-    const channel = supabase
-      .channel(`club_chat_${selectedClub.id}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'club_messages',
-        filter: `club_id=eq.${selectedClub.id}` 
-      }, () => {
+    const channel = supabase.channel(`club_chat_${selectedClub.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_messages', filter: `club_id=eq.${selectedClub.id}` }, () => {
         fetchMessages(selectedClub.id);
-      })
-      .subscribe();
+      }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [selectedClub, view]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUser) return;
     try {
-      const { error } = await supabase.from('club_messages').insert([
-        { club_id: selectedClub.id, user_id: currentUser.id, message_text: newMessage }
-      ]);
+      const { error } = await supabase.from('club_messages').insert([{ club_id: selectedClub.id, user_id: currentUser.id, message_text: newMessage }]);
       if (error) throw error;
       setNewMessage("");
       fetchMessages(selectedClub.id);
@@ -162,11 +181,7 @@ const Clubs = () => {
       clubScoreMap[m.club_id] = (clubScoreMap[m.club_id] || 0) + userPoints;
     });
 
-    const regionalClubs = clubs
-      .filter(c => c.region === club.region)
-      .map(c => ({ ...c, score: clubScoreMap[c.id] || 0 }))
-      .sort((a, b) => b.score - a.score);
-
+    const regionalClubs = clubs.filter(c => c.region === club.region).map(c => ({ ...c, score: clubScoreMap[c.id] || 0 })).sort((a, b) => b.score - a.score);
     const rank = regionalClubs.findIndex(c => c.id === club.id) + 1;
     setRegionalRank(rank);
 
@@ -174,8 +189,7 @@ const Clubs = () => {
     setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
 
     const { data: profiles } = await supabase.from('profiles').select('*');
-    const memberStats = (profiles || [])
-      .filter(p => currentClubMemberIds.includes(p.id))
+    const memberStats = (profiles || []).filter(p => currentClubMemberIds.includes(p.id))
       .map(p => ({
         ...p,
         totalPoints: (allCatches || []).filter(c => c.user_id === p.id).reduce((acc, curr) => acc + (curr.points || 0), 0)
@@ -224,25 +238,28 @@ const Clubs = () => {
         </>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+          {/* HEADER NAVIGATION */}
           <div className="flex justify-between items-center">
-            <button onClick={() => { setSelectedClub(null); setView('INFO'); setIsEditing(false); }} className="flex items-center gap-2 text-primary font-black uppercase italic text-xs">
-              <ChevronLeft size={16} /> Directory
+            <button 
+              onClick={() => { 
+                if (view === 'PUBLIC_PROFILE') setView('INFO');
+                else { setSelectedClub(null); setView('INFO'); setIsEditing(false); }
+              }} 
+              className="flex items-center gap-2 text-primary font-black uppercase italic text-xs"
+            >
+              <ChevronLeft size={16} /> {view === 'PUBLIC_PROFILE' ? 'Back to Club' : 'Directory'}
             </button>
-            {isMember && (
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setView(view === 'INFO' ? 'CHAT' : 'INFO');
-                  if (view === 'INFO') fetchMessages(selectedClub.id);
-                }}
-                className="text-primary font-black uppercase text-[10px] italic"
-              >
-                {view === 'INFO' ? <><MessageSquare size={14} className="mr-1" /> Club Chat</> : "Leaderboard"}
+            {isMember && view === 'INFO' && (
+              <Button variant="ghost" onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} className="text-primary font-black uppercase text-[10px] italic">
+                <MessageSquare size={14} className="mr-1" /> Club Chat
               </Button>
+            )}
+            {view === 'CHAT' && (
+              <Button variant="ghost" onClick={() => setView('INFO')} className="text-primary font-black uppercase text-[10px] italic">Leaderboard</Button>
             )}
           </div>
 
-          {view === 'INFO' ? (
+          {view === 'INFO' && (
             <div className="space-y-6">
               <div className="flex flex-col items-center">
                 <div className="relative group mb-4">
@@ -254,10 +271,9 @@ const Clubs = () => {
                       </label>
                    )}
                 </div>
-
                 <div className="w-full text-center">
                   {isEditing ? (
-                    <div className="space-y-2 animate-in zoom-in-95">
+                    <div className="space-y-2">
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-10 bg-muted border-primary font-black uppercase italic text-center text-xl" />
                       <Input value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className="h-8 bg-muted border-none font-black uppercase italic text-center text-xs text-primary" />
                       <div className="flex justify-center gap-2 mt-2">
@@ -284,7 +300,8 @@ const Clubs = () => {
                 </div>
               </div>
 
-              <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary shadow-[0_0_40px_rgba(var(--primary),0.3)]' : 'bg-black border border-white/10'}`}>
+              {/* POWER CARD */}
+              <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary' : 'bg-black border border-white/10'}`}>
                 <div className="relative z-10 text-left">
                   <div className="flex justify-between items-start mb-8">
                     <div>
@@ -293,26 +310,38 @@ const Clubs = () => {
                     </div>
                     <Swords size={48} className={totalPoints >= BATTLE_THRESHOLD ? "text-black animate-pulse" : "text-white/10"} />
                   </div>
-                  
                   <div className="space-y-3">
-                    <div className="flex justify-between text-[10px] font-black uppercase italic">
-                      <span className={totalPoints >= BATTLE_THRESHOLD ? 'text-black/60' : 'text-white/40'}>Battle Progress</span>
-                      <span className={totalPoints >= BATTLE_THRESHOLD ? 'text-black' : 'text-primary'}>{Math.min(100, Math.round((totalPoints / BATTLE_THRESHOLD) * 100))}%</span>
-                    </div>
                     <div className={`h-3 rounded-full overflow-hidden ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black/20' : 'bg-white/10'}`}>
-                      <div 
-                        className={`h-full transition-all duration-1000 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black' : 'bg-primary'}`} 
-                        style={{ width: `${Math.min(100, (totalPoints / BATTLE_THRESHOLD) * 100)}%` }}
-                      />
+                      <div className={`h-full transition-all duration-1000 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black' : 'bg-primary'}`} style={{ width: `${Math.min(100, (totalPoints / BATTLE_THRESHOLD) * 100)}%` }} />
                     </div>
                   </div>
                 </div>
               </Card>
 
+              {/* JOIN / LEAVE ACTION */}
+              <div className="px-2">
+                {!isMember ? (
+                  <Button onClick={joinClub} className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase italic shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:scale-[1.02] transition-transform">
+                    <Users size={18} className="mr-2" /> Join Squad
+                  </Button>
+                ) : (
+                  currentUser?.id !== selectedClub.created_by && (
+                    <Button variant="ghost" onClick={leaveClub} className="w-full h-10 text-muted-foreground font-black uppercase italic text-[10px] hover:text-destructive">
+                      Leave Club
+                    </Button>
+                  )
+                )}
+              </div>
+
+              {/* MEMBER LIST */}
               <div className="space-y-4">
                 <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Member Rankings</h3>
                 {clubMembers.map((member, index) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 bg-card rounded-[24px] border border-border/50 shadow-sm">
+                  <div 
+                    key={member.id} 
+                    onClick={() => handleUserClick(member.id)}
+                    className="flex items-center justify-between p-4 bg-card rounded-[24px] border border-border/50 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
                     <div className="flex items-center gap-4 text-left">
                       <div className="flex flex-col items-center w-4">
                          {index === 0 ? <Crown size={12} className="text-yellow-500 mb-1" /> : <span className="text-[10px] font-black text-primary/40">{index + 1}</span>}
@@ -334,7 +363,9 @@ const Clubs = () => {
                 ))}
               </div>
             </div>
-          ) : (
+          )}
+
+          {view === 'CHAT' && (
             <div className="flex flex-col h-[65vh] animate-in fade-in zoom-in-95 duration-300">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-left text-2xl font-black italic uppercase tracking-tighter text-primary">Club Chat</h2>
@@ -353,7 +384,44 @@ const Clubs = () => {
               </div>
               <div className="flex gap-2 pt-6 bg-background border-t border-muted/30">
                 <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Drop a transmission..." className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
-                <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0 shadow-[0_0_20px_rgba(var(--primary),0.3)]"><Send size={22} /></Button>
+                <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0"><Send size={22} /></Button>
+              </div>
+            </div>
+          )}
+
+          {view === 'PUBLIC_PROFILE' && selectedUserProfile && (
+            <div className="space-y-6 animate-in zoom-in-95 duration-300">
+              <div className="flex flex-col items-center space-y-4">
+                <img 
+                  src={selectedUserProfile.avatar_url || "/placeholder.svg"} 
+                  className="h-32 w-32 rounded-[40px] object-cover border-4 border-primary/20 shadow-2xl" 
+                />
+                <div className="text-center">
+                  <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedUserProfile.display_name}</h1>
+                  <p className="text-primary font-black uppercase italic text-[10px] tracking-widest mt-2">
+                    {selectedUserProfile.equipped_title || "PRO CASTR"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-card p-6 rounded-[32px] text-center border border-white/5 shadow-xl">
+                  <Trophy className="mx-auto mb-2 text-primary" size={20} />
+                  <p className="text-2xl font-black italic">{selectedUserStats.totalPoints.toLocaleString()}</p>
+                  <p className="text-[8px] font-black uppercase opacity-40">Total Points</p>
+                </div>
+                <div className="bg-card p-6 rounded-[32px] text-center border border-white/5 shadow-xl">
+                  <Anchor className="mx-auto mb-2 text-primary" size={20} />
+                  <p className="text-2xl font-black italic">{selectedUserStats.catchCount}</p>
+                  <p className="text-[8px] font-black uppercase opacity-40">Catches</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-2xl">
+                  <MapPin size={16} className="text-primary" />
+                  <span className="font-black uppercase italic text-xs">{selectedUserProfile.region || "Unknown Waters"}</span>
+                </div>
               </div>
             </div>
           )}

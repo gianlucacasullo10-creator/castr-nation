@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // 1. Added for navigation
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Medal, Loader2 } from "lucide-react";
 
 const Leaderboards = () => {
+  const navigate = useNavigate(); // 2. Initialize navigation
   const [rankings, setRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,7 @@ const Leaderboards = () => {
     try {
       setLoading(true);
       
-      // 1. Fetch all profiles first
+      // 1. Fetch all profiles
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, display_name, avatar_url, active_title');
@@ -26,20 +28,18 @@ const Leaderboards = () => {
 
       if (catchError) throw catchError;
 
-      // 3. Manually calculate totals (Simple & Fast)
+      // 3. Calculate totals
       const userTotals: Record<string, number> = {};
       catches?.forEach((c) => {
         userTotals[c.user_id] = (userTotals[c.user_id] || 0) + (c.points || 0);
       });
 
-      // 4. Map them together
+      // 4. Map and sort
       const finalRankings = (profiles || [])
         .map(profile => ({
           ...profile,
           totalPoints: userTotals[profile.id] || 0
         }))
-        // Filter out anyone with 0 points if you want a "clean" board, 
-        // or keep them to show all members. Let's keep all for now.
         .sort((a, b) => b.totalPoints - a.totalPoints);
 
       setRankings(finalRankings);
@@ -72,7 +72,7 @@ const Leaderboards = () => {
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       <div className="text-left">
         <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">The Standings</h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">North America Division</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">Global Division</p>
       </div>
 
       <div className="space-y-3">
@@ -82,8 +82,9 @@ const Leaderboards = () => {
           rankings.map((user, index) => (
             <Card 
               key={user.id} 
-              className={`border-none flex items-center p-4 gap-4 rounded-[24px] shadow-lg ${
-                index === 0 ? "bg-primary/10 border border-primary/20" : "bg-card"
+              onClick={() => navigate(`/profile/${user.id}`)} // 3. Click to view profile
+              className={`border-none flex items-center p-4 gap-4 rounded-[24px] shadow-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                index === 0 ? "bg-primary/10 border border-primary/20" : "bg-card hover:bg-muted/50"
               }`}
             >
               <div className="flex items-center justify-center min-w-[24px]">

@@ -57,7 +57,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       const fileExt = selectedImage.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
-        .from('catches')
+        .from('catch_photos')
         .upload(fileName, selectedImage);
 
       if (uploadError) throw uploadError;

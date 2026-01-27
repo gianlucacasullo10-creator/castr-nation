@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import CatchUpload from "@/components/CatchUpload"; // Import the new component
 import { 
   Heart, 
   MessageCircle, 
@@ -16,15 +17,18 @@ import {
   Loader2, 
   RefreshCw, 
   LogIn, 
-  UserCircle 
+  UserCircle,
+  Camera
 } from "lucide-react";
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -33,6 +37,16 @@ const Index = () => {
       if (showLoading) setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
+
+      // Fetch profile for clan info
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*, clan_name')
+          .eq('id', user.id)
+          .single();
+        setUserProfile(profile);
+      }
 
       const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
       const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
@@ -70,6 +84,7 @@ const Index = () => {
     fetchUnifiedFeed();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
+      if (session?.user) fetchUnifiedFeed(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -113,7 +128,9 @@ const Index = () => {
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">The Angling App</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">
+            {userProfile?.clan_name ? `${userProfile.clan_name} Clan` : "Global Angler Force"}
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
@@ -252,6 +269,26 @@ const Index = () => {
           </Card>
         );
       })}
+
+      {/* FLOATING ACTION BUTTON FOR UPLOADS */}
+      {currentUser && (
+        <Button 
+          onClick={() => setShowUpload(true)}
+          className="fixed bottom-28 right-6 h-14 w-14 rounded-full bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
+        >
+          <Camera size={24} className="text-black" />
+        </Button>
+      )}
+
+      {/* AI AUTHENTICATION MODAL */}
+      {showUpload && (
+        <CatchUpload 
+          onComplete={() => {
+            setShowUpload(false);
+            fetchUnifiedFeed(false);
+          }} 
+        />
+      )}
     </div>
   );
 };

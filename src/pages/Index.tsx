@@ -103,16 +103,17 @@ const Index = () => {
   if (loading) return (
     <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="font-black italic uppercase text-primary tracking-tighter">Syncing The Nation...</p>
+      <p className="font-black italic uppercase text-primary tracking-tighter">Syncing CASTRS...</p>
     </div>
   );
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+      {/* BRANDED HEADER */}
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
         <div className="flex flex-col">
-          <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">The Nation</h1>
-          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Pike Agartha Phase I</p>
+          <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">Global Angler Force</p>
         </div>
         
         <div className="flex items-center gap-2">
@@ -121,7 +122,7 @@ const Index = () => {
               onClick={() => navigate("/auth")}
               className="rounded-full bg-primary text-black font-black italic uppercase text-[10px] px-4 h-8 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
             >
-              <LogIn size={14} className="mr-2" /> Join the Hunt
+              <LogIn size={14} className="mr-2" /> Join
             </Button>
           ) : (
             <Button 
@@ -143,7 +144,6 @@ const Index = () => {
 
         return (
           <Card key={item.id} className={`border-none rounded-[32px] overflow-hidden shadow-2xl transition-all ${item.itemType === 'ACTIVITY' ? 'bg-primary/5 border-2 border-primary/10' : 'bg-card'}`}>
-            {/* Header: Now Clickable for Profile Discovery */}
             <CardHeader 
               onClick={() => navigate(`/profile/${item.user_id}`)}
               className="flex-row items-center justify-between space-y-0 p-4 text-left cursor-pointer hover:bg-muted/30 transition-colors"
@@ -209,7 +209,6 @@ const Index = () => {
                 </button>
               </div>
 
-              {/* Comments Section: Also clickable names/avatars */}
               {item.comments?.length > 0 && (
                 <div className="space-y-3 pt-2 text-left">
                   {item.comments.map((comment: any) => (

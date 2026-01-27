@@ -23,67 +23,107 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   const startAIAuthentication = async () => {
-    if (!selectedImage) return;
+    console.log("🚀 AUTHENTICATION PROCESS STARTED");
+    if (!selectedImage) {
+      console.warn("⚠️ No image selected.");
+      return;
+    }
     
     setIsAnalyzing(true);
-    setScanStatus("Uploading to CASTRS Vault...");
+    setScanStatus("Establishing Secure Link...");
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Authentication required");
+      // STEP 1: AUTH CHECK
+      console.log("Step 1: Verifying User Session...");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error("❌ Auth Error:", authError);
+        throw new Error("You must be logged in to upload catches.");
+      }
+      console.log("✅ User verified:", user.id);
 
-      // 1. Convert to Base64 for AI Processing
-      const reader = new FileReader();
-      const base64Promise = new Promise((resolve) => {
-        reader.onload = () => resolve(reader.result?.toString().split(',')[1]);
+      // STEP 2: IMAGE CONVERSION
+      setScanStatus("Encoding Image for AI...");
+      console.log("Step 2: Converting Image to Base64...");
+      
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result?.toString().split(',')[1];
+          if (result) resolve(result);
+          else reject(new Error("Failed to encode image."));
+        };
+        reader.onerror = (err) => reject(err);
         reader.readAsDataURL(selectedImage);
       });
-      const base64Image = await base64Promise;
+      console.log("✅ Image encoded successfully.");
 
+      // STEP 3: CALL EDGE FUNCTION
       setScanStatus("AI Analyzing Species & Scale...");
+      console.log("Step 3: Invoking Edge Function 'verify-catch'...");
 
-      // 2. Call the Real AI Edge Function
-      // Note: This assumes you've created a function named 'verify-catch'
       const { data, error: aiError } = await supabase.functions.invoke('verify-catch', {
         body: { image: base64Image }
       });
 
-      if (aiError) throw new Error("AI could not verify this image. Ensure the fish is clear.");
+      if (aiError) {
+        console.error("❌ Edge Function Error:", aiError);
+        throw new Error("AI Judge is offline or timed out. Try again.");
+      }
+      
+      if (!data || !data.species) {
+        console.error("❌ Unexpected AI Response format:", data);
+        throw new Error("AI returned invalid data format.");
+      }
+      
+      console.log("✅ AI Result Received:", data);
 
-      setScanStatus("Calculating CASTRS Multipliers...");
-      await new Promise(r => setTimeout(r, 1000)); // Brief pause for UX
+      // STEP 4: STORAGE & DATABASE
+      setScanStatus("Finalizing Audit Records...");
+      console.log("Step 4: Saving to Storage & Database...");
 
-      // 3. Upload Image to Storage
       const fileExt = selectedImage.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
       const { error: uploadError } = await supabase.storage
         .from('catch_photos')
         .upload(fileName, selectedImage);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("❌ Storage Upload Error:", uploadError);
+        throw uploadError;
+      }
 
-      // 4. Save to Database
       const { error: dbError } = await supabase.from('catches').insert([{
         user_id: user.id,
         species: data.species,
         points: data.points,
         length_inches: data.length,
         image_url: fileName,
-        location_name: "Detected Waters",
+        location_name: "CASTRS Verified Waters",
         ai_verified: true,
         species_multiplier: data.multiplier
       }]);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("❌ Database Insert Error:", dbError);
+        throw dbError;
+      }
 
+      console.log("🎉 PROCESS COMPLETE!");
       setAiResult(data);
       toast({ title: "CASTRS Verified", description: `${data.species} logged successfully!` });
       
-      // Auto-close after showing results for 3 seconds
       setTimeout(() => onComplete(), 3000);
 
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Audit Failed", description: error.message });
+      console.error("❌ CRITICAL ERROR DURING AUTHENTICATION:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Audit Failed", 
+        description: error.message || "An unknown error occurred." 
+      });
       setIsAnalyzing(false);
     }
   };
@@ -118,7 +158,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             
             {isAnalyzing && !aiResult && (
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
-                {/* THE SCANNING LASER */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/50 to-transparent h-20 w-full animate-scan-slow shadow-[0_0_20px_#ccff00]" />
                 <Loader2 className="animate-spin text-primary mb-2" size={32} />
                 <p className="font-black italic uppercase text-xs tracking-tighter text-primary bg-black/60 px-4 py-1 rounded-full">

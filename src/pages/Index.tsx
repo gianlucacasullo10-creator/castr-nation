@@ -113,7 +113,7 @@ const Index = () => {
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">Global Angler Force</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">The Angling App</p>
         </div>
         
         <div className="flex items-center gap-2">

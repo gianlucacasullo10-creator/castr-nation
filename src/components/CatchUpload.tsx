@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,18 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [scanStatus, setScanStatus] = useState("");
   const [aiResult, setAiResult] = useState<any>(null);
   const { toast } = useToast();
+
+  // CSS SEATBELT: Lock the body scroll when this component is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,11 +52,12 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
       setScanStatus("AI Analyzing Species...");
       
-      const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
+      // FIXED: Now calling 'verify-catch' to match your Supabase logs!
+      const { data, error: aiError } = await supabase.functions.invoke('verify-catch', {
         body: { image: base64Image }
       });
 
-      if (aiError) throw new Error("AI not ready. Please wait 1 minute for the GitHub build to finish.");
+      if (aiError) throw new Error(`AI Error: ${aiError.message || "Service Unavailable"}`);
 
       setScanStatus("Finalizing Records...");
       const fileName = `${user.id}/${Date.now()}.jpg`;
@@ -72,16 +85,16 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   return (
-    // THE SEATBELT: added fixed, inset-0, w-full, h-full, and touch-none to lock the screen size
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center w-full h-full overflow-hidden touch-none animate-in fade-in">
+    // THE ULTIMATE MOBILE LOCK: fixed, inset-0, touch-none, and w-full
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center w-full h-full overflow-hidden touch-none animate-in fade-in">
       
-      {/* HEADER - Constrained to phone width */}
+      {/* HEADER - Sticky to top */}
       <div className="w-full max-w-md flex justify-between items-center p-6 border-b border-white/10 shrink-0 bg-black">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">AI Audit</h2>
         <button onClick={onComplete} className="p-2 text-white/50 active:text-white"><X size={28} /></button>
       </div>
 
-      {/* SCROLLABLE BODY */}
+      {/* SCROLLABLE BODY - max-w-full and overflow-x-hidden prevents the "sliding" */}
       <div className="w-full max-w-md flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center">
         <div className="p-6 w-full flex flex-col items-center space-y-8">
           
@@ -94,13 +107,9 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           ) : (
             <div className="flex flex-col items-center w-full gap-8">
               
-              {/* IMAGE CONTAINER - max-w-xs keeps it from getting too big on small phones */}
+              {/* PREVIEW IMAGE */}
               <div className="relative w-[85vw] max-w-xs aspect-square rounded-[32px] overflow-hidden border-2 border-primary/30 shadow-2xl bg-zinc-900">
-                <img 
-                  src={previewUrl} 
-                  className="w-full h-full object-cover" 
-                  alt="Fish Preview" 
-                />
+                <img src={previewUrl} className="w-full h-full object-cover" alt="Fish Preview" />
                 
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
@@ -129,7 +138,8 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             </div>
           )}
           
-          <div className="h-24 shrink-0" />
+          {/* Bottom Safety Spacer for iOS Home Bar */}
+          <div className="h-32 shrink-0" />
         </div>
       </div>
     </div>

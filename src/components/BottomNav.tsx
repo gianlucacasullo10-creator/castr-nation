@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const BottomNav = () => {
+// Added onCameraClick here so the Index page can listen to it
+export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
@@ -35,10 +36,14 @@ export const BottomNav = () => {
           <span className="text-[9px] mt-1 truncate">Ranks</span>
         </Link>
 
+        {/* CHANGED FROM <Link> TO <button> */}
         <div className="flex-1 flex justify-center -mt-6">
-          <Link to="/capture" className="bg-primary text-white p-3 rounded-full shadow-lg border-4 border-background active:scale-90 transition-transform">
+          <button 
+            onClick={onCameraClick}
+            className="bg-primary text-black p-3 rounded-full shadow-[0_0_20px_rgba(204,255,0,0.4)] border-4 border-background active:scale-90 transition-transform"
+          >
             <Camera size={22} />
-          </Link>
+          </button>
         </div>
 
         <Link to="/clubs" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>

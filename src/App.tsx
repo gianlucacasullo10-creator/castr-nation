@@ -15,14 +15,26 @@ import Clubs from "./pages/Clubs";
 import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile"; 
 import NotFound from "./pages/NotFound";
-import CatchUpload from "./components/CatchUpload"; // Import it here
+import CatchUpload from "./components/CatchUpload";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const { toast } = useToast();
-  // NEW: Global state for the upload modal
   const [globalShowUpload, setGlobalShowUpload] = useState(false);
+
+  // LOCK SCROLL WHEN MODAL OPEN: This prevents the wide-screen slide
+  useEffect(() => {
+    if (globalShowUpload) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+  }, [globalShowUpload]);
 
   useEffect(() => {
     const channel = supabase
@@ -62,7 +74,8 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen bg-background pb-20">
+          {/* THE FIX: Added overflow-x-hidden and max-w-full to the main wrapper */}
+          <div className="min-h-screen bg-background pb-20 overflow-x-hidden max-w-full relative">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -74,19 +87,17 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-            {/* AI AUDIT MODAL (Now accessible from anywhere) */}
             {globalShowUpload && (
               <CatchUpload 
                 key={Date.now()}
                 onComplete={() => {
                   setGlobalShowUpload(false);
-                  // Optional: refresh page logic here if needed
+                  // Refreshing ensures the new catch shows up in the feed immediately
                   window.location.reload(); 
                 }} 
               />
             )}
 
-            {/* CONNECTED NAV: The camera button now triggers the global state */}
             <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
           </div>
         </BrowserRouter>

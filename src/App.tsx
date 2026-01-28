@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,13 +13,16 @@ import Leaderboards from "./pages/Leaderboards";
 import Profile from "./pages/Profile";
 import Clubs from "./pages/Clubs";
 import Auth from "./pages/Auth";
-import PublicProfile from "./pages/PublicProfile"; // <--- ADD THIS IMPORT
+import PublicProfile from "./pages/PublicProfile"; 
 import NotFound from "./pages/NotFound";
+import CatchUpload from "./components/CatchUpload"; // Import it here
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const { toast } = useToast();
+  // NEW: Global state for the upload modal
+  const [globalShowUpload, setGlobalShowUpload] = useState(false);
 
   useEffect(() => {
     const channel = supabase
@@ -66,14 +69,25 @@ const App = () => {
               <Route path="/capture" element={<Capture />} />
               <Route path="/leaderboards" element={<Leaderboards />} />
               <Route path="/profile" element={<Profile />} />
-              
-              {/* PUBLIC PROFILE ROUTE WITH ID PARAMETER */}
               <Route path="/profile/:id" element={<PublicProfile />} />
-              
               <Route path="/clubs" element={<Clubs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <BottomNav />
+
+            {/* AI AUDIT MODAL (Now accessible from anywhere) */}
+            {globalShowUpload && (
+              <CatchUpload 
+                key={Date.now()}
+                onComplete={() => {
+                  setGlobalShowUpload(false);
+                  // Optional: refresh page logic here if needed
+                  window.location.reload(); 
+                }} 
+              />
+            )}
+
+            {/* CONNECTED NAV: The camera button now triggers the global state */}
+            <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
           </div>
         </BrowserRouter>
       </TooltipProvider>

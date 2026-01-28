@@ -1,1 +1,4 @@
 project_id = "fmgpbsowzwxhchedzpur"
+
+[functions.clever-endpoint]
+verify_jwt = false

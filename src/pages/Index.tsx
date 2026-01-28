@@ -7,18 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import CatchUpload from "@/components/CatchUpload"; 
-import {  
-  Heart,  
-  MessageCircle,  
-  MapPin,  
-  Award,  
-  Send,  
-  Loader2,  
-  RefreshCw,  
-  LogIn,  
-  UserCircle,
-  Camera
+import {   
+  Heart,   
+  MessageCircle,   
+  MapPin,   
+  Award,   
+  Send,   
+  Loader2,   
+  RefreshCw,   
+  LogIn,   
+  UserCircle
 } from "lucide-react";
 
 const Index = () => {
@@ -121,12 +119,13 @@ const Index = () => {
   );
 
   return (
-    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+    // Added overflow-x-hidden to the main container
+    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6 overflow-x-hidden">
       {/* BRANDED HEADER */}
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
-        <div className="flex flex-col">
-          <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
+        <div className="flex flex-col text-left">
+          <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none">CASTRS</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">
             {userProfile?.clan_name ? `${userProfile.clan_name} Clan` : "Global Angler Force"}
           </p>
         </div>
@@ -135,7 +134,7 @@ const Index = () => {
           {!currentUser ? (
             <Button 
               onClick={() => navigate("/auth")}
-              className="rounded-full bg-primary text-black font-black italic uppercase text-[10px] px-4 h-8 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+              className="rounded-full bg-primary text-black font-black italic uppercase text-[10px] px-4 h-8"
             >
               <LogIn size={14} className="mr-2" /> Join
             </Button>
@@ -267,11 +266,6 @@ const Index = () => {
           </Card>
         );
       })}
-
-      {/* NOTE: FLOATING BUTTON REMOVED. 
-         Upload is now triggered only by the central Navbar button. 
-      */}
-
     </div>
   );
 };

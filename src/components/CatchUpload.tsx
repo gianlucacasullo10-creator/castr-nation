@@ -40,85 +40,76 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
       setScanStatus("AI Analyzing Species...");
       
-      // Detailed logging for debugging
-      console.log("Invoking verify-catch function...");
-      
+      // Attempting to hit the Edge Function
       const { data, error: aiError } = await supabase.functions.invoke('verify-catch', {
         body: { image: base64Image }
       });
 
-      if (aiError) {
-        console.error("AI Function Error Details:", aiError);
-        throw new Error(`Edge Function Error: ${aiError.message || 'Check deployment'}`);
-      }
+      if (aiError) throw new Error("AI Service Unavailable. Is the function deployed?");
 
       setScanStatus("Finalizing Records...");
       const fileName = `${user.id}/${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage.from('catch_photos').upload(fileName, selectedImage);
-      
-      if (uploadError) throw uploadError;
+      await supabase.storage.from('catch_photos').upload(fileName, selectedImage);
 
-      const { error: dbError } = await supabase.from('catches').insert([{
+      await supabase.from('catches').insert([{
         user_id: user.id,
         species: data.species,
         points: data.points,
         length_inches: data.length,
         image_url: fileName,
         ai_verified: true,
-        location_name: "St. Catharines" // Placeholder based on your profile
+        location_name: "St. Catharines"
       }]);
-
-      if (dbError) throw dbError;
 
       setAiResult(data);
       toast({ title: "CASTRS Verified!" });
       setTimeout(() => onComplete(), 3000);
 
     } catch (error: any) {
-      console.error("Upload process failed:", error);
+      console.error("Upload error:", error);
       alert(error.message);
       setIsAnalyzing(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in fade-in overflow-hidden">
-      {/* HEADER */}
-      <div className="flex justify-between items-center p-6 border-b border-white/10 bg-black shrink-0">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center animate-in fade-in">
+      {/* HEADER - Constrained to phone width */}
+      <div className="w-full max-w-md flex justify-between items-center p-6 border-b border-white/10 shrink-0">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
         <button onClick={onComplete} className="p-2 text-white/50"><X size={24} /></button>
       </div>
 
-      {/* SCROLLABLE BODY */}
-      <div className="flex-1 overflow-y-auto w-full max-w-md mx-auto">
-        <div className="p-6 space-y-6">
+      {/* SCROLLABLE BODY - Centered and width-limited */}
+      <div className="w-full max-w-md flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center">
+        <div className="p-6 w-full flex flex-col items-center space-y-6">
+          
           {!previewUrl ? (
-            <label className="w-full aspect-square border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center cursor-pointer bg-white/5">
+            <label className="w-[85vw] max-w-sm aspect-square border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center cursor-pointer bg-white/5">
               <Camera size={40} className="text-primary mb-2" />
-              <p className="text-white font-black uppercase text-[10px] tracking-widest">Capture Trophy</p>
-              <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} capture="environment" />
+              <p className="text-white font-black uppercase text-[10px] tracking-widest text-center px-4">Tap to upload fish photo</p>
+              <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </label>
           ) : (
-            <div className="flex flex-col gap-6 w-full">
-              {/* IMAGE CONTAINER - Fixed width to prevent "explosion" */}
-              <div className="relative w-full aspect-square rounded-[32px] overflow-hidden border-2 border-primary/30 bg-muted">
+            <div className="flex flex-col items-center w-full gap-6">
+              
+              {/* IMAGE CONTAINER - STRICT LIMITS */}
+              <div className="relative w-[85vw] max-w-sm aspect-square rounded-[32px] overflow-hidden border-2 border-primary/30 shadow-2xl bg-zinc-900">
                 <img 
                   src={previewUrl} 
                   className="w-full h-full object-cover" 
-                  alt="Catch Preview" 
+                  alt="Fish Preview" 
                 />
                 
-                {isAnalyzing && !aiResult && (
+                {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
                     <Loader2 className="animate-spin text-primary mb-4" size={32} />
-                    <p className="text-primary font-black italic uppercase text-xs tracking-widest animate-pulse">
-                      {scanStatus}
-                    </p>
+                    <p className="text-primary font-black italic uppercase text-xs tracking-widest animate-pulse">{scanStatus}</p>
                   </div>
                 )}
 
                 {aiResult && (
-                  <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in">
+                  <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6">
                     <CheckCircle2 size={48} className="mb-2" />
                     <h3 className="text-3xl font-black italic uppercase leading-none">{aiResult.species}</h3>
                     <p className="text-xl font-black mt-2">+{aiResult.points} PTS</p>
@@ -129,15 +120,16 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               {!isAnalyzing && !aiResult && (
                 <Button 
                   onClick={startAIAuthentication}
-                  className="w-full h-16 rounded-[24px] bg-primary text-black font-black italic uppercase text-lg shadow-[0_10px_20px_rgba(204,255,0,0.3)]"
+                  className="w-[85vw] max-w-sm h-16 rounded-[24px] bg-primary text-black font-black italic uppercase text-lg shadow-lg active:scale-95 transition-transform"
                 >
                   <ShieldCheck className="mr-2" /> Verify and Submit
                 </Button>
               )}
             </div>
           )}
-          {/* Spacer for bottom safety area */}
-          <div className="h-20" />
+          
+          {/* Bottom Safety Spacer */}
+          <div className="h-20 shrink-0" />
         </div>
       </div>
     </div>

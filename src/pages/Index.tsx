@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import CatchUpload from "@/components/CatchUpload"; // Import the new component
-import { 
-  Heart, 
-  MessageCircle, 
-  MapPin, 
-  Award, 
-  Send, 
-  Loader2, 
-  RefreshCw, 
-  LogIn, 
+import CatchUpload from "@/components/CatchUpload"; 
+import {  
+  Heart,  
+  MessageCircle,  
+  MapPin,  
+  Award,  
+  Send,  
+  Loader2,  
+  RefreshCw,  
+  LogIn,  
   UserCircle,
   Camera
 } from "lucide-react";
@@ -38,7 +38,6 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      // Fetch profile for clan info
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -128,7 +127,7 @@ const Index = () => {
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
             {userProfile?.clan_name ? `${userProfile.clan_name} Clan` : "Global Angler Force"}
           </p>
         </div>
@@ -270,19 +269,14 @@ const Index = () => {
         );
       })}
 
-      {/* FLOATING ACTION BUTTON FOR UPLOADS */}
-      {currentUser && (
-        <Button 
-          onClick={() => setShowUpload(true)}
-          className="fixed bottom-28 right-6 h-14 w-14 rounded-full bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
-        >
-          <Camera size={24} className="text-black" />
-        </Button>
-      )}
+      {/* NOTE: FLOATING BUTTON REMOVED. 
+         Upload is now triggered only by the central Navbar button. 
+      */}
 
       {/* AI AUTHENTICATION MODAL */}
       {showUpload && (
         <CatchUpload 
+          key={Date.now()} // This ensures a fresh upload screen every time
           onComplete={() => {
             setShowUpload(false);
             fetchUnifiedFeed(false);

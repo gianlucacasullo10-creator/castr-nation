@@ -23,7 +23,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   const startAIAuthentication = async () => {
-    // VISUAL FEEDBACK FOR DEBUGGING
     console.log("🚀 AI AUTHENTICATION INITIATED");
     
     if (!selectedImage) return;
@@ -33,11 +32,13 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
     try {
       // 1. Get User Session
+      console.log("Step 1: Fetching User...");
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error("Authentication required. Please log in.");
 
       // 2. Convert Image to Base64
       setScanStatus("Encoding Data for Audit...");
+      console.log("Step 2: Encoding Base64...");
       const base64Image = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -51,6 +52,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
       // 3. Call Supabase Edge Function
       setScanStatus("AI Analyzing Species & Scale...");
+      console.log("Step 3: Invoking verify-catch...");
       const { data, error: aiError } = await supabase.functions.invoke('verify-catch', {
         body: { image: base64Image }
       });
@@ -63,6 +65,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       setScanStatus("Finalizing Audit Records...");
 
       // 4. Upload to Storage
+      console.log("Step 4: Storage Upload...");
       const fileExt = selectedImage.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
@@ -72,6 +75,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       if (uploadError) throw uploadError;
 
       // 5. Save to Database
+      console.log("Step 5: Database Entry...");
       const { error: dbError } = await supabase.from('catches').insert([{
         user_id: user.id,
         species: data.species,
@@ -86,20 +90,22 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       if (dbError) throw dbError;
 
       // SUCCESS
+      console.log("✅ Audit Successful!");
       setAiResult(data);
       toast({ title: "AUTHENTICATED", description: `${data.species} verified successfully.` });
       
-      // Close after 3 seconds so they can see the result
       setTimeout(() => onComplete(), 3000);
 
     } catch (error: any) {
-      console.error("Critial Catch Error:", error);
+      console.error("Critical Catch Error:", error);
       toast({ 
         variant: "destructive", 
         title: "Audit Failed", 
         description: error.message 
       });
       setIsAnalyzing(false);
+      // Extra alert for when console isn't visible
+      alert("Function Error: " + error.message);
     }
   };
 
@@ -117,7 +123,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       </div>
 
       {!previewUrl ? (
-        /* Upload UI */
         <label className="flex-1 border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-primary/5 transition-all group">
           <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Camera size={32} className="text-primary" />
@@ -129,15 +134,12 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         </label>
       ) : (
-        /* Preview & Analysis UI */
         <div className="flex-1 flex flex-col gap-6">
           <div className="relative w-full aspect-square rounded-[40px] overflow-hidden border-2 border-primary/30 shadow-2xl">
             <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
             
-            {/* Analysis Overlay */}
             {isAnalyzing && !aiResult && (
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
-                {/* THE SCANNING LASER ANIMATION */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/50 to-transparent h-20 w-full animate-scan-slow shadow-[0_0_20px_#ccff00]" />
                 <Loader2 className="animate-spin text-primary mb-2" size={32} />
                 <p className="font-black italic uppercase text-xs tracking-tighter text-primary bg-black/60 px-4 py-1 rounded-full">
@@ -146,7 +148,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               </div>
             )}
 
-            {/* Success Overlay */}
             {aiResult && (
               <div className="absolute inset-0 bg-primary/90 flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95 duration-300">
                 <CheckCircle2 size={64} className="mb-4" />
@@ -165,13 +166,16 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             )}
           </div>
 
-          {/* Action Button */}
           {!isAnalyzing && (
             <Button 
-              onClick={startAIAuthentication}
+              onClick={() => {
+                console.log("Button clicked!");
+                alert("Triggering AI Audit...");
+                startAIAuthentication().catch(e => alert("Crash: " + e.message));
+              }}
               className="w-full h-20 rounded-[30px] bg-primary text-black font-black italic uppercase text-xl shadow-[0_0_40px_rgba(204,255,0,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              <ShieldCheck className="mr-3" size={24} /> Start AI Audit
+              <ShieldCheck className="mr-3" size={24} /> Verify and Submit
             </Button>
           )}
         </div>

@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+// FIXED: Changed v1beta to v1 for stability
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
 const FISH_POINTS: Record<string, number> = {
   "largemouth bass": 75,
@@ -42,7 +43,6 @@ function getPointsForSpecies(species: string): number {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -71,22 +71,7 @@ serve(async (req) => {
         contents: [{
           parts: [
             {
-              text: `You are a fish identification expert. Analyze this image and identify the fish species.
-
-IMPORTANT RULES:
-1. If this is NOT a real photograph of a fish being held or displayed, respond with: {"error": "No valid fish photo detected"}
-2. If you cannot clearly identify a fish species, respond with: {"error": "Could not identify fish species"}
-3. If this looks like a fake, edited, or AI-generated image, respond with: {"error": "Image appears manipulated"}
-
-If you CAN identify a real fish, respond with ONLY a JSON object in this exact format:
-{"species": "Common Name", "length": estimated_length_in_inches}
-
-Examples of valid responses:
-{"species": "Largemouth Bass", "length": 18}
-{"species": "Northern Pike", "length": 32}
-{"species": "Walleye", "length": 22}
-
-Respond with ONLY the JSON, no other text.`
+              text: `You are a fish identification expert. Analyze this image and identify the fish species. Respond with ONLY a JSON object: {"species": "Common Name", "length": estimated_length_in_inches}`
             },
             {
               inline_data: {
@@ -110,26 +95,15 @@ Respond with ONLY the JSON, no other text.`
     }
 
     const geminiData = await geminiResponse.json();
-    console.log('Gemini raw response:', JSON.stringify(geminiData));
-
     const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!textContent) {
       throw new Error('No response from AI model');
     }
 
-    // Parse the JSON from Gemini's response
-    let parsedResult;
-    try {
-      // Clean up the response - remove markdown code blocks if present
-      const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResult = JSON.parse(cleanedText);
-    } catch (parseError) {
-      console.error('Failed to parse Gemini response:', textContent);
-      throw new Error('AI response was not valid JSON');
-    }
+    const cleanedText = textContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const parsedResult = JSON.parse(cleanedText);
 
-    // Check for error responses from AI
     if (parsedResult.error) {
       return new Response(
         JSON.stringify({ error: parsedResult.error }),
@@ -137,12 +111,6 @@ Respond with ONLY the JSON, no other text.`
       );
     }
 
-    // Validate we have species
-    if (!parsedResult.species) {
-      throw new Error('AI did not identify a fish species');
-    }
-
-    // Calculate points based on species
     const points = getPointsForSpecies(parsedResult.species);
 
     const result = {
@@ -152,8 +120,6 @@ Respond with ONLY the JSON, no other text.`
       verified: true
     };
 
-    console.log('Final result:', result);
-
     return new Response(
       JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -162,7 +128,7 @@ Respond with ONLY the JSON, no other text.`
   } catch (error) {
     console.error('clever-endpoint error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

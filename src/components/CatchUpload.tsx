@@ -23,6 +23,9 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   const startAIAuthentication = async () => {
+    // --- DEBUG ALERT: This will pop up on your Mac screen ---
+    window.alert("🚀 CASTRS TRIGGERED: Checking Logic Flow...");
+    
     console.log("🚀 AUTHENTICATION PROCESS STARTED");
     if (!selectedImage) {
       console.warn("⚠️ No image selected.");
@@ -132,8 +135,9 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col p-6 animate-in fade-in">
       <div className="flex justify-between items-center mb-8">
         <div className="flex flex-col">
-          <h2 className="text-3xl font-black italic uppercase text-primary leading-none">AI Audit</h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Verification Phase</p>
+          {/* VERSION TEST: This header is now RED to prove the code is updating */}
+          <h2 className="text-3xl font-black italic uppercase text-red-500 leading-none">VERSION 2.0 LIVE</h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">AI Verification Phase</p>
         </div>
         <button onClick={onComplete} className="p-2 text-white/50 hover:text-white">
           <X size={24} />

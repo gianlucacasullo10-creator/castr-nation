@@ -44,7 +44,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         body: { image: base64Image }
       });
 
-      if (aiError) throw new Error("AI Service Unavailable. Is the GitHub repo connected?");
+      if (aiError) throw new Error("AI not ready. Please wait 1 minute for the GitHub build to finish.");
 
       setScanStatus("Finalizing Records...");
       const fileName = `${user.id}/${Date.now()}.jpg`;
@@ -72,19 +72,21 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center w-screen h-[100dvh] overflow-x-hidden animate-in fade-in">
-      {/* HEADER - Constrained width */}
+    // THE SEATBELT: added fixed, inset-0, w-full, h-full, and touch-none to lock the screen size
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center w-full h-full overflow-hidden touch-none animate-in fade-in">
+      
+      {/* HEADER - Constrained to phone width */}
       <div className="w-full max-w-md flex justify-between items-center p-6 border-b border-white/10 shrink-0 bg-black">
-        <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
+        <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">AI Audit</h2>
         <button onClick={onComplete} className="p-2 text-white/50 active:text-white"><X size={28} /></button>
       </div>
 
-      {/* SCROLLABLE BODY - This prevents the horizontal bleed */}
+      {/* SCROLLABLE BODY */}
       <div className="w-full max-w-md flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center">
         <div className="p-6 w-full flex flex-col items-center space-y-8">
           
           {!previewUrl ? (
-            <label className="w-[85vw] max-w-sm aspect-square border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center cursor-pointer bg-white/5 active:scale-95 transition-all">
+            <label className="w-[85vw] max-w-xs aspect-square border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center cursor-pointer bg-white/5 active:scale-95 transition-all">
               <Camera size={40} className="text-primary mb-2" />
               <p className="text-white font-black uppercase text-[10px] tracking-widest text-center px-4">Tap to upload fish photo</p>
               <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} capture="environment" />
@@ -92,8 +94,8 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           ) : (
             <div className="flex flex-col items-center w-full gap-8">
               
-              {/* IMAGE CONTAINER - Locked with max-w-sm to stay within phone edges */}
-              <div className="relative w-[85vw] max-w-sm aspect-square rounded-[32px] overflow-hidden border-2 border-primary/30 shadow-2xl bg-zinc-900">
+              {/* IMAGE CONTAINER - max-w-xs keeps it from getting too big on small phones */}
+              <div className="relative w-[85vw] max-w-xs aspect-square rounded-[32px] overflow-hidden border-2 border-primary/30 shadow-2xl bg-zinc-900">
                 <img 
                   src={previewUrl} 
                   className="w-full h-full object-cover" 
@@ -119,7 +121,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               {!isAnalyzing && !aiResult && (
                 <Button 
                   onClick={startAIAuthentication}
-                  className="w-[85vw] max-w-sm h-16 rounded-[24px] bg-primary text-black font-black italic uppercase text-lg shadow-lg active:scale-95 transition-transform"
+                  className="w-[85vw] max-w-xs h-16 rounded-[24px] bg-primary text-black font-black italic uppercase text-lg shadow-lg active:scale-95 transition-transform"
                 >
                   <ShieldCheck className="mr-2" /> Verify and Submit
                 </Button>
@@ -127,7 +129,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             </div>
           )}
           
-          {/* Bottom Safety Spacer for Mobile Nav Bar */}
           <div className="h-24 shrink-0" />
         </div>
       </div>

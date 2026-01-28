@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      catches: {
+        Row: {
+          ai_verified: boolean | null
+          created_at: string
+          id: string
+          image_url: string | null
+          latitude: number | null
+          length_inches: number | null
+          location_name: string | null
+          longitude: number | null
+          points: number
+          species: string
+          user_id: string
+        }
+        Insert: {
+          ai_verified?: boolean | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          length_inches?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          points?: number
+          species: string
+          user_id: string
+        }
+        Update: {
+          ai_verified?: boolean | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          length_inches?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          points?: number
+          species?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

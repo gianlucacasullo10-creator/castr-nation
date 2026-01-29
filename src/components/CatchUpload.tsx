@@ -39,7 +39,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       });
 
       setScanStatus("AI Analyzing Species...");
-      const { data, error: aiError } = await supabase.functions.invoke('verify-catch', {
+      const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
         body: { image: base64Image }
       });
 

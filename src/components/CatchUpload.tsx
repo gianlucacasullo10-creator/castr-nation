@@ -43,13 +43,26 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         body: { image: base64Image }
       });
 
-      if (aiError) throw aiError;
+      if (aiError) {
+        console.error('Edge function error:', aiError);
+        throw new Error(`AI Analysis failed: ${aiError.message}`);
+      }
 
-      setScanStatus("Finalizing Records...");
+      console.log('Edge function returned:', data); // 🔍 DEBUG LOG
+
+      setScanStatus("Uploading Image...");
       const fileName = `${user.id}/${Date.now()}.jpg`;
-      await supabase.storage.from('catch_photos').upload(fileName, selectedImage);
+      const { error: uploadError } = await supabase.storage
+        .from('catch_photos')
+        .upload(fileName, selectedImage);
 
-      await supabase.from('catches').insert([{
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Image upload failed: ${uploadError.message}`);
+      }
+
+      setScanStatus("Saving Catch...");
+      const { error: insertError } = await supabase.from('catches').insert([{
         user_id: user.id,
         species: data.species,
         points: data.points,
@@ -58,21 +71,30 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         ai_verified: true
       }]);
 
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        throw new Error(`Failed to save catch: ${insertError.message}`);
+      }
+
       setAiResult(data);
       toast({ title: "CASTRS Verified!" });
       setTimeout(() => onComplete(), 3000);
 
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      console.error('Full error:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Something went wrong"
+      });
       setIsAnalyzing(false);
+      setScanStatus("");
     }
   };
 
   return (
-    // "max-w-md mx-auto" ensures it stays iPhone-sized even on a desktop/tablet browser
     <div className="fixed inset-0 z-[100] bg-black flex flex-col p-5 animate-in fade-in sm:max-w-md sm:mx-auto sm:right-0 sm:left-0">
       
-      {/* Header Area - Reduced margin for mobile height */}
       <div className="flex justify-between items-center mb-6 pt-2">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
         <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
@@ -91,7 +113,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       ) : (
         <div className="flex-1 flex flex-col gap-5 overflow-hidden">
           
-          {/* Square Image Container - aspect-square is key for iPhone UI */}
           <div className="relative aspect-square w-full rounded-[32px] overflow-hidden border border-white/10 bg-muted">
             <img src={previewUrl} className="w-full h-full object-cover" alt="Catch preview" />
             
@@ -111,7 +132,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             )}
           </div>
 
-          {/* Action Button - Placed at the bottom for thumb-reach */}
           <div className="mt-auto pb-4">
             {!isAnalyzing && (
               <Button 

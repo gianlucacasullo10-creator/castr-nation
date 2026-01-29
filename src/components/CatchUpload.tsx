@@ -66,7 +66,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         user_id: user.id,
         species: data.species,
         points: data.points,
-        length_inches: data.length,
         image_url: fileName,
         ai_verified: true
       }]);

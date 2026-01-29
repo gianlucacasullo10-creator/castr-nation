@@ -61,7 +61,8 @@ const Index = () => {
           itemType: 'CATCH', 
           profiles: profileMap[c.user_id],
           likes: (likes || []).filter(l => l.catch_id === c.id),
-          comments: (comments || []).filter(com => com.catch_id === c.id)
+          comments: (comments || []).filter(com => com.catch_id === c.id),
+          image_url: c.image_url ? supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl : c.image_url
         })),
         ...(activities || []).map(a => ({ 
           ...a, 

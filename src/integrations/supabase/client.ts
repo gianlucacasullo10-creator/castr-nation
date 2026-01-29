@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Hardcoding these values to resolve the "Invalid API key" connection issue
-const supabaseUrl = "https://fmgpbsowzwxhchedzpur.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtZ3Bic293end4aGNoZWR6cHVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NjA5MjAsImV4cCI6MjA4NDQzNjkyMH0.nPreEE5kKs3i6klS7bIplb6W1fWs_NjTtl2e6sEhcAQ";
+// These must match the names in your Vercel screenshot exactly
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// This line will fail if the keys above are empty or wrong
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

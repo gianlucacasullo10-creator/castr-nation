@@ -28,6 +28,7 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -272,6 +273,16 @@ const Index = () => {
          Upload is now triggered only by the central Navbar button. 
       */}
 
+      {/* AI AUTHENTICATION MODAL */}
+      {showUpload && (
+        <CatchUpload 
+          key={Date.now()} // This ensures a fresh upload screen every time
+          onComplete={() => {
+            setShowUpload(false);
+            fetchUnifiedFeed(false);
+          }} 
+        />
+      )}
     </div>
   );
 };

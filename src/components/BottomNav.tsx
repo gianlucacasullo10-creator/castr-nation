@@ -36,11 +36,11 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
           <span className="text-[9px] mt-1 truncate">Ranks</span>
         </Link>
 
-        {/* CHANGED FROM <Link> TO <button> */}
+        {/* GLOW REMOVED: Replaced neon shadow with a standard drop shadow */}
         <div className="flex-1 flex justify-center -mt-6">
           <button 
             onClick={onCameraClick}
-            className="bg-primary text-black p-3 rounded-full shadow-[0_0_20px_rgba(204,255,0,0.4)] border-4 border-background active:scale-90 transition-transform"
+            className="bg-primary text-black p-3 rounded-full shadow-lg border-4 border-background active:scale-90 transition-transform"
           >
             <Camera size={22} />
           </button>
@@ -64,4 +64,5 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
     </nav>
   );
 };
+
 export default BottomNav;

@@ -77,15 +77,15 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-            {globalShowUpload && (
-              <CatchUpload 
-                key={Date.now()}
-                onComplete={() => {
-                  setGlobalShowUpload(false);
-                  window.location.reload(); 
-                }} 
-              />
-            )}
+           {globalShowUpload && (
+  <CatchUpload 
+    key={Date.now()}
+    onComplete={() => {
+      setGlobalShowUpload(false);
+      // No reload needed
+    }} 
+  />
+)}
 
             <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
           </div>

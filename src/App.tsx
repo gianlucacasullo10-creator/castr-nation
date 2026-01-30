@@ -12,16 +12,17 @@ import Capture from "./pages/Capture";
 import Leaderboards from "./pages/Leaderboards";
 import Profile from "./pages/Profile";
 import Clubs from "./pages/Clubs";
+import Shop from "./pages/Shop"; // NEW
+import Inventory from "./pages/Inventory"; // NEW
 import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile"; 
 import NotFound from "./pages/NotFound";
-import CatchUpload from "./components/CatchUpload"; // Import it here
+import CatchUpload from "./components/CatchUpload";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const { toast } = useToast();
-  // NEW: Global state for the upload modal
   const [globalShowUpload, setGlobalShowUpload] = useState(false);
 
   useEffect(() => {
@@ -68,25 +69,24 @@ const App = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/capture" element={<Capture />} />
               <Route path="/leaderboards" element={<Leaderboards />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/inventory" element={<Inventory />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:id" element={<PublicProfile />} />
               <Route path="/clubs" element={<Clubs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-            {/* AI AUDIT MODAL (Now accessible from anywhere) */}
             {globalShowUpload && (
               <CatchUpload 
                 key={Date.now()}
                 onComplete={() => {
                   setGlobalShowUpload(false);
-                  // Optional: refresh page logic here if needed
                   window.location.reload(); 
                 }} 
               />
             )}
 
-            {/* CONNECTED NAV: The camera button now triggers the global state */}
             <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
           </div>
         </BrowserRouter>

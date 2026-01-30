@@ -13,6 +13,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [scanStatus, setScanStatus] = useState("");
   const [aiResult, setAiResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false); // NEW: Track if we're done
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,13 +66,9 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                 hasExif = true;
                 console.log('✓ EXIF data found');
                 
-                // Look for DateTimeOriginal tag (more thorough check)
-                // This is much harder to fake than just having EXIF
                 for (let i = offset; i < offset + Math.min(exifLength, 2000); i++) {
                   try {
-                    // Check for common camera metadata tags
                     const tag = view.getUint16(i, false);
-                    // DateTimeOriginal = 0x9003, Make = 0x010F, Model = 0x0110
                     if (tag === 0x9003 || tag === 0x010F || tag === 0x0110) {
                       hasDateTaken = true;
                       console.log('✓ Camera metadata found');
@@ -93,8 +90,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         }
         
         console.log('EXIF check result:', { hasExif, hasDateTaken });
-        
-        // Require both EXIF and camera metadata tags
         resolve(hasExif && hasDateTaken);
       };
       
@@ -104,7 +99,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   const startAIAuthentication = async () => {
-    if (!selectedImage) return;
+    if (!selectedImage || isCompleted) return; // Prevent if already completed
     setIsAnalyzing(true);
     setScanStatus("Establishing Secure Link...");
     setErrorResult(null);
@@ -113,7 +108,6 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
 
-      // Check EXIF data before uploading
       setScanStatus("Verifying Photo Authenticity...");
       const hasValidExif = await checkImageExif(selectedImage);
       
@@ -165,15 +159,15 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         throw new Error(`Failed to save catch: ${insertError.message}`);
       }
 
+      // SUCCESS - Lock the state
+      console.log('SUCCESS - Showing result screen');
       setAiResult(data);
       setIsAnalyzing(false);
+      setIsCompleted(true); // Lock it so nothing else happens
       toast({ title: "CASTRS Verified!" });
-      // No auto-close - user clicks Continue button
 
     } catch (error: any) {
       console.error('Full error:', error);
-      
-      // Set error state to show persistent error message
       setErrorResult(error.message || "Verification failed");
       setIsAnalyzing(false);
       setScanStatus("");
@@ -192,6 +186,13 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     setPreviewUrl(null);
     setErrorResult(null);
     setAiResult(null);
+    setIsCompleted(false);
+  };
+
+  const handleSuccessComplete = () => {
+    console.log('User clicked Continue - closing modal');
+    setIsCompleted(false);
+    onComplete();
   };
 
   return (
@@ -199,9 +200,12 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       
       <div className="flex justify-between items-center mb-6 pt-2">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
-        <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
-          <X size={24} />
-        </button>
+        {/* Don't allow closing during success */}
+        {!aiResult && (
+          <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
+            <X size={24} />
+          </button>
+        )}
       </div>
 
       {!previewUrl ? (
@@ -250,12 +254,11 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                   <p className="text-xs font-black uppercase mt-1 opacity-80">LEGENDARY CATCH!</p>
                 )}
                 
-                {/* Manual close button */}
                 <Button
-                  onClick={onComplete}
-                  className="mt-6 bg-black/20 hover:bg-black/30 text-black font-black uppercase text-sm px-8 h-12 rounded-2xl border-2 border-black/20 active:scale-95 transition-transform"
+                  onClick={handleSuccessComplete}
+                  className="mt-6 bg-black text-white hover:bg-black/80 font-black uppercase text-sm px-8 h-12 rounded-2xl active:scale-95 transition-transform"
                 >
-                  Continue
+                  Continue →
                 </Button>
               </div>
             )}

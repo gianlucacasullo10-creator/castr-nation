@@ -15,10 +15,10 @@ interface CaseOpeningProps {
 }
 
 const RARITY_COLORS = {
-  common: { bg: "bg-gray-500/20", border: "border-gray-500", text: "text-gray-400", glow: "shadow-[0_0_40px_rgba(156,163,175,0.5)]" },
-  rare: { bg: "bg-blue-500/20", border: "border-blue-500", text: "text-blue-400", glow: "shadow-[0_0_40px_rgba(59,130,246,0.5)]" },
-  epic: { bg: "bg-purple-500/20", border: "border-purple-500", text: "text-purple-400", glow: "shadow-[0_0_40px_rgba(168,85,247,0.5)]" },
-  legendary: { bg: "bg-yellow-500/20", border: "border-yellow-500", text: "text-yellow-400", glow: "shadow-[0_0_60px_rgba(234,179,8,0.8)]" },
+  common: { bg: "bg-gray-500/20", border: "border-gray-500", text: "text-gray-100", glow: "shadow-[0_0_40px_rgba(156,163,175,0.5)]" },
+  rare: { bg: "bg-blue-500/20", border: "border-blue-500", text: "text-blue-200", glow: "shadow-[0_0_40px_rgba(59,130,246,0.5)]" },
+  epic: { bg: "bg-purple-500/20", border: "border-purple-500", text: "text-purple-200", glow: "shadow-[0_0_40px_rgba(168,85,247,0.5)]" },
+  legendary: { bg: "bg-yellow-500/20", border: "border-yellow-500", text: "text-yellow-200", glow: "shadow-[0_0_60px_rgba(234,179,8,0.8)]" },
 };
 
 const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {

@@ -22,6 +22,84 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     }
   };
 
+  // Function to check EXIF data in the frontend
+  const checkImageExif = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const view = new DataView(arrayBuffer);
+        
+        // Check for JPEG SOI marker
+        if (view.getUint16(0, false) !== 0xFFD8) {
+          console.log('Not a valid JPEG');
+          resolve(false);
+          return;
+        }
+        
+        // Look for EXIF marker (APP1)
+        let offset = 2;
+        let hasExif = false;
+        let hasDateTaken = false;
+        
+        while (offset < view.byteLength - 4) {
+          const marker = view.getUint16(offset, false);
+          
+          if (marker === 0xFFE1) { // APP1 (EXIF) marker
+            const exifLength = view.getUint16(offset + 2, false);
+            
+            // Check for "Exif" string
+            if (offset + 10 < view.byteLength) {
+              const exifString = String.fromCharCode(
+                view.getUint8(offset + 4),
+                view.getUint8(offset + 5),
+                view.getUint8(offset + 6),
+                view.getUint8(offset + 7)
+              );
+              
+              if (exifString === 'Exif') {
+                hasExif = true;
+                console.log('✓ EXIF data found');
+                
+                // Look for DateTimeOriginal tag (more thorough check)
+                // This is much harder to fake than just having EXIF
+                for (let i = offset; i < offset + Math.min(exifLength, 2000); i++) {
+                  try {
+                    // Check for common camera metadata tags
+                    const tag = view.getUint16(i, false);
+                    // DateTimeOriginal = 0x9003, Make = 0x010F, Model = 0x0110
+                    if (tag === 0x9003 || tag === 0x010F || tag === 0x0110) {
+                      hasDateTaken = true;
+                      console.log('✓ Camera metadata found');
+                      break;
+                    }
+                  } catch (e) {
+                    // Continue searching
+                  }
+                }
+                
+                break;
+              }
+            }
+          }
+          
+          // Move to next marker
+          if ((marker & 0xFF00) !== 0xFF00) break;
+          offset += 2 + view.getUint16(offset + 2, false);
+        }
+        
+        console.log('EXIF check result:', { hasExif, hasDateTaken });
+        
+        // Require both EXIF and camera metadata tags
+        resolve(hasExif && hasDateTaken);
+      };
+      
+      reader.onerror = () => resolve(false);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   const startAIAuthentication = async () => {
     if (!selectedImage) return;
     setIsAnalyzing(true);
@@ -30,6 +108,14 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please log in first.");
+
+      // Check EXIF data before uploading
+      setScanStatus("Verifying Photo Authenticity...");
+      const hasValidExif = await checkImageExif(selectedImage);
+      
+      if (!hasValidExif) {
+        throw new Error("This photo doesn't appear to be an original camera photo. Please take a fresh photo with your phone camera.");
+      }
 
       const base64Image = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -48,7 +134,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         throw new Error(`AI Analysis failed: ${aiError.message}`);
       }
 
-      console.log('Edge function returned:', data); // 🔍 DEBUG LOG
+      console.log('Edge function returned:', data);
 
       setScanStatus("Uploading Image...");
       const fileName = `${user.id}/${Date.now()}.jpg`;

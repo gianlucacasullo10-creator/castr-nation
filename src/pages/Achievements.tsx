@@ -180,7 +180,7 @@ const Achievements = () => {
                     )}
                   </div>
 
-                  <p className="text-xs text-muted-foreground font-medium mb-2">
+                  <p className="text-xs text-foreground/70 font-medium mb-2">
                     {achievement.is_secret && !isUnlocked ? 'Hidden achievement' : achievement.description}
                   </p>
 
@@ -188,7 +188,7 @@ const Achievements = () => {
                     <Badge className={`${colors.bg} ${colors.text} border-none font-black text-[8px] px-2`}>
                       {achievement.rarity}
                     </Badge>
-                    <Badge variant="outline" className="font-bold text-[8px] px-2">
+                    <Badge variant="outline" className="font-bold text-[10px] px-2 text-foreground/80">
                       {CATEGORY_LABELS[achievement.category as keyof typeof CATEGORY_LABELS]}
                     </Badge>
                     {achievement.reward_points > 0 && (

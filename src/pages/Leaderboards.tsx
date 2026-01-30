@@ -44,35 +44,60 @@ const Leaderboards = () => {
   };
 
   const checkLocationPermission = async () => {
-    // Check if we have saved location
-    const savedLocation = localStorage.getItem('userLocation');
-    if (savedLocation) {
-      setUserLocation(JSON.parse(savedLocation));
-      return;
-    }
+  // Get current user first
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
 
-    // Request new location
-    const location = await requestLocationPermission();
-    if (location) {
-      setUserLocation(location);
-      localStorage.setItem('userLocation', JSON.stringify(location));
-      
-      // Save location to user profile
-      if (currentUser) {
-        await supabase
-          .from('profiles')
-          .update({
-            location_lat: location.latitude,
-            location_lon: location.longitude,
-            location_city: location.city,
-            location_province: location.province
-          })
-          .eq('id', currentUser.id);
-      }
-    } else {
-      setLocationDenied(true);
+  // Check if we have saved location
+  const savedLocation = localStorage.getItem('userLocation');
+  if (savedLocation) {
+    setUserLocation(JSON.parse(savedLocation));
+    
+    // Double-check if it's saved in the database
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('location_lat, location_lon')
+      .eq('id', user.id)
+      .single();
+    
+    // If not in DB, save it
+    if (!profile?.location_lat) {
+      const loc = JSON.parse(savedLocation);
+      await supabase
+        .from('profiles')
+        .update({
+          location_lat: loc.latitude,
+          location_lon: loc.longitude,
+          location_city: loc.city,
+          location_province: loc.province || 'Ontario'
+        })
+        .eq('id', user.id);
     }
-  };
+    return;
+  }
+
+  // Request new location
+  const location = await requestLocationPermission();
+  if (location) {
+    setUserLocation(location);
+    localStorage.setItem('userLocation', JSON.stringify(location));
+    
+    // Save location to user profile
+    await supabase
+      .from('profiles')
+      .update({
+        location_lat: location.latitude,
+        location_lon: location.longitude,
+        location_city: location.city,
+        location_province: location.province || 'Ontario'
+      })
+      .eq('id', user.id);
+    
+    console.log('Location saved to profile');
+  } else {
+    setLocationDenied(true);
+  }
+};
 
   const fetchProvincialRankings = async () => {
     try {

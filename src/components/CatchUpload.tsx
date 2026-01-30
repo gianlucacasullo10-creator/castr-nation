@@ -122,20 +122,28 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         reader.readAsDataURL(selectedImage);
       });
 
-      setScanStatus("AI Analyzing Species...");
-      const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
+   setScanStatus("AI Analyzing Species...");
+const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
   body: { 
     image: base64Image,
-    userId: user.id  // ADD THIS
+    userId: user.id
   }
 });
 
-      if (aiError) {
-        console.error('Edge function error:', aiError);
-        throw new Error(`AI Analysis failed: ${aiError.message}`);
-      }
+if (aiError) {
+  console.error('Edge function error:', aiError);
+  // Check if there's a more specific error message
+  const errorMessage = aiError.message || 'AI Analysis failed';
+  throw new Error(errorMessage);
+}
 
-      console.log('Edge function returned:', data);
+// Check if the response contains an error
+if (data?.error) {
+  console.error('Edge function returned error:', data.error);
+  throw new Error(data.error);
+}
+
+console.log('Edge function returned:', data);
 
       setScanStatus("Uploading Image...");
       const fileName = `${user.id}/${Date.now()}.jpg`;

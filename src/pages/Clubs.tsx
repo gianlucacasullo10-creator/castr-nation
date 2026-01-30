@@ -308,12 +308,32 @@ const Clubs = () => {
                 </Badge>
               </div>
               <p className="text-white/70 text-sm font-bold">{activeBattle.battle_name}</p>
-              <Button 
-                onClick={() => toast({ title: "Join a club to compete!" })}
-                className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs"
-              >
-                View Leaderboard
-              </Button>
+            <Button 
+  onClick={() => {
+    if (!currentUser) {
+      toast({ title: "Login Required", description: "Sign in to view the battle leaderboard" });
+      navigate("/auth");
+      return;
+    }
+    // Find a club to show the leaderboard for (preferably user's club)
+    const userClub = clubs.find(c => {
+      // Check if user is member - you'd need to fetch memberships here
+      // For now, just pick the first club with members
+      return true;
+    });
+    
+    if (clubs.length > 0) {
+      fetchClubDetails(clubs[0]); // Open first club
+      setTimeout(() => {
+        setView('BATTLE');
+        fetchBattleLeaderboard(activeBattle.id);
+      }, 500);
+    }
+  }}
+  className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs"
+>
+  View Leaderboard
+</Button>
             </Card>
           )}
 

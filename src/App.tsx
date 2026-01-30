@@ -18,6 +18,7 @@ import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile"; 
 import NotFound from "./pages/NotFound";
 import CatchUpload from "./components/CatchUpload";
+import Achievements from "./pages/Achievements";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/profile/:id" element={<PublicProfile />} />
               <Route path="/clubs" element={<Clubs />} />
               <Route path="*" element={<NotFound />} />
+              <Route path="/achievements" element={<Achievements />} />
             </Routes>
 
             {globalShowUpload && (

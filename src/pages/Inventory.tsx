@@ -7,10 +7,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Check } from "lucide-react";
 
 const RARITY_COLORS = {
-  common: { bg: "bg-gray-500/10", border: "border-gray-500/30", text: "text-gray-400" },
-  rare: { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400" },
-  epic: { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400" },
-  legendary: { bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-400" },
+  common: { bg: "bg-gray-500/10", border: "border-gray-500/30", text: "text-gray-200" },
+  rare: { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-300" },
+  epic: { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-300" },
+  legendary: { bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-300" },
 };
 
 const Inventory = () => {

@@ -11,13 +11,22 @@ import {
   Flame 
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+
+const RARITY_COLORS = {
+  common: { bg: "bg-gray-500/10", border: "border-gray-500/30", text: "text-gray-200", glow: "shadow-[0_0_20px_rgba(156,163,175,0.3)]" },
+  rare: { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-300", glow: "shadow-[0_0_20px_rgba(59,130,246,0.4)]" },
+  epic: { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-300", glow: "shadow-[0_0_20px_rgba(168,85,247,0.5)]" },
+  legendary: { bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-300", glow: "shadow-[0_0_30px_rgba(234,179,8,0.6)]" },
+};
 
 const PublicProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ totalPoints: 0, catchCount: 0 });
+  const [equippedGear, setEquippedGear] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,8 +50,16 @@ const PublicProfile = () => {
 
         const total = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
 
+        // 3. Fetch Equipped Gear
+        const { data: gearData } = await supabase
+          .from('inventory')
+          .select('*')
+          .eq('user_id', id)
+          .eq('is_equipped', true);
+
         setProfile(profileData);
         setStats({ totalPoints: total, catchCount: catches?.length || 0 });
+        setEquippedGear(gearData || []);
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -61,6 +78,9 @@ const PublicProfile = () => {
   );
 
   if (!profile) return <div className="p-8 text-center font-black uppercase italic">User Not Found</div>;
+
+  const equippedRod = equippedGear.find(g => g.item_type === 'rod');
+  const equippedLure = equippedGear.find(g => g.item_type === 'lure');
 
   return (
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-md mx-auto space-y-8 animate-in fade-in duration-500">
@@ -99,6 +119,45 @@ const PublicProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* EQUIPPED GEAR SHOWCASE */}
+      {equippedGear.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-black uppercase italic tracking-widest text-muted-foreground text-center">Equipped Loadout</h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {equippedRod && (
+              <Card className={`${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].glow} border-2 ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].border} rounded-[24px] p-4 text-center animate-in zoom-in-95`}>
+                <div className="text-4xl mb-2">🎣</div>
+                <p className={`text-xs font-black uppercase italic leading-none ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].text}`}>
+                  {equippedRod.item_name}
+                </p>
+                <Badge className={`${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].text} border-none font-black text-[8px] mt-2`}>
+                  {equippedRod.rarity}
+                </Badge>
+                <p className="text-[10px] font-bold text-primary mt-1">+{equippedRod.bonus_percentage}%</p>
+              </Card>
+            )}
+
+            {equippedLure && (
+              <Card className={`${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].glow} border-2 ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].border} rounded-[24px] p-4 text-center animate-in zoom-in-95 delay-75`}>
+                <div className="text-4xl mb-2">🪝</div>
+                <p className={`text-xs font-black uppercase italic leading-none ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].text}`}>
+                  {equippedLure.item_name}
+                </p>
+                <Badge className={`${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].text} border-none font-black text-[8px] mt-2`}>
+                  {equippedLure.rarity}
+                </Badge>
+                <p className="text-[10px] font-bold text-primary mt-1">+{equippedLure.bonus_percentage}%</p>
+              </Card>
+            )}
+          </div>
+
+          {!equippedRod && !equippedLure && (
+            <p className="text-center text-sm text-muted-foreground italic">No gear equipped</p>
+          )}
+        </div>
+      )}
 
       {/* STATS GRID */}
       <div className="grid grid-cols-2 gap-4">

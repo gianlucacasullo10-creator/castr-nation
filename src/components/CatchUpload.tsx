@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, X, ShieldCheck, Loader2, CheckCircle2 } from "lucide-react";
+import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -11,6 +11,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanStatus, setScanStatus] = useState("");
   const [aiResult, setAiResult] = useState<any>(null);
+  const [errorResult, setErrorResult] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,6 +20,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       setSelectedImage(file);
       setPreviewUrl(URL.createObjectURL(file));
       setAiResult(null);
+      setErrorResult(null);
     }
   };
 
@@ -104,6 +106,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     if (!selectedImage) return;
     setIsAnalyzing(true);
     setScanStatus("Establishing Secure Link...");
+    setErrorResult(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -114,7 +117,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       const hasValidExif = await checkImageExif(selectedImage);
       
       if (!hasValidExif) {
-        throw new Error("This photo doesn't appear to be an original camera photo. Please take a fresh photo with your phone camera.");
+        throw new Error("Photo verification failed! This image doesn't contain camera metadata. Please take a NEW photo directly with your camera app - no screenshots or downloaded images.");
       }
 
       const base64Image = await new Promise<string>((resolve, reject) => {
@@ -168,22 +171,25 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     } catch (error: any) {
       console.error('Full error:', error);
       
-      // Show error message in the scan status overlay for longer
-      setScanStatus("⚠️ " + error.message);
+      // Set error state to show persistent error message
+      setErrorResult(error.message || "Verification failed");
+      setIsAnalyzing(false);
+      setScanStatus("");
       
       toast({ 
         variant: "destructive", 
         title: "Verification Failed", 
         description: error.message || "Something went wrong",
-        duration: 5000, // Show toast for 5 seconds
+        duration: 6000,
       });
-      
-      // Keep the error message visible for 4 seconds before allowing retry
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setScanStatus("");
-      }, 4000);
     }
+  };
+
+  const handleTryAgain = () => {
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setErrorResult(null);
+    setAiResult(null);
   };
 
   return (
@@ -202,7 +208,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             <Camera size={32} className="text-primary" />
           </div>
           <p className="text-white font-bold uppercase text-[10px] tracking-widest">Capture Specimen</p>
-          <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          <Input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
         </label>
       ) : (
         <div className="flex-1 flex flex-col gap-5 overflow-hidden">
@@ -210,14 +216,22 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           <div className="relative aspect-square w-full rounded-[32px] overflow-hidden border border-white/10 bg-muted">
             <img src={previewUrl} className="w-full h-full object-cover" alt="Catch preview" />
             
-            {isAnalyzing && !aiResult && (
+            {isAnalyzing && !aiResult && !errorResult && (
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
                 <Loader2 className="animate-spin text-primary mb-3" size={32} />
                 <p className="text-primary font-black text-xs uppercase italic tracking-tighter">{scanStatus}</p>
               </div>
             )}
 
-            {aiResult && (
+            {errorResult && (
+              <div className="absolute inset-0 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6 text-center animate-in zoom-in-95">
+                <AlertCircle size={48} className="mb-4 text-red-400" />
+                <h3 className="text-lg font-black italic uppercase mb-2">Verification Failed</h3>
+                <p className="text-sm font-medium leading-relaxed mb-4">{errorResult}</p>
+              </div>
+            )}
+
+            {aiResult && !errorResult && (
               <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
                 <CheckCircle2 size={48} className="mb-2" />
                 <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-1">{aiResult.species}</h3>
@@ -227,7 +241,14 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           </div>
 
           <div className="mt-auto pb-4">
-            {!isAnalyzing && (
+            {errorResult ? (
+              <Button 
+                onClick={handleTryAgain}
+                className="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase text-sm shadow-[0_8px_30px_rgba(220,38,38,0.3)] active:scale-95 transition-transform"
+              >
+                <Camera className="mr-2" size={20} /> Take New Photo
+              </Button>
+            ) : !isAnalyzing && (
               <Button 
                 onClick={startAIAuthentication}
                 className="w-full h-14 rounded-2xl bg-primary text-black font-black italic uppercase text-sm shadow-[0_8px_30px_rgb(var(--primary)/0.3)] active:scale-95 transition-transform"

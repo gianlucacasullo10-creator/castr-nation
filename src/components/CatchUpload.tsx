@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -165,8 +166,9 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       }
 
       setAiResult(data);
+      setIsAnalyzing(false);
       toast({ title: "CASTRS Verified!" });
-      setTimeout(() => onComplete(), 3000);
+      // No auto-close - user clicks Continue button
 
     } catch (error: any) {
       console.error('Full error:', error);
@@ -231,24 +233,32 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               </div>
             )}
 
-          {aiResult && (
-  <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
-    <CheckCircle2 size={48} className="mb-3" />
-    <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-2">{aiResult.species}</h3>
-    {aiResult.estimated_weight > 0 && (
-      <p className="text-sm font-bold opacity-70 mb-3">~{aiResult.estimated_weight} lbs</p>
-    )}
-    <p className="text-4xl font-black uppercase tracking-tighter mb-2">+{aiResult.points} PTS</p>
-    {aiResult.quality_multiplier > 1.3 && (
-      <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1">
-        🔥 {aiResult.quality_multiplier}× TROPHY
-      </Badge>
-    )}
-    {aiResult.quality_multiplier >= 1.8 && (
-      <p className="text-xs font-black uppercase mt-2 opacity-80">LEGENDARY CATCH!</p>
-    )}
-  </div>
-)}
+            {aiResult && (
+              <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
+                <CheckCircle2 size={48} className="mb-3" />
+                <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-2">{aiResult.species}</h3>
+                {aiResult.estimated_weight > 0 && (
+                  <p className="text-sm font-bold opacity-70 mb-3">~{aiResult.estimated_weight} lbs</p>
+                )}
+                <p className="text-4xl font-black uppercase tracking-tighter mb-2">+{aiResult.points} PTS</p>
+                {aiResult.quality_multiplier > 1.3 && (
+                  <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1 mb-2">
+                    🔥 {aiResult.quality_multiplier}× TROPHY
+                  </Badge>
+                )}
+                {aiResult.quality_multiplier >= 1.8 && (
+                  <p className="text-xs font-black uppercase mt-1 opacity-80">LEGENDARY CATCH!</p>
+                )}
+                
+                {/* Manual close button */}
+                <Button
+                  onClick={onComplete}
+                  className="mt-6 bg-black/20 hover:bg-black/30 text-black font-black uppercase text-sm px-8 h-12 rounded-2xl border-2 border-black/20 active:scale-95 transition-transform"
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="mt-auto pb-4">
@@ -259,7 +269,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               >
                 <Camera className="mr-2" size={20} /> Take New Photo
               </Button>
-            ) : !isAnalyzing && (
+            ) : !isAnalyzing && !aiResult && (
               <Button 
                 onClick={startAIAuthentication}
                 className="w-full h-14 rounded-2xl bg-primary text-black font-black italic uppercase text-sm shadow-[0_8px_30px_rgb(var(--primary)/0.3)] active:scale-95 transition-transform"

@@ -148,13 +148,22 @@ const Profile = () => {
   const equippedLure = equippedGear.find(g => g.item_type === 'lure');
 
   return (
-    <div className="pb-24 pt-8 px-4 max-w-md mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Angler ID</h1>
-        <Button variant="ghost" size="icon" onClick={() => supabase.auth.signOut().then(() => navigate("/auth"))}>
-          <LogOut size={20} className="text-muted-foreground" />
-        </Button>
-      </div>
+    <div className="flex justify-between items-center">
+  <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Angler ID</h1>
+  <div className="flex gap-2">
+    <Button 
+      variant="ghost" 
+      size="sm"
+      onClick={() => navigate("/achievements")}
+      className="text-xs font-black uppercase"
+    >
+      🏆 Badges
+    </Button>
+    <Button variant="ghost" size="icon" onClick={() => supabase.auth.signOut().then(() => navigate("/auth"))}>
+      <LogOut size={20} className="text-muted-foreground" />
+    </Button>
+  </div>
+</div>
 
       <Card className="border-none bg-card rounded-[40px] shadow-2xl p-10 text-center relative border-t-8 border-primary overflow-hidden">
         {/* AVATAR WITH UPLOAD OVERLAY */}

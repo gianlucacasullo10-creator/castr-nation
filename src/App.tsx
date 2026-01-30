@@ -12,8 +12,8 @@ import Capture from "./pages/Capture";
 import Leaderboards from "./pages/Leaderboards";
 import Profile from "./pages/Profile";
 import Clubs from "./pages/Clubs";
-import Shop from "./pages/Shop"; // NEW
-import Inventory from "./pages/Inventory"; // NEW
+import Shop from "./pages/Shop";
+import Inventory from "./pages/Inventory";
 import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile"; 
 import NotFound from "./pages/NotFound";
@@ -77,15 +77,18 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
 
-           {globalShowUpload && (
-  <CatchUpload 
-    key={Date.now()}
-    onComplete={() => {
-      setGlobalShowUpload(false);
-      // No reload needed
-    }} 
-  />
-)}
+            {globalShowUpload && (
+              <CatchUpload 
+                key={Date.now()}
+                onComplete={() => {
+                  setGlobalShowUpload(false);
+                  // Reload to show new catch in feed
+                  setTimeout(() => {
+                    window.location.href = '/';
+                  }, 500);
+                }} 
+              />
+            )}
 
             <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
           </div>

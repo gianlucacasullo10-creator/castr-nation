@@ -166,9 +166,8 @@ const { error: insertError } = await supabase.from('catches').insert([{
       // SUCCESS - Lock the state
       console.log('SUCCESS - Showing result screen');
       setAiResult(data);
-      setIsAnalyzing(false);
-      setIsCompleted(true); // Lock it so nothing else happens
-      toast({ title: "CASTRS Verified!" });
+setIsAnalyzing(false);
+toast({ title: "CASTRS Verified!" });
 
     } catch (error: any) {
       console.error('Full error:', error);

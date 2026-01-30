@@ -231,13 +231,24 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               </div>
             )}
 
-            {aiResult && !errorResult && (
-              <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
-                <CheckCircle2 size={48} className="mb-2" />
-                <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-1">{aiResult.species}</h3>
-                <p className="text-lg font-bold uppercase tracking-tighter">+{aiResult.points} PTS</p>
-              </div>
-            )}
+          {aiResult && (
+  <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
+    <CheckCircle2 size={48} className="mb-3" />
+    <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-2">{aiResult.species}</h3>
+    {aiResult.estimated_weight > 0 && (
+      <p className="text-sm font-bold opacity-70 mb-3">~{aiResult.estimated_weight} lbs</p>
+    )}
+    <p className="text-4xl font-black uppercase tracking-tighter mb-2">+{aiResult.points} PTS</p>
+    {aiResult.quality_multiplier > 1.3 && (
+      <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1">
+        🔥 {aiResult.quality_multiplier}× TROPHY
+      </Badge>
+    )}
+    {aiResult.quality_multiplier >= 1.8 && (
+      <p className="text-xs font-black uppercase mt-2 opacity-80">LEGENDARY CATCH!</p>
+    )}
+  </div>
+)}
           </div>
 
           <div className="mt-auto pb-4">

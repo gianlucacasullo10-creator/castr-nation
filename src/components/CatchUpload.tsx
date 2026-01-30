@@ -167,13 +167,22 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
     } catch (error: any) {
       console.error('Full error:', error);
+      
+      // Show error message in the scan status overlay for longer
+      setScanStatus("⚠️ " + error.message);
+      
       toast({ 
         variant: "destructive", 
-        title: "Error", 
-        description: error.message || "Something went wrong"
+        title: "Verification Failed", 
+        description: error.message || "Something went wrong",
+        duration: 5000, // Show toast for 5 seconds
       });
-      setIsAnalyzing(false);
-      setScanStatus("");
+      
+      // Keep the error message visible for 4 seconds before allowing retry
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setScanStatus("");
+      }, 4000);
     }
   };
 

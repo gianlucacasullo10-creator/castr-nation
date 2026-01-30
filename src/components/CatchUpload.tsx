@@ -208,7 +208,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
             <Camera size={32} className="text-primary" />
           </div>
           <p className="text-white font-bold uppercase text-[10px] tracking-widest">Capture Specimen</p>
-          <Input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+          <Input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         </label>
       ) : (
         <div className="flex-1 flex flex-col gap-5 overflow-hidden">

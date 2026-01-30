@@ -35,7 +35,12 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
           <span className="text-[9px] mt-1 truncate">Ranks</span>
         </Link>
 
-        {/* Camera Button - Centered */}
+        <Link to="/shop" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/shop') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <ShoppingBag size={18} />
+          <span className="text-[9px] mt-1 truncate">Shop</span>
+        </Link>
+
+        {/* Camera Button - TRUE CENTER (4th position out of 7) */}
         <div className="flex-1 flex justify-center -mt-6">
           <button 
             onClick={onCameraClick}
@@ -44,11 +49,6 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
             <Camera size={22} />
           </button>
         </div>
-
-        <Link to="/shop" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/shop') ? 'text-primary' : 'text-muted-foreground'}`}>
-          <ShoppingBag size={18} />
-          <span className="text-[9px] mt-1 truncate">Shop</span>
-        </Link>
 
         <Link to="/inventory" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/inventory') ? 'text-primary' : 'text-muted-foreground'}`}>
           <Package size={18} />

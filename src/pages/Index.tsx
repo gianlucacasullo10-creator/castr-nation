@@ -304,7 +304,7 @@ const Index = () => {
           key={Date.now()}
           onComplete={() => {
             setShowUpload(false);
-            fetchUnifiedFeed(false);
+            // No auto-refresh - user can manually refresh with the button in header
           }} 
         />
       )}

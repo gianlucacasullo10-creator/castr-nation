@@ -1,9 +1,8 @@
-import { Home, Trophy, Camera, Users, User, LogIn } from "lucide-react";
+import { Home, Trophy, Camera, Users, User, LogIn, ShoppingBag, Package } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Added onCameraClick here so the Index page can listen to it
 export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -36,7 +35,7 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
           <span className="text-[9px] mt-1 truncate">Ranks</span>
         </Link>
 
-        {/* GLOW REMOVED: Replaced neon shadow with a standard drop shadow */}
+        {/* Camera Button - Centered */}
         <div className="flex-1 flex justify-center -mt-6">
           <button 
             onClick={onCameraClick}
@@ -45,6 +44,16 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
             <Camera size={22} />
           </button>
         </div>
+
+        <Link to="/shop" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/shop') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <ShoppingBag size={18} />
+          <span className="text-[9px] mt-1 truncate">Shop</span>
+        </Link>
+
+        <Link to="/inventory" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/inventory') ? 'text-primary' : 'text-muted-foreground'}`}>
+          <Package size={18} />
+          <span className="text-[9px] mt-1 truncate">Gear</span>
+        </Link>
 
         <Link to="/clubs" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/clubs') ? 'text-primary' : 'text-muted-foreground'}`}>
           <Users size={18} />

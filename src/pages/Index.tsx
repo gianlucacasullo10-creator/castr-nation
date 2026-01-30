@@ -20,6 +20,36 @@ import {
   UserCircle,
   Camera
 } from "lucide-react";
+import { requestLocationPermission, UserLocation } from "@/utils/location";
+
+// Add these state variables
+const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
+
+// Add this useEffect to request location on app load
+useEffect(() => {
+  const checkLocation = async () => {
+    if (!locationPermissionAsked) {
+      const location = await requestLocationPermission();
+      setUserLocation(location);
+      setLocationPermissionAsked(true);
+      
+      // Store in localStorage for persistence
+      if (location) {
+        localStorage.setItem('userLocation', JSON.stringify(location));
+      }
+    }
+  };
+  
+  // Check if we already have location
+  const savedLocation = localStorage.getItem('userLocation');
+  if (savedLocation) {
+    setUserLocation(JSON.parse(savedLocation));
+    setLocationPermissionAsked(true);
+  } else {
+    checkLocation();
+  }
+}, []);
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);

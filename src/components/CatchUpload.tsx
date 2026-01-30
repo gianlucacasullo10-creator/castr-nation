@@ -148,14 +148,15 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         throw new Error(`Image upload failed: ${uploadError.message}`);
       }
 
-      setScanStatus("Saving Catch...");
-      const { error: insertError } = await supabase.from('catches').insert([{
-        user_id: user.id,
-        species: data.species,
-        points: data.points,
-        image_url: fileName,
-        ai_verified: true
-      }]);
+     setScanStatus("Saving Catch...");
+const { error: insertError } = await supabase.from('catches').insert([{
+  user_id: user.id,
+  species: data.species,
+  points: data.points,
+  image_url: fileName,
+  image_hash: data.image_hash, // ADD THIS LINE
+  ai_verified: true
+}]);
 
       if (insertError) {
         console.error('Database insert error:', insertError);

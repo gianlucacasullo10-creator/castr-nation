@@ -167,23 +167,20 @@ const Shop = () => {
           </div>
 
           {/* Drop Rates */}
-          <div className="space-y-2">
-            <p className="text-xs font-black uppercase text-muted-foreground text-center">Drop Rates</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30 justify-center font-black text-xs">
-                Common 50%
-              </Badge>
-              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 justify-center font-black text-xs">
-                Rare 30%
-              </Badge>
-              <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 justify-center font-black text-xs">
-                Epic 15%
-              </Badge>
-              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 justify-center font-black text-xs">
-                Legendary 5%
-              </Badge>
-            </div>
-          </div>
+          <div className="grid grid-cols-2 gap-2">
+  <Badge className="bg-gray-500/20 text-gray-200 border-gray-500/30 justify-center font-black text-xs">
+    Common 50%
+  </Badge>
+  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 justify-center font-black text-xs">
+    Rare 30%
+  </Badge>
+  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 justify-center font-black text-xs">
+    Epic 15%
+  </Badge>
+  <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 justify-center font-black text-xs">
+    Legendary 5%
+  </Badge>
+</div>
 
           <Button
             onClick={openCase}

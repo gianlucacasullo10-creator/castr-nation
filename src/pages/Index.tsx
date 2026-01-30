@@ -22,35 +22,6 @@ import {
 } from "lucide-react";
 import { requestLocationPermission, UserLocation } from "@/utils/location";
 
-// Add these state variables
-const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
-
-// Add this useEffect to request location on app load
-useEffect(() => {
-  const checkLocation = async () => {
-    if (!locationPermissionAsked) {
-      const location = await requestLocationPermission();
-      setUserLocation(location);
-      setLocationPermissionAsked(true);
-      
-      // Store in localStorage for persistence
-      if (location) {
-        localStorage.setItem('userLocation', JSON.stringify(location));
-      }
-    }
-  };
-  
-  // Check if we already have location
-  const savedLocation = localStorage.getItem('userLocation');
-  if (savedLocation) {
-    setUserLocation(JSON.parse(savedLocation));
-    setLocationPermissionAsked(true);
-  } else {
-    checkLocation();
-  }
-}, []);
-
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +30,35 @@ const Index = () => {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Request location on app load
+  useEffect(() => {
+    const checkLocation = async () => {
+      if (!locationPermissionAsked) {
+        const location = await requestLocationPermission();
+        setUserLocation(location);
+        setLocationPermissionAsked(true);
+        
+        // Store in localStorage for persistence
+        if (location) {
+          localStorage.setItem('userLocation', JSON.stringify(location));
+        }
+      }
+    };
+    
+    // Check if we already have location
+    const savedLocation = localStorage.getItem('userLocation');
+    if (savedLocation) {
+      setUserLocation(JSON.parse(savedLocation));
+      setLocationPermissionAsked(true);
+    } else {
+      checkLocation();
+    }
+  }, [locationPermissionAsked]);
 
   const fetchUnifiedFeed = async (showLoading = true) => {
     try {
@@ -300,14 +298,10 @@ const Index = () => {
         );
       })}
 
-      {/* NOTE: FLOATING BUTTON REMOVED. 
-         Upload is now triggered only by the central Navbar button. 
-      */}
-
       {/* AI AUTHENTICATION MODAL */}
       {showUpload && (
         <CatchUpload 
-          key={Date.now()} // This ensures a fresh upload screen every time
+          key={Date.now()}
           onComplete={() => {
             setShowUpload(false);
             fetchUnifiedFeed(false);

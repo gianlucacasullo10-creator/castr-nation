@@ -223,80 +223,92 @@ if (profilesError) console.error('Profiles fetch error:', profilesError);
             )}
 
             <CardContent className="p-4 space-y-4">
-              {item.itemType === 'CATCH' && (
-                <div className="text-left flex justify-between items-end">
-                  <div>
-                    <h3 className="text-2xl font-black uppercase italic leading-none tracking-tighter">{item.species}</h3>
-                    <div className="flex items-center gap-1 mt-1 opacity-60 italic uppercase text-[10px] font-bold">
-                       <MapPin size={10} /> {item.location_name}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-3xl font-black text-primary italic leading-none">{item.points}</span>
-                    <span className="text-[8px] font-black text-muted-foreground uppercase">Points</span>
-                  </div>
-                </div>
-              )}
+  {item.itemType === 'CATCH' && (
+    <div className="text-left flex justify-between items-end">
+      <div>
+        <h3 className="text-2xl font-black uppercase italic leading-none tracking-tighter">{item.species}</h3>
+        <div className="flex items-center gap-1 mt-1 opacity-60 italic uppercase text-[10px] font-bold">
+           <MapPin size={10} /> {item.location_name}
+        </div>
+      </div>
+      <div className="flex flex-col items-end">
+        <span className="text-3xl font-black text-primary italic leading-none">{item.points}</span>
+        <span className="text-[8px] font-black text-muted-foreground uppercase">Points</span>
+      </div>
+    </div>
+  )}
 
-              <div className="flex items-center gap-6 pt-4 border-t border-border/40">
-                {item.itemType === 'CATCH' && (
-                  <button 
-                    onClick={() => handleLike(item.id)} 
-                    className={`flex items-center gap-2 transition-all active:scale-125 ${isLiked ? "text-red-500" : "text-muted-foreground"}`}
-                  >
-                    <Heart size={22} className={isLiked ? "fill-current" : ""} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0}</span>
-                  </button>
-                )}
-                <button 
-                  onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} 
-                  className={`flex items-center gap-2 ${activeCommentId === item.id ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  <MessageCircle size={22} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Chat ({item.comments?.length || 0})</span>
-                </button>
-              </div>
+  <div className="flex items-center justify-between pt-4 border-t border-border/40">
+    <div className="flex items-center gap-6">
+      {item.itemType === 'CATCH' && (
+        <button 
+          onClick={() => handleLike(item.id)} 
+          className={`flex items-center gap-2 transition-all active:scale-125 ${isLiked ? "text-red-500" : "text-muted-foreground"}`}
+        >
+          <Heart size={22} className={isLiked ? "fill-current" : ""} />
+          <span className="text-[10px] font-black uppercase tracking-widest">{item.likes?.length || 0}</span>
+        </button>
+      )}
+      <button 
+        onClick={() => setActiveCommentId(activeCommentId === item.id ? null : item.id)} 
+        className={`flex items-center gap-2 ${activeCommentId === item.id ? "text-primary" : "text-muted-foreground"}`}
+      >
+        <MessageCircle size={22} />
+        <span className="text-[10px] font-black uppercase tracking-widest">Chat ({item.comments?.length || 0})</span>
+      </button>
+    </div>
 
-              {item.comments?.length > 0 && (
-                <div className="space-y-3 pt-2 text-left">
-                  {item.comments.map((comment: any) => (
-                    <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
-                      <Avatar 
-                        className="h-5 w-5 border border-primary/20 cursor-pointer"
-                        onClick={() => navigate(`/profile/${comment.user_id}`)}
-                      >
-                        <AvatarImage src={comment.profiles?.avatar_url} />
-                        <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
-                        <p 
-                          className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
-                          onClick={() => navigate(`/profile/${comment.user_id}`)}
-                        >
-                          {comment.profiles?.display_name}
-                        </p>
-                        <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+    {/* Delete button - only show for post owner */}
+    {currentUser?.id === item.user_id && (
+      <button
+        onClick={() => handleDeletePost(item.id, item.itemType)}
+        className="text-red-500/50 hover:text-red-500 transition-colors p-2"
+      >
+        <Trash2 size={18} />
+      </button>
+    )}
+  </div>
 
-              {activeCommentId === item.id && (
-                <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-200">
-                  <Input
-                    placeholder="Add to the conversation..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    className="h-10 bg-muted border-none rounded-xl text-xs font-bold"
-                    autoFocus
-                  />
-                  <Button size="icon" onClick={() => handleSendComment(item.id, item.itemType)} className="h-10 w-10 rounded-xl bg-primary text-black shrink-0">
-                    <Send size={16} />
-                  </Button>
-                </div>
-              )}
-            </CardContent>
+  {item.comments?.length > 0 && (
+    <div className="space-y-3 pt-2 text-left">
+      {item.comments.map((comment: any) => (
+        <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
+          <Avatar 
+            className="h-5 w-5 border border-primary/20 cursor-pointer"
+            onClick={() => navigate(`/profile/${comment.user_id}`)}
+          >
+            <AvatarImage src={comment.profiles?.avatar_url} />
+            <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
+            <p 
+              className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
+              onClick={() => navigate(`/profile/${comment.user_id}`)}
+            >
+              {comment.profiles?.display_name}
+            </p>
+            <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {activeCommentId === item.id && (
+    <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-200">
+      <Input
+        placeholder="Add to the conversation..."
+        value={commentText}
+        onChange={(e) => setCommentText(e.target.value)}
+        className="h-10 bg-muted border-none rounded-xl text-xs font-bold"
+        autoFocus
+      />
+      <Button size="icon" onClick={() => handleSendComment(item.id, item.itemType)} className="h-10 w-10 rounded-xl bg-primary text-black shrink-0">
+        <Send size={16} />
+      </Button>
+    </div>
+  )}
+</CardContent>
           </Card>
         );
       })}

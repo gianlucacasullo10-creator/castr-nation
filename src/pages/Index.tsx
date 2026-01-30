@@ -77,7 +77,8 @@ const Index = () => {
 
       const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
       const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
-      const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title');
+      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title');
+if (profilesError) console.error('Profiles fetch error:', profilesError);
       const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
       const { data: comments } = await supabase.from('comments').select('*, profiles(display_name, avatar_url)').order('created_at', { ascending: true });
 

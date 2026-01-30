@@ -38,82 +38,81 @@ const Shop = () => {
   };
 
   const openCase = async () => {
-    if (!currentUser || !userProfile) return;
+  if (!currentUser || !userProfile) return;
 
-    // Check if user has enough points
-    if (userProfile.current_points < CASE_PRICE) {
-      toast({
-        variant: "destructive",
-        title: "Insufficient Points",
-        description: `You need ${CASE_PRICE} points to open a case.`
-      });
-      return;
-    }
+  // Check if user has enough points
+  if (userProfile.current_points < CASE_PRICE) {
+    toast({
+      variant: "destructive",
+      title: "Insufficient Points",
+      description: `You need ${CASE_PRICE} points to open a case.`
+    });
+    return;
+  }
 
+  try {
+    // Start opening animation FIRST (before any async operations)
     setOpening(true);
 
-    try {
-      // Deduct points
-      const { error: pointsError } = await supabase
-        .from('profiles')
-        .update({ current_points: userProfile.current_points - CASE_PRICE })
-        .eq('id', currentUser.id);
+    // Deduct points
+    const { error: pointsError } = await supabase
+      .from('profiles')
+      .update({ current_points: userProfile.current_points - CASE_PRICE })
+      .eq('id', currentUser.id);
 
-      if (pointsError) throw pointsError;
+    if (pointsError) throw pointsError;
 
-      // Get loot table
-      const { data: lootTable, error: lootError } = await supabase
-        .from('gear_loot_table')
-        .select('*');
+    // Get loot table
+    const { data: lootTable, error: lootError } = await supabase
+      .from('gear_loot_table')
+      .select('*');
 
-      if (lootError) throw lootError;
+    if (lootError) throw lootError;
 
-      // Weighted random selection
-      const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
-      let random = Math.random() * totalWeight;
-      
-      let selectedItem = lootTable[0];
-      for (const item of lootTable) {
-        random -= item.drop_weight;
-        if (random <= 0) {
-          selectedItem = item;
-          break;
-        }
+    // Weighted random selection
+    const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    let selectedItem = lootTable[0];
+    for (const item of lootTable) {
+      random -= item.drop_weight;
+      if (random <= 0) {
+        selectedItem = item;
+        break;
       }
-
-      // Add to inventory
-      const { error: inventoryError } = await supabase
-        .from('inventory')
-        .insert([{
-          user_id: currentUser.id,
-          item_type: selectedItem.item_type,
-          item_name: selectedItem.item_name,
-          rarity: selectedItem.rarity,
-          bonus_percentage: selectedItem.bonus_percentage,
-          is_equipped: false
-        }]);
-
-      if (inventoryError) throw inventoryError;
-
-      // Show the won item
-      setWonItem(selectedItem);
-
-      // Refresh user profile after a short delay
-      setTimeout(async () => {
-        await fetchUserData();
-      }, 500);
-
-    } catch (error: any) {
-      console.error('Case opening error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error Opening Case",
-        description: error.message
-      });
-      setOpening(false);
-      setWonItem(null);
     }
-  };
+
+    // Set won item IMMEDIATELY after selection (no delay)
+    setWonItem(selectedItem);
+
+    // Add to inventory in background
+    const { error: inventoryError } = await supabase
+      .from('inventory')
+      .insert([{
+        user_id: currentUser.id,
+        item_type: selectedItem.item_type,
+        item_name: selectedItem.item_name,
+        rarity: selectedItem.rarity,
+        bonus_percentage: selectedItem.bonus_percentage,
+        is_equipped: false
+      }]);
+
+    if (inventoryError) throw inventoryError;
+
+    // Refresh user data in background (don't await)
+    fetchUserData();
+
+  } catch (error: any) {
+    console.error('Case opening error:', error);
+    toast({
+      variant: "destructive",
+      title: "Error Opening Case",
+      description: error.message
+    });
+    setOpening(false);
+    setWonItem(null);
+  }
+};
 
   const handleCaseComplete = () => {
     setOpening(false);

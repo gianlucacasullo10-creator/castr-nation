@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom"; // Added for routing
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,9 +19,12 @@ import {
   Settings,
   Camera,
   Check,
-  X
+  X,
+  Flame,
+  Timer
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getBattleTier, BATTLE_TIERS } from "@/utils/battleTiers";
 
 const Clubs = () => {
   const navigate = useNavigate();
@@ -32,7 +35,7 @@ const Clubs = () => {
   const [loading, setLoading] = useState(true);
   const [totalPoints, setTotalPoints] = useState(0);
   const [regionalRank, setRegionalRank] = useState(1);
-  const [view, setView] = useState<'INFO' | 'CHAT'>('INFO'); // Removed PUBLIC_PROFILE view
+  const [view, setView] = useState<'INFO' | 'CHAT' | 'BATTLE'>('INFO');
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -41,10 +44,99 @@ const Clubs = () => {
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
   
+  // Battle state
+  const [activeBattle, setActiveBattle] = useState<any>(null);
+  const [battleLeaderboard, setBattleLeaderboard] = useState<any[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState("");
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const BATTLE_THRESHOLD = 2000;
+
+  const fetchActiveBattle = async () => {
+    const { data } = await supabase
+      .from('club_battles')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (data) {
+      setActiveBattle(data);
+      fetchBattleLeaderboard(data.id);
+      calculateTimeRemaining(data.end_date);
+    }
+  };
+
+  const calculateTimeRemaining = (endDate: string) => {
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(endDate).getTime();
+      const distance = end - now;
+
+      if (distance < 0) {
+        clearInterval(interval);
+        setTimeRemaining("Battle Ended");
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+      setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  };
+
+  const fetchBattleLeaderboard = async (battleId: string) => {
+    // Get all participants
+    const { data: participants } = await supabase
+      .from('club_battle_participants')
+      .select('*, clubs(*)')
+      .eq('battle_id', battleId)
+      .order('total_points', { ascending: false });
+
+    if (!participants) return;
+
+    // Calculate current points for each club
+    const updatedParticipants = await Promise.all(
+      participants.map(async (p) => {
+        const { data: members } = await supabase
+          .from('club_members')
+          .select('user_id')
+          .eq('club_id', p.club_id);
+
+        const memberIds = members?.map(m => m.user_id) || [];
+
+        // Get catches during battle period
+        const { data: catches } = await supabase
+          .from('catches')
+          .select('points')
+          .in('user_id', memberIds)
+          .gte('created_at', activeBattle.start_date)
+          .lte('created_at', activeBattle.end_date);
+
+        const currentPoints = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+
+        return {
+          ...p,
+          total_points: currentPoints
+        };
+      })
+    );
+
+    // Sort by points and assign ranks
+    updatedParticipants.sort((a, b) => b.total_points - a.total_points);
+    updatedParticipants.forEach((p, index) => {
+      p.rank = index + 1;
+    });
+
+    setBattleLeaderboard(updatedParticipants);
+  };
 
   const fetchClubs = async () => {
     setLoading(true);
@@ -52,6 +144,7 @@ const Clubs = () => {
     setCurrentUser(user);
     const { data } = await supabase.from('clubs').select('*');
     setClubs(data || []);
+    await fetchActiveBattle();
     setLoading(false);
   };
 
@@ -87,7 +180,6 @@ const Clubs = () => {
     }
   };
 
-  // Updated to use the new Route!
   const handleUserClick = (userId: string) => {
     navigate(`/profile/${userId}`);
   };
@@ -196,28 +288,62 @@ const Clubs = () => {
     </div>
   );
 
+  const battleTier = getBattleTier(selectedClub?.battle_wins || 0);
+
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       {!selectedClub ? (
         <>
           <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">Clubs</h1>
+          
+          {activeBattle && (
+            <Card className="border-none rounded-[32px] bg-gradient-to-br from-red-950/50 to-orange-950/50 p-6 shadow-xl border-2 border-red-500/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Flame className="text-red-500 animate-pulse" size={24} />
+                  <h3 className="text-lg font-black italic uppercase text-red-400">Active Battle</h3>
+                </div>
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-black text-[9px]">
+                  <Timer size={10} className="mr-1" /> {timeRemaining}
+                </Badge>
+              </div>
+              <p className="text-white/70 text-sm font-bold">{activeBattle.battle_name}</p>
+              <Button 
+                onClick={() => toast({ title: "Join a club to compete!" })}
+                className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs"
+              >
+                View Leaderboard
+              </Button>
+            </Card>
+          )}
+
           <div className="space-y-4">
-            {clubs.map((club) => (
-              <Card key={club.id} onClick={() => fetchClubDetails(club)} className="border-none rounded-[32px] bg-card p-6 shadow-xl cursor-pointer text-left hover:scale-[1.02] transition-transform">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <img src={club.image_url || "/placeholder.svg"} className="h-12 w-12 rounded-xl object-cover border border-primary/20" />
-                    <div className="space-y-1">
-                      <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
-                        <MapPin size={12} /> {club.region}
+            {clubs.map((club) => {
+              const tier = getBattleTier(club.battle_wins || 0);
+              return (
+                <Card key={club.id} onClick={() => fetchClubDetails(club)} className="border-none rounded-[32px] bg-card p-6 shadow-xl cursor-pointer text-left hover:scale-[1.02] transition-transform">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <img src={club.image_url || "/placeholder.svg"} className="h-12 w-12 rounded-xl object-cover border border-primary/20" />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
+                          {club.battle_wins > 0 && (
+                            <Badge className={`${tier.bgColor} ${tier.color} border-none font-black text-[8px] px-2`}>
+                              {tier.icon} {club.battle_wins}W
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
+                          <MapPin size={12} /> {club.region}
+                        </div>
                       </div>
                     </div>
+                    <Users className="text-primary/40" size={24} />
                   </div>
-                  <Users className="text-primary/40" size={24} />
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </>
       ) : (
@@ -229,14 +355,23 @@ const Clubs = () => {
             >
               <ChevronLeft size={16} /> Directory
             </button>
-            {isMember && view === 'INFO' && (
-              <Button variant="ghost" onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} className="text-primary font-black uppercase text-[10px] italic">
-                <MessageSquare size={14} className="mr-1" /> Club Chat
-              </Button>
-            )}
-            {view === 'CHAT' && (
-              <Button variant="ghost" onClick={() => setView('INFO')} className="text-primary font-black uppercase text-[10px] italic">Leaderboard</Button>
-            )}
+            <div className="flex gap-2">
+              {isMember && view === 'INFO' && (
+                <>
+                  <Button variant="ghost" onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} className="text-primary font-black uppercase text-[10px] italic">
+                    <MessageSquare size={14} className="mr-1" /> Chat
+                  </Button>
+                  {activeBattle && (
+                    <Button variant="ghost" onClick={() => { setView('BATTLE'); fetchBattleLeaderboard(activeBattle.id); }} className="text-red-400 font-black uppercase text-[10px] italic">
+                      <Swords size={14} className="mr-1" /> Battle
+                    </Button>
+                  )}
+                </>
+              )}
+              {view !== 'INFO' && (
+                <Button variant="ghost" onClick={() => setView('INFO')} className="text-primary font-black uppercase text-[10px] italic">Info</Button>
+              )}
+            </div>
           </div>
 
           {view === 'INFO' && (
@@ -269,6 +404,11 @@ const Clubs = () => {
                         <Badge className={`${regionalRank === 1 ? "bg-yellow-500 text-black" : "bg-muted text-muted-foreground"} border-none font-black text-[9px] uppercase italic px-3`}>
                           <Trophy size={10} className="mr-1" /> Rank #{regionalRank}
                         </Badge>
+                        {selectedClub.battle_wins > 0 && (
+                          <Badge className={`${battleTier.bgColor} ${battleTier.color} ${battleTier.borderColor} border font-black text-[9px] uppercase px-3`}>
+                            {battleTier.icon} {battleTier.name}
+                          </Badge>
+                        )}
                       </div>
                       {currentUser?.id === selectedClub.created_by && (
                         <button onClick={() => setIsEditing(true)} className="absolute -right-2 top-0 p-2 text-muted-foreground hover:text-primary transition-colors">
@@ -279,6 +419,45 @@ const Clubs = () => {
                   )}
                 </div>
               </div>
+
+              {selectedClub.battle_wins > 0 && (
+                <Card className={`${battleTier.bgColor} ${battleTier.borderColor} border-2 rounded-[32px] p-6`}>
+                  <div className="text-center">
+                    <p className="text-4xl mb-2">{battleTier.icon}</p>
+                    <h3 className={`text-2xl font-black italic uppercase ${battleTier.color}`}>{battleTier.name} Tier</h3>
+                    <p className="text-sm font-bold text-muted-foreground mt-2">{selectedClub.battle_wins} Battle Victories</p>
+                    <div className="mt-4 space-y-1">
+                      {BATTLE_TIERS.map((tier, index) => {
+                        if (index === BATTLE_TIERS.length - 1) return null; // Skip last tier
+                        const nextTier = BATTLE_TIERS[index + 1];
+                        const isCurrentTier = selectedClub.battle_wins >= tier.minWins && selectedClub.battle_wins < nextTier.minWins;
+                        
+                        if (isCurrentTier) {
+                          const progress = ((selectedClub.battle_wins - tier.minWins) / (nextTier.minWins - tier.minWins)) * 100;
+                          return (
+                            <div key={tier.name}>
+                              <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                                <span className={tier.color}>{tier.name}</span>
+                                <span className={nextTier.color}>{nextTier.name}</span>
+                              </div>
+                              <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full ${nextTier.bgColor} transition-all duration-500`}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <p className="text-[9px] text-muted-foreground mt-1">
+                                {nextTier.minWins - selectedClub.battle_wins} wins to {nextTier.name}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                </Card>
+              )}
 
               <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary' : 'bg-black border border-white/10'}`}>
                 <div className="relative z-10 text-left">
@@ -316,7 +495,7 @@ const Clubs = () => {
                 {clubMembers.map((member, index) => (
                   <div 
                     key={member.id} 
-                    onClick={() => handleUserClick(member.id)} // Navigates to dedicated page
+                    onClick={() => handleUserClick(member.id)}
                     className="flex items-center justify-between p-4 bg-card rounded-[24px] border border-border/50 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-4 text-left">
@@ -362,6 +541,62 @@ const Clubs = () => {
               <div className="flex gap-2 pt-6 bg-background border-t border-muted/30">
                 <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Drop a transmission..." className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
                 <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0"><Send size={22} /></Button>
+              </div>
+            </div>
+          )}
+
+          {view === 'BATTLE' && activeBattle && (
+            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+              <Card className="border-none rounded-[32px] bg-gradient-to-br from-red-950/50 to-orange-950/50 p-6 border-2 border-red-500/20">
+                <div className="text-center">
+                  <Flame className="text-red-500 mx-auto mb-3 animate-pulse" size={48} />
+                  <h2 className="text-2xl font-black italic uppercase text-red-400 mb-2">{activeBattle.battle_name}</h2>
+                  <div className="flex items-center justify-center gap-2 text-white/70">
+                    <Timer size={16} />
+                    <span className="font-black text-sm">{timeRemaining} Remaining</span>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="space-y-4">
+                <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Battle Leaderboard</h3>
+                {battleLeaderboard.map((participant, index) => {
+                  const isMyClub = participant.club_id === selectedClub.id;
+                  return (
+                    <Card 
+                      key={participant.id}
+                      className={`border-none rounded-[24px] p-4 ${isMyClub ? 'bg-primary/10 border-2 border-primary' : 'bg-card'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-left">
+                          <div className="flex flex-col items-center w-8">
+                            {index === 0 ? (
+                              <Trophy size={20} className="text-yellow-500" />
+                            ) : index === 1 ? (
+                              <Trophy size={18} className="text-gray-400" />
+                            ) : index === 2 ? (
+                              <Trophy size={16} className="text-orange-600" />
+                            ) : (
+                              <span className="text-lg font-black text-muted-foreground">#{index + 1}</span>
+                            )}
+                          </div>
+                          <img 
+                            src={participant.clubs.image_url || "/placeholder.svg"} 
+                            className="h-12 w-12 rounded-xl object-cover border border-primary/20" 
+                          />
+                          <div>
+                            <p className="text-lg font-black italic uppercase leading-none">{participant.clubs.name}</p>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase mt-1">{participant.clubs.region}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-black italic text-primary leading-none">{participant.total_points.toLocaleString()}</p>
+                          <p className="text-[8px] font-black uppercase text-muted-foreground mt-1">Battle Pts</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}

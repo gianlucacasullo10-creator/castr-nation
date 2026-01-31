@@ -19,6 +19,8 @@ import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 import CatchUpload from "./components/CatchUpload";
 import Achievements from "./pages/Achievements";
+import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 
 const queryClient = new QueryClient();
 

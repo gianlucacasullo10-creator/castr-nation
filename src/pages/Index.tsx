@@ -46,14 +46,12 @@ const Index = () => {
         setUserLocation(location);
         setLocationPermissionAsked(true);
         
-        // Store in localStorage for persistence
         if (location) {
           localStorage.setItem('userLocation', JSON.stringify(location));
         }
       }
     };
     
-    // Check if we already have location
     const savedLocation = localStorage.getItem('userLocation');
     if (savedLocation) {
       setUserLocation(JSON.parse(savedLocation));
@@ -124,44 +122,59 @@ const Index = () => {
   }, []);
 
   const handleLike = async (catchId: string) => {
-  if (!currentUser) {
-    toast({ title: "Login Required", description: "You must be logged in to like posts." });
-    return;
-  }
-  
-  const alreadyLiked = feedItems.find(item => item.id === catchId)?.likes?.some((l: any) => l.user_id === currentUser.id);
-  if (alreadyLiked) return;
+    if (!currentUser) {
+      toast({ title: "Login Required", description: "You must be logged in to like posts." });
+      return;
+    }
+    
+    const alreadyLiked = feedItems.find(item => item.id === catchId)?.likes?.some((l: any) => l.user_id === currentUser.id);
+    if (alreadyLiked) return;
 
-  // OPTIMISTIC UPDATE - Update UI immediately
-  setFeedItems(prevItems => 
-    prevItems.map(item => 
-      item.id === catchId 
-        ? { 
-            ...item, 
-            likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
-          }
-        : item
-    )
-  );
-
-  // Then update server
-  const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
-  
-  if (error) {
-    // Revert on error
+    // OPTIMISTIC UPDATE - Update UI immediately
     setFeedItems(prevItems => 
       prevItems.map(item => 
         item.id === catchId 
           ? { 
               ...item, 
-              likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
+              likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
             }
           : item
       )
     );
-    toast({ variant: "destructive", title: "Failed to like post" });
-  }
-};
+
+    // Then update server
+    const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
+    
+    if (error) {
+      // Revert on error
+      setFeedItems(prevItems => 
+        prevItems.map(item => 
+          item.id === catchId 
+            ? { 
+                ...item, 
+                likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
+              }
+            : item
+        )
+      );
+      toast({ variant: "destructive", title: "Failed to like post" });
+    }
+  };
+
+  const handleSendComment = async (itemId: string, type: string) => {
+    if (!commentText.trim() || !currentUser) return;
+    try {
+      const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
+      const { error } = await supabase.from('comments').insert([{ user_id: currentUser.id, [column]: itemId, comment_text: commentText }]);
+      if (error) throw error;
+      setCommentText("");
+      setActiveCommentId(null);
+      fetchUnifiedFeed(false);
+      toast({ title: "Comment Posted!" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Post Failed", description: error.message });
+    }
+  };
 
   const handleDeletePost = async (itemId: string, itemType: string) => {
     if (!currentUser) return;
@@ -171,18 +184,15 @@ const Index = () => {
 
     try {
       if (itemType === 'CATCH') {
-        // Delete the catch
         const { error } = await supabase
           .from('catches')
           .delete()
           .eq('id', itemId)
-          .eq('user_id', currentUser.id); // Extra safety check
+          .eq('user_id', currentUser.id);
 
         if (error) throw error;
-        
         toast({ title: "Catch Deleted" });
       } else if (itemType === 'ACTIVITY') {
-        // Delete the activity
         const { error } = await supabase
           .from('activities')
           .delete()
@@ -190,35 +200,35 @@ const Index = () => {
           .eq('user_id', currentUser.id);
 
         if (error) throw error;
-        
         toast({ title: "Activity Deleted" });
       }
 
-      // Refresh the feed
-      fetchUnifiedFeed(false);
+      // OPTIMISTIC UPDATE - Remove from UI immediately
+      setFeedItems(prevItems => prevItems.filter(item => item.id !== itemId));
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
         title: "Delete Failed", 
         description: error.message 
       });
+      // Refresh on error to restore state
+      fetchUnifiedFeed(false);
     }
   };
 
- if (loading) return (
-  <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
-    {/* Header */}
-    <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
-      <div className="flex flex-col">
-        <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
-          Loading...
-        </p>
+  if (loading) return (
+    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+      <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
+        <div className="flex flex-col">
+          <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
+            Loading...
+          </p>
+        </div>
       </div>
+      <FeedSkeleton />
     </div>
-    <FeedSkeleton />
-  </div>
-);
+  );
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
@@ -284,13 +294,13 @@ const Index = () => {
               </div>
             ) : (
               <div className="aspect-square relative overflow-hidden">
-  <ImageZoom 
-    src={item.image_url} 
-    alt="Catch" 
-    className="aspect-square relative overflow-hidden"
-  />
-  <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase pointer-events-none">AI Verified</Badge>
-</div>
+                <ImageZoom 
+                  src={item.image_url} 
+                  alt="Catch" 
+                  className="aspect-square relative overflow-hidden"
+                />
+                <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase pointer-events-none z-10">AI Verified</Badge>
+              </div>
             )}
 
             <CardContent className="p-4 space-y-4">
@@ -390,7 +400,6 @@ const Index = () => {
           key={Date.now()}
           onComplete={() => {
             setShowUpload(false);
-            // No auto-refresh - user can manually refresh with the button in header
           }} 
         />
       )}

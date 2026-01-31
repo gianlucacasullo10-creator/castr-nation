@@ -12,12 +12,17 @@ export const checkAndUnlockAchievements = async (userId: string) => {
   console.log('🔍 Starting achievement check for user:', userId);
 
   try {
-    // Fetch user's current stats
-    const { data: profile } = await supabase
+    // Fetch user's current stats - only select columns that exist
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, current_points, total_points_earned')
       .eq('id', userId)
       .single();
+
+    if (profileError) {
+      console.error('❌ Profile fetch error:', profileError);
+      return;
+    }
 
     console.log('👤 User profile:', profile);
 
@@ -42,10 +47,15 @@ export const checkAndUnlockAchievements = async (userId: string) => {
     // Fetch all achievements
     const { data: allAchievements, error: achievementsError } = await supabase
       .from('achievements')
-      .select('*');
+      .select('id, name, criteria, category, rarity, reward_points, icon, description');
 
-    if (achievementsError) console.error('Achievements fetch error:', achievementsError);
+    if (achievementsError) {
+      console.error('❌ Achievements fetch error:', achievementsError);
+      return;
+    }
+    
     console.log('🏆 Total achievements in DB:', allAchievements?.length || 0);
+    console.log('🏆 Achievements data:', allAchievements);
 
     // Fetch already unlocked achievements
     const { data: unlockedAchievements } = await supabase

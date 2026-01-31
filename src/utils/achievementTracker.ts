@@ -6,10 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 export const checkAndUnlockAchievements = async (userId: string) => {
   if (!userId) {
     console.log('❌ No userId provided');
-    return;
+    return [];
   }
 
   console.log('🔍 Starting achievement check for user:', userId);
+
+  const unlockedAchievements: any[] = [];
 
   try {
     console.log('🔍 Starting achievement check for user:', userId);
@@ -373,7 +375,10 @@ export const checkAndUnlockAchievements = async (userId: string) => {
 
       if (shouldUnlock) {
         console.log(`  🎉 UNLOCKING: ${achievement.name}`);
-        await unlockAchievement(userId, achievement);
+        const unlockedAchievement = await unlockAchievement(userId, achievement);
+        if (unlockedAchievement) {
+          unlockedAchievements.push(unlockedAchievement);
+        }
       } else if (progress > 0) {
         console.log(`  📈 Updating progress to ${Math.round(progress)}%`);
         await updateAchievementProgress(userId, achievement.id, Math.round(progress));
@@ -383,8 +388,10 @@ export const checkAndUnlockAchievements = async (userId: string) => {
     }
     
     console.log('\n✅ Achievement check complete!');
+    return unlockedAchievements;
   } catch (error) {
     console.error('❌ Error checking achievements:', error);
+    return [];
   }
 };
 
@@ -452,17 +459,28 @@ const unlockAchievement = async (userId: string, achievement: any) => {
     }
 
     // Create activity feed post
-    await supabase
+    console.log(`  📝 Creating activity post for achievement: ${achievement.name}`);
+    const { data: activityData, error: activityError } = await supabase
       .from('activities')
       .insert({
         user_id: userId,
         content: achievement.name,
         activity_type: 'achievement'
-      });
+      })
+      .select();
 
-    console.log(`Achievement unlocked: ${achievement.name}`);
+    if (activityError) {
+      console.error('  ❌ Failed to create activity post:', activityError);
+      console.error('  Error details:', JSON.stringify(activityError, null, 2));
+    } else {
+      console.log('  ✅ Activity post created successfully:', activityData);
+    }
+
+    console.log(`✅ Achievement unlocked: ${achievement.name}`);
+    return achievement;
   } catch (error) {
     console.error('Error unlocking achievement:', error);
+    return null;
   }
 };
 

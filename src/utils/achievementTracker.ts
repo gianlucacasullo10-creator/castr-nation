@@ -97,6 +97,43 @@ export const checkAndUnlockAchievements = async (userId: string) => {
 
       // Check conditions based on achievement criteria
       switch (achievement.criteria) {
+        case 'always_unlocked':
+          // Always unlock - test achievement
+          shouldUnlock = true;
+          progress = 100;
+          console.log(`  📊 Progress: Always unlocked test achievement (100%)`);
+          break;
+
+        case 'catch_2_fish':
+          shouldUnlock = (catches?.length || 0) >= 2;
+          progress = Math.min(((catches?.length || 0) / 2) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/2 catches (${progress}%)`);
+          break;
+
+        case 'post_1_comment':
+          const { data: userCommentsOne } = await supabase
+            .from('comments')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1);
+          const hasCommented = (userCommentsOne?.length || 0) >= 1;
+          shouldUnlock = hasCommented;
+          progress = hasCommented ? 100 : 0;
+          console.log(`  📊 Progress: ${hasCommented ? 'Commented' : 'No comments yet'} (${progress}%)`);
+          break;
+
+        case 'give_1_like':
+          const { data: userLikes } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1);
+          const hasLiked = (userLikes?.length || 0) >= 1;
+          shouldUnlock = hasLiked;
+          progress = hasLiked ? 100 : 0;
+          console.log(`  📊 Progress: ${hasLiked ? 'Liked a post' : 'No likes yet'} (${progress}%)`);
+          break;
+
         case 'catch_first_fish':
           shouldUnlock = (catches?.length || 0) >= 1;
           progress = Math.min(((catches?.length || 0) / 1) * 100, 100);

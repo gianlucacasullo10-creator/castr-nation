@@ -4,7 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 // This checks various conditions and unlocks achievements automatically
 
 export const checkAndUnlockAchievements = async (userId: string) => {
-  if (!userId) return;
+  if (!userId) {
+    console.log('❌ No userId provided');
+    return;
+  }
+
+  console.log('🔍 Starting achievement check for user:', userId);
 
   try {
     // Fetch user's current stats
@@ -14,22 +19,33 @@ export const checkAndUnlockAchievements = async (userId: string) => {
       .eq('id', userId)
       .single();
 
+    console.log('👤 User profile:', profile);
+
     // Fetch all catches by user
-    const { data: catches } = await supabase
+    const { data: catches, error: catchesError } = await supabase
       .from('catches')
       .select('*')
       .eq('user_id', userId);
 
+    if (catchesError) console.error('Catches fetch error:', catchesError);
+    console.log('🎣 Total catches:', catches?.length || 0);
+
     // Fetch user's likes received
-    const { data: likesReceived } = await supabase
+    const { data: likesReceived, error: likesError } = await supabase
       .from('likes')
       .select('catch_id, catches!inner(user_id)')
       .eq('catches.user_id', userId);
 
+    if (likesError) console.error('Likes fetch error:', likesError);
+    console.log('❤️ Total likes received:', likesReceived?.length || 0);
+
     // Fetch all achievements
-    const { data: allAchievements } = await supabase
+    const { data: allAchievements, error: achievementsError } = await supabase
       .from('achievements')
       .select('*');
+
+    if (achievementsError) console.error('Achievements fetch error:', achievementsError);
+    console.log('🏆 Total achievements in DB:', allAchievements?.length || 0);
 
     // Fetch already unlocked achievements
     const { data: unlockedAchievements } = await supabase
@@ -39,11 +55,17 @@ export const checkAndUnlockAchievements = async (userId: string) => {
       .not('unlocked_at', 'is', null);
 
     const unlockedIds = new Set(unlockedAchievements?.map(a => a.achievement_id) || []);
+    console.log('✅ Already unlocked:', unlockedIds.size);
 
     // Check each achievement
     for (const achievement of allAchievements || []) {
+      console.log(`\n📋 Checking: "${achievement.name}" (criteria: ${achievement.criteria})`);
+      
       // Skip if already unlocked
-      if (unlockedIds.has(achievement.id)) continue;
+      if (unlockedIds.has(achievement.id)) {
+        console.log('  ⏭️ Already unlocked, skipping');
+        continue;
+      }
 
       let shouldUnlock = false;
       let progress = 0;
@@ -53,39 +75,48 @@ export const checkAndUnlockAchievements = async (userId: string) => {
         case 'catch_first_fish':
           shouldUnlock = (catches?.length || 0) >= 1;
           progress = Math.min(((catches?.length || 0) / 1) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/1 catches (${progress}%)`);
           break;
 
         case 'catch_10_fish':
           shouldUnlock = (catches?.length || 0) >= 10;
           progress = Math.min(((catches?.length || 0) / 10) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/10 catches (${progress}%)`);
           break;
 
         case 'catch_5_pike':
           const pikeCount = catches?.filter(c => c.species?.toLowerCase().includes('pike')).length || 0;
           shouldUnlock = pikeCount >= 5;
           progress = Math.min((pikeCount / 5) * 100, 100);
+          console.log(`  📊 Progress: ${pikeCount}/5 pike (${progress}%)`);
           break;
 
         case 'receive_10_likes':
           shouldUnlock = (likesReceived?.length || 0) >= 10;
           progress = Math.min(((likesReceived?.length || 0) / 10) * 100, 100);
+          console.log(`  📊 Progress: ${likesReceived?.length || 0}/10 likes (${progress}%)`);
           break;
 
         default:
           // Unknown criteria - skip
+          console.log(`  ⚠️ Unknown criteria: "${achievement.criteria}" - skipping`);
           continue;
       }
 
       if (shouldUnlock) {
-        // Unlock the achievement
+        console.log(`  🎉 UNLOCKING: ${achievement.name}`);
         await unlockAchievement(userId, achievement);
       } else if (progress > 0) {
-        // Update progress
+        console.log(`  📈 Updating progress to ${Math.round(progress)}%`);
         await updateAchievementProgress(userId, achievement.id, Math.round(progress));
+      } else {
+        console.log(`  ⏸️ No progress yet`);
       }
     }
+    
+    console.log('\n✅ Achievement check complete!');
   } catch (error) {
-    console.error('Error checking achievements:', error);
+    console.error('❌ Error checking achievements:', error);
   }
 };
 

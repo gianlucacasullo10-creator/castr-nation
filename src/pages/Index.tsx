@@ -98,26 +98,54 @@ const Index = () => {
 
       const profileMap = (profiles || []).reduce((acc: any, p) => { acc[p.id] = p; return acc; }, {});
 
-      const combined = [
-        ...(catches || []).map(c => ({ 
-          ...c, 
-          itemType: 'CATCH', 
-          profiles: profileMap[c.user_id],
-          likes: (likes || []).filter(l => l.catch_id === c.id),
-          comments: (comments || []).filter(com => com.catch_id === c.id),
-          image_url: c.image_url && c.image_url.includes('/') 
-            ? supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl 
-            : null
-        })),
-        ...(activities || []).map(a => ({ 
+      // Map catches
+      const catchPosts = (catches || []).map(c => ({ 
+        ...c, 
+        itemType: 'CATCH', 
+        profiles: profileMap[c.user_id],
+        likes: (likes || []).filter(l => l.catch_id === c.id),
+        comments: (comments || []).filter(com => com.catch_id === c.id),
+        image_url: c.image_url && c.image_url.includes('/') 
+          ? supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl 
+          : null
+      }));
+
+      // Map achievement activities
+      const achievementPosts = (activities || [])
+        .filter(a => a.activity_type === 'achievement')
+        .map(a => ({ 
           ...a, 
           itemType: 'ACTIVITY', 
           profiles: profileMap[a.user_id],
           comments: (comments || []).filter(com => com.activity_id === a.id)
-        }))
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }));
 
-      setFeedItems(combined);
+      // Mix achievements into feed every 5-7 catch posts
+      const mixed: any[] = [];
+      let achievementIndex = 0;
+      let nextAchievementAt = Math.floor(Math.random() * 3) + 5; // Random between 5-7
+
+      catchPosts.forEach((catchPost, index) => {
+        mixed.push(catchPost);
+        
+        // Insert an achievement every 5-7 posts if we have more to show
+        if (index + 1 === nextAchievementAt && achievementIndex < achievementPosts.length) {
+          mixed.push(achievementPosts[achievementIndex]);
+          achievementIndex++;
+          nextAchievementAt = index + Math.floor(Math.random() * 3) + 5; // Next one in 5-7 posts
+        }
+      });
+
+      // Add any remaining achievements at the end
+      while (achievementIndex < achievementPosts.length) {
+        mixed.push(achievementPosts[achievementIndex]);
+        achievementIndex++;
+      }
+
+      // Sort by created_at to maintain chronological order
+      mixed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setFeedItems(mixed);
     } catch (error: any) {
       console.error("Feed Error:", error.message);
     } finally {
@@ -426,10 +454,17 @@ const Index = () => {
             </CardHeader>
 
             {item.itemType === 'ACTIVITY' ? (
-              <div className="p-8 flex flex-col items-center text-center">
-                <div className="bg-black px-6 py-6 rounded-[30px] border border-primary/30 flex flex-col items-center gap-3 shadow-2xl w-full">
-                  <Award className="text-yellow-500" size={40} />
-                  <span className="text-xl font-black italic uppercase tracking-tighter text-white">Unlocked {item.content}</span>
+              <div className="p-4 flex items-center gap-4">
+                <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-4 rounded-2xl border-2 border-primary/30 flex items-center justify-center shrink-0">
+                  <Award className="text-primary" size={24} />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-black italic uppercase tracking-tight text-foreground leading-tight">
+                    Unlocked Achievement
+                  </p>
+                  <p className="text-lg font-black italic uppercase tracking-tighter text-primary leading-none mt-1">
+                    {item.content}
+                  </p>
                 </div>
               </div>
             ) : (

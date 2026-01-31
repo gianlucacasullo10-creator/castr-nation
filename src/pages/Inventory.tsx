@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Check, Trash2, Recycle, AlertCircle } from "lucide-react";
+import { checkAchievementsAfterEquip } from "@/utils/achievementTracker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,6 +106,9 @@ const Inventory = () => {
 
         if (error) throw error;
         toast({ title: "Item Equipped!", description: "Bonus now active on catches" });
+        
+        // ✅ CHECK ACHIEVEMENTS AFTER EQUIPPING
+        await checkAchievementsAfterEquip(currentUser.id);
       }
 
       fetchInventory();

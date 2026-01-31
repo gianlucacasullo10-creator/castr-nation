@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import BottomNav from "./components/BottomNav";
@@ -20,9 +20,56 @@ import NotFound from "./pages/NotFound";
 import CatchUpload from "./components/CatchUpload";
 import Achievements from "./pages/Achievements";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "react-router-dom";
 
 const queryClient = new QueryClient();
+
+// Wrapper component to use useLocation inside BrowserRouter
+const AnimatedRoutes = ({ globalShowUpload, setGlobalShowUpload }: any) => {
+  const location = useLocation();
+
+  return (
+    <>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+        >
+          <Routes location={location}>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/capture" element={<Capture />} />
+            <Route path="/leaderboards" element={<Leaderboards />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:id" element={<PublicProfile />} />
+            <Route path="/clubs" element={<Clubs />} />
+            <Route path="/achievements" element={<Achievements />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+
+      {globalShowUpload && (
+        <CatchUpload 
+          key={Date.now()}
+          onComplete={() => {
+            setGlobalShowUpload(false);
+            // Reload to show new catch in feed
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+          }} 
+        />
+      )}
+
+      <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
+    </>
+  );
+};
 
 const App = () => {
   const { toast } = useToast();
@@ -67,34 +114,10 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <div className="min-h-screen bg-background pb-20">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/capture" element={<Capture />} />
-              <Route path="/leaderboards" element={<Leaderboards />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:id" element={<PublicProfile />} />
-              <Route path="/clubs" element={<Clubs />} />
-              <Route path="*" element={<NotFound />} />
-              <Route path="/achievements" element={<Achievements />} />
-            </Routes>
-
-            {globalShowUpload && (
-              <CatchUpload 
-                key={Date.now()}
-                onComplete={() => {
-                  setGlobalShowUpload(false);
-                  // Reload to show new catch in feed
-                  setTimeout(() => {
-                    window.location.href = '/';
-                  }, 500);
-                }} 
-              />
-            )}
-
-            <BottomNav onCameraClick={() => setGlobalShowUpload(true)} />
+            <AnimatedRoutes 
+              globalShowUpload={globalShowUpload} 
+              setGlobalShowUpload={setGlobalShowUpload} 
+            />
           </div>
         </BrowserRouter>
       </TooltipProvider>

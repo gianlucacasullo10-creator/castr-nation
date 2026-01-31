@@ -22,6 +22,7 @@ import {
   Trash2
 } from "lucide-react";
 import { requestLocationPermission, UserLocation } from "@/utils/location";
+import FeedSkeleton from "@/components/FeedSkeleton";
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
@@ -189,12 +190,20 @@ const Index = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="font-black italic uppercase text-primary tracking-tighter">Syncing CASTRS...</p>
+ if (loading) return (
+  <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+    {/* Header */}
+    <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
+      <div className="flex flex-col">
+        <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
+          Loading...
+        </p>
+      </div>
     </div>
-  );
+    <FeedSkeleton />
+  </div>
+);
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">

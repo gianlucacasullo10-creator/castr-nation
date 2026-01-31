@@ -138,13 +138,142 @@ export const checkAndUnlockAchievements = async (userId: string) => {
           console.log(`  📊 Progress: ${muskyCount}/5 musky (${progress}%)`);
           break;
 
+        case 'catch_500_points':
+          const catch500 = catches?.filter(c => c.points >= 500).length || 0;
+          shouldUnlock = catch500 >= 1;
+          progress = Math.min((catch500 / 1) * 100, 100);
+          console.log(`  📊 Progress: ${catch500}/1 fish worth 500+ pts (${progress}%)`);
+          break;
+
+        case 'catch_1000_points':
+          const catch1000 = catches?.filter(c => c.points >= 1000).length || 0;
+          shouldUnlock = catch1000 >= 1;
+          progress = Math.min((catch1000 / 1) * 100, 100);
+          console.log(`  📊 Progress: ${catch1000}/1 fish worth 1000+ pts (${progress}%)`);
+          break;
+
+        case 'catch_3_locations':
+          const locations3 = new Set(catches?.map(c => c.location_name).filter(Boolean));
+          shouldUnlock = locations3.size >= 3;
+          progress = Math.min((locations3.size / 3) * 100, 100);
+          console.log(`  📊 Progress: ${locations3.size}/3 locations (${progress}%)`);
+          break;
+
+        case 'catch_10_locations':
+          const locations10 = new Set(catches?.map(c => c.location_name).filter(Boolean));
+          shouldUnlock = locations10.size >= 10;
+          progress = Math.min((locations10.size / 10) * 100, 100);
+          console.log(`  📊 Progress: ${locations10.size}/10 locations (${progress}%)`);
+          break;
+
+        case 'post_25_comments':
+          const { data: userComments } = await supabase
+            .from('comments')
+            .select('id')
+            .eq('user_id', userId);
+          const commentCount = userComments?.length || 0;
+          shouldUnlock = commentCount >= 25;
+          progress = Math.min((commentCount / 25) * 100, 100);
+          console.log(`  📊 Progress: ${commentCount}/25 comments (${progress}%)`);
+          break;
+
+        case 'join_club':
+          const { data: clubMembership } = await supabase
+            .from('club_members')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1);
+          shouldUnlock = (clubMembership?.length || 0) >= 1;
+          progress = shouldUnlock ? 100 : 0;
+          console.log(`  📊 Progress: ${shouldUnlock ? 'Joined' : 'Not joined'} (${progress}%)`);
+          break;
+
         case 'receive_10_likes':
           shouldUnlock = (likesReceived?.length || 0) >= 10;
           progress = Math.min(((likesReceived?.length || 0) / 10) * 100, 100);
           console.log(`  📊 Progress: ${likesReceived?.length || 0}/10 likes (${progress}%)`);
           break;
 
-        case 'open_first_case':
+        case 'receive_50_likes':
+          shouldUnlock = (likesReceived?.length || 0) >= 50;
+          progress = Math.min(((likesReceived?.length || 0) / 50) * 100, 100);
+          console.log(`  📊 Progress: ${likesReceived?.length || 0}/50 likes (${progress}%)`);
+          break;
+
+        case 'receive_100_likes':
+          shouldUnlock = (likesReceived?.length || 0) >= 100;
+          progress = Math.min(((likesReceived?.length || 0) / 100) * 100, 100);
+          console.log(`  📊 Progress: ${likesReceived?.length || 0}/100 likes (${progress}%)`);
+          break;
+
+        case 'catch_before_6am':
+          const earlyBirdCatch = catches?.some(c => {
+            const hour = new Date(c.created_at).getHours();
+            return hour < 6;
+          });
+          shouldUnlock = earlyBirdCatch || false;
+          progress = shouldUnlock ? 100 : 0;
+          console.log(`  📊 Progress: ${shouldUnlock ? 'Caught before 6am' : 'No early catches'} (${progress}%)`);
+          break;
+
+        case 'catch_after_10pm':
+          const nightOwlCatch = catches?.some(c => {
+            const hour = new Date(c.created_at).getHours();
+            return hour >= 22;
+          });
+          shouldUnlock = nightOwlCatch || false;
+          progress = shouldUnlock ? 100 : 0;
+          console.log(`  📊 Progress: ${shouldUnlock ? 'Caught after 10pm' : 'No late catches'} (${progress}%)`);
+          break;
+
+        case 'first_case_legendary':
+          // Check if user's first inventory item was legendary
+          const { data: firstItem } = await supabase
+            .from('inventory')
+            .select('rarity')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: true })
+            .limit(1);
+          shouldUnlock = firstItem?.[0]?.rarity === 'legendary';
+          progress = shouldUnlock ? 100 : 0;
+          console.log(`  📊 Progress: ${shouldUnlock ? 'First case was legendary!' : 'First case was not legendary'} (${progress}%)`);
+          break;
+
+        case 'catch_7_day_streak':
+          // Check if user has catches on 7 consecutive days
+          if (catches && catches.length >= 7) {
+            const catchDates = catches
+              .map(c => new Date(c.created_at).toDateString())
+              .filter((date, index, self) => self.indexOf(date) === index)
+              .sort();
+            
+            let maxStreak = 1;
+            let currentStreak = 1;
+            
+            for (let i = 1; i < catchDates.length; i++) {
+              const prev = new Date(catchDates[i - 1]);
+              const curr = new Date(catchDates[i]);
+              const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (diffDays === 1) {
+                currentStreak++;
+                maxStreak = Math.max(maxStreak, currentStreak);
+              } else {
+                currentStreak = 1;
+              }
+            }
+            
+            shouldUnlock = maxStreak >= 7;
+            progress = Math.min((maxStreak / 7) * 100, 100);
+            console.log(`  📊 Progress: ${maxStreak}/7 day streak (${progress}%)`);
+          } else {
+            shouldUnlock = false;
+            progress = catches ? Math.min((catches.length / 7) * 100, 100) : 0;
+            console.log(`  📊 Progress: Need more catches for streak calculation (${progress}%)`);
+          }
+          break;
+
+        default:
           // Count inventory items as proxy for cases opened
           const { data: inventoryItems } = await supabase
             .from('inventory')

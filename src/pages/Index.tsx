@@ -24,6 +24,7 @@ import {
 import { requestLocationPermission, UserLocation } from "@/utils/location";
 import FeedSkeleton from "@/components/ui/FeedSkeleton";
 import ImageZoom from "@/components/ImageZoom";
+import { checkAchievementsAfterLike } from "@/utils/achievementTracker";
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
@@ -257,6 +258,12 @@ const Index = () => {
           )
         );
         toast({ variant: "destructive", title: "Failed to like post" });
+      } else {
+        // ✅ CHECK ACHIEVEMENTS FOR THE CATCH OWNER
+        const catchItem = feedItems.find(item => item.id === catchId);
+        if (catchItem?.user_id) {
+          await checkAchievementsAfterLike(catchItem.user_id);
+        }
       }
     }
   };

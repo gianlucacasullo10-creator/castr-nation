@@ -90,7 +90,7 @@ const Index = () => {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('*, clan_name')
+          .select('id, display_name, avatar_url, equipped_title')
           .eq('id', user.id)
           .single();
         setUserProfile(profile);
@@ -412,7 +412,7 @@ const Index = () => {
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
-            {userProfile?.clan_name ? `${userProfile.clan_name} Clan` : "Global Angler Force"}
+            Global Angler Force
           </p>
         </div>
         

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { requestLocationPermission, UserLocation } from "@/utils/location";
 import FeedSkeleton from "@/components/FeedSkeleton";
+import ImageZoom from "@/components/ImageZoom";
 
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
@@ -283,9 +284,13 @@ const Index = () => {
               </div>
             ) : (
               <div className="aspect-square relative overflow-hidden">
-                <img src={item.image_url} className="w-full h-full object-cover" alt="Catch" />
-                <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase">AI Verified</Badge>
-              </div>
+  <ImageZoom 
+    src={item.image_url} 
+    alt="Catch" 
+    className="aspect-square relative overflow-hidden"
+  />
+  <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase pointer-events-none">AI Verified</Badge>
+</div>
             )}
 
             <CardContent className="p-4 space-y-4">

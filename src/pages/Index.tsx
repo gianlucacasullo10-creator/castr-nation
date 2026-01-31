@@ -42,6 +42,7 @@ const Index = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   
   // Pull to refresh states
   const [pullDistance, setPullDistance] = useState(0);
@@ -537,26 +538,52 @@ const Index = () => {
 
               {item.comments?.length > 0 && (
                 <div className="space-y-3 pt-2 text-left">
-                  {item.comments.map((comment: any) => (
-                    <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
-                      <Avatar 
-                        className="h-5 w-5 border border-primary/20 cursor-pointer"
-                        onClick={() => navigate(`/profile/${comment.user_id}`)}
-                      >
-                        <AvatarImage src={comment.profiles?.avatar_url} />
-                        <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
-                        <p 
-                          className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
+                  {/* Show first 3 comments or all if expanded */}
+                  {item.comments
+                    .slice(0, expandedComments.has(item.id) ? item.comments.length : 3)
+                    .map((comment: any) => (
+                      <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
+                        <Avatar 
+                          className="h-5 w-5 border border-primary/20 cursor-pointer"
                           onClick={() => navigate(`/profile/${comment.user_id}`)}
                         >
-                          {comment.profiles?.display_name}
-                        </p>
-                        <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
+                          <AvatarImage src={comment.profiles?.avatar_url} />
+                          <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
+                          <p 
+                            className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
+                            onClick={() => navigate(`/profile/${comment.user_id}`)}
+                          >
+                            {comment.profiles?.display_name}
+                          </p>
+                          <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  
+                  {/* Show More/Less Button */}
+                  {item.comments.length > 3 && (
+                    <button
+                      onClick={() => {
+                        setExpandedComments(prev => {
+                          const newSet = new Set(prev);
+                          if (newSet.has(item.id)) {
+                            newSet.delete(item.id);
+                          } else {
+                            newSet.add(item.id);
+                          }
+                          return newSet;
+                        });
+                      }}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      {expandedComments.has(item.id) 
+                        ? 'Show less' 
+                        : `Show ${item.comments.length - 3} more comment${item.comments.length - 3 === 1 ? '' : 's'}`
+                      }
+                    </button>
+                  )}
                 </div>
               )}
 

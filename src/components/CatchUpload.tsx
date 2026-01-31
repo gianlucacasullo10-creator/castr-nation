@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { checkAchievementsAfterCatch } from "@/utils/achievementTracker";
+import AchievementNotification from "@/components/AchievementNotification";
 
 const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -15,6 +16,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [aiResult, setAiResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<any[]>([]);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +174,10 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
       // ✅ CHECK AND UNLOCK ACHIEVEMENTS
       setScanStatus("Checking Achievements...");
-      await checkAchievementsAfterCatch(user.id);
+      const newAchievements = await checkAchievementsAfterCatch(user.id);
+      if (newAchievements && newAchievements.length > 0) {
+        setUnlockedAchievements(newAchievements);
+      }
 
       // SUCCESS - Lock the state
       console.log('SUCCESS - Showing result screen');
@@ -296,6 +301,17 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
           </div>
         </div>
       )}
+
+      {/* Achievement Notifications */}
+      {unlockedAchievements.map((achievement, index) => (
+        <AchievementNotification
+          key={achievement.id}
+          achievement={achievement}
+          onClose={() => {
+            setUnlockedAchievements(prev => prev.filter(a => a.id !== achievement.id));
+          }}
+        />
+      ))}
     </div>
   );
 };

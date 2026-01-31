@@ -123,30 +123,44 @@ const Index = () => {
   }, []);
 
   const handleLike = async (catchId: string) => {
-    if (!currentUser) {
-      toast({ title: "Login Required", description: "You must be logged in to like posts." });
-      return;
-    }
-    const alreadyLiked = feedItems.find(item => item.id === catchId)?.likes?.some((l: any) => l.user_id === currentUser.id);
-    if (alreadyLiked) return;
-    const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
-    if (!error) fetchUnifiedFeed(false); 
-  };
+  if (!currentUser) {
+    toast({ title: "Login Required", description: "You must be logged in to like posts." });
+    return;
+  }
+  
+  const alreadyLiked = feedItems.find(item => item.id === catchId)?.likes?.some((l: any) => l.user_id === currentUser.id);
+  if (alreadyLiked) return;
 
-  const handleSendComment = async (itemId: string, type: string) => {
-    if (!commentText.trim() || !currentUser) return;
-    try {
-      const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
-      const { error } = await supabase.from('comments').insert([{ user_id: currentUser.id, [column]: itemId, comment_text: commentText }]);
-      if (error) throw error;
-      setCommentText("");
-      setActiveCommentId(null);
-      fetchUnifiedFeed(false);
-      toast({ title: "Comment Posted!" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Post Failed", description: error.message });
-    }
-  };
+  // OPTIMISTIC UPDATE - Update UI immediately
+  setFeedItems(prevItems => 
+    prevItems.map(item => 
+      item.id === catchId 
+        ? { 
+            ...item, 
+            likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
+          }
+        : item
+    )
+  );
+
+  // Then update server
+  const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
+  
+  if (error) {
+    // Revert on error
+    setFeedItems(prevItems => 
+      prevItems.map(item => 
+        item.id === catchId 
+          ? { 
+              ...item, 
+              likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
+            }
+          : item
+      )
+    );
+    toast({ variant: "destructive", title: "Failed to like post" });
+  }
+};
 
   const handleDeletePost = async (itemId: string, itemType: string) => {
     if (!currentUser) return;

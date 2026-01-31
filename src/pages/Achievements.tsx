@@ -8,10 +8,30 @@ import { Loader2, Lock, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const RARITY_COLORS = {
-  common: { bg: "bg-gray-500/10", border: "border-gray-500/30", text: "text-gray-200" },
-  rare: { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-300" },
-  epic: { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-300" },
-  legendary: { bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-300" },
+  common: { 
+    bg: "bg-gray-500/20", 
+    border: "border-gray-400", 
+    text: "text-gray-100",
+    badge: "bg-gray-500 text-white"
+  },
+  rare: { 
+    bg: "bg-blue-500/20", 
+    border: "border-blue-400", 
+    text: "text-blue-200",
+    badge: "bg-blue-500 text-white"
+  },
+  epic: { 
+    bg: "bg-purple-500/20", 
+    border: "border-purple-400", 
+    text: "text-purple-200",
+    badge: "bg-purple-500 text-white"
+  },
+  legendary: { 
+    bg: "bg-yellow-500/20", 
+    border: "border-yellow-400", 
+    text: "text-yellow-200",
+    badge: "bg-yellow-500 text-white"
+  },
 };
 
 const CATEGORY_LABELS = {
@@ -26,6 +46,7 @@ const Achievements = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [allAchievements, setAllAchievements] = useState<any[]>([]);
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<string>>(new Set());
+  const [userProgress, setUserProgress] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const navigate = useNavigate();
@@ -49,14 +70,25 @@ const Achievements = () => {
       setAllAchievements(achievementsData || []);
 
       if (user) {
-        // Fetch user's unlocked achievements
+        // Fetch user's unlocked achievements with progress
         const { data: unlockedData } = await supabase
           .from('user_achievements')
-          .select('achievement_id')
+          .select('achievement_id, progress, unlocked_at')
           .eq('user_id', user.id);
 
-        const unlockedIds = new Set(unlockedData?.map(a => a.achievement_id) || []);
+        const unlockedIds = new Set(
+          unlockedData?.filter(a => a.unlocked_at !== null).map(a => a.achievement_id) || []
+        );
         setUnlockedAchievements(unlockedIds);
+
+        // Store progress data
+        const progressMap = new Map();
+        unlockedData?.forEach(item => {
+          if (item.progress !== null) {
+            progressMap.set(item.achievement_id, item.progress);
+          }
+        });
+        setUserProgress(progressMap);
       }
     } finally {
       setLoading(false);
@@ -91,21 +123,21 @@ const Achievements = () => {
         <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
           Achievements
         </h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/60 mt-1">
           Unlock badges & earn rewards
         </p>
       </div>
 
       {/* Progress Card */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 p-6 rounded-[32px]">
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-6 rounded-[32px]">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-black uppercase text-muted-foreground">Progress</span>
+            <span className="text-sm font-black uppercase text-foreground/70">Progress</span>
             <span className="text-2xl font-black italic text-primary">{stats.percentage}%</span>
           </div>
           <Progress value={stats.percentage} className="h-3" />
           <div className="flex justify-between items-center text-xs font-bold">
-            <span className="text-muted-foreground">{stats.unlocked} / {stats.total} Unlocked</span>
+            <span className="text-foreground/70">{stats.unlocked} / {stats.total} Unlocked</span>
             <span className="text-primary">{stats.total - stats.unlocked} Remaining</span>
           </div>
         </div>
@@ -155,24 +187,25 @@ const Achievements = () => {
         {filteredAchievements.map(achievement => {
           const isUnlocked = unlockedAchievements.has(achievement.id);
           const colors = RARITY_COLORS[achievement.rarity as keyof typeof RARITY_COLORS];
+          const progress = userProgress.get(achievement.id) || 0;
 
           return (
             <Card
               key={achievement.id}
-              className={`${colors.bg} border-2 ${colors.border} rounded-[24px] p-4 ${
-                !isUnlocked ? 'opacity-50 grayscale' : ''
+              className={`${colors.bg} border-2 ${colors.border} rounded-[24px] p-4 transition-all ${
+                !isUnlocked ? 'opacity-60' : ''
               }`}
             >
               <div className="flex items-start gap-4">
                 {/* Icon */}
-                <div className="text-4xl shrink-0">
+                <div className={`text-4xl shrink-0 ${!isUnlocked ? 'grayscale opacity-50' : ''}`}>
                   {isUnlocked ? achievement.icon : '🔒'}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className={`font-black uppercase italic text-sm leading-none ${colors.text}`}>
+                    <h3 className={`font-black uppercase italic text-sm leading-none ${isUnlocked ? 'text-foreground' : 'text-foreground/50'}`}>
                       {achievement.is_secret && !isUnlocked ? '???' : achievement.name}
                     </h3>
                     {isUnlocked && (
@@ -180,19 +213,29 @@ const Achievements = () => {
                     )}
                   </div>
 
-                  <p className="text-xs text-foreground/70 font-medium mb-2">
-                    {achievement.is_secret && !isUnlocked ? 'Hidden achievement' : achievement.description}
+                  <p className={`text-xs font-medium mb-3 ${isUnlocked ? 'text-foreground/80' : 'text-foreground/40'}`}>
+                    {achievement.is_secret && !isUnlocked ? 'Hidden achievement - complete to reveal' : achievement.description}
                   </p>
 
+                  {/* Progress bar for locked achievements */}
+                  {!isUnlocked && progress > 0 && (
+                    <div className="mb-3">
+                      <Progress value={(progress / 100) * 100} className="h-2" />
+                      <p className="text-[10px] font-bold text-foreground/60 mt-1">
+                        Progress: {progress}%
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={`${colors.bg} ${colors.text} border-none font-black text-[8px] px-2`}>
+                    <Badge className={`${colors.badge} font-black text-[8px] px-2 py-0.5 border-none`}>
                       {achievement.rarity}
                     </Badge>
-                    <Badge variant="outline" className="font-bold text-[10px] px-2 text-foreground/80">
+                    <Badge variant="outline" className="font-bold text-[10px] px-2 py-0.5 text-foreground border-foreground/20">
                       {CATEGORY_LABELS[achievement.category as keyof typeof CATEGORY_LABELS]}
                     </Badge>
                     {achievement.reward_points > 0 && (
-                      <Badge className="bg-primary/20 text-primary border-none font-black text-[8px] px-2">
+                      <Badge className="bg-primary/20 text-primary border border-primary/30 font-black text-[8px] px-2 py-0.5">
                         +{achievement.reward_points} pts
                       </Badge>
                     )}
@@ -205,10 +248,10 @@ const Achievements = () => {
       </div>
 
       {filteredAchievements.length === 0 && (
-        <Card className="p-12 text-center rounded-[32px]">
-          <Lock size={48} className="mx-auto mb-4 text-muted-foreground opacity-20" />
-          <p className="text-muted-foreground font-bold">No achievements found</p>
-          <p className="text-sm text-muted-foreground mt-2">Try a different filter!</p>
+        <Card className="p-12 text-center rounded-[32px] border-2">
+          <Lock size={48} className="mx-auto mb-4 text-foreground/20" />
+          <p className="text-foreground/70 font-bold">No achievements found</p>
+          <p className="text-sm text-foreground/50 mt-2">Try a different filter!</p>
         </Card>
       )}
     </div>

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { checkAchievementsAfterCatch } from "@/utils/achievementTracker";
 
 const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);

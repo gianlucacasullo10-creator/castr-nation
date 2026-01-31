@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -35,8 +35,20 @@ const Index = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
+  
+  // Pull to refresh states
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStartY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Pull to refresh constants
+  const PULL_THRESHOLD = 80; // Distance needed to trigger refresh
+  const MAX_PULL = 120; // Maximum pull distance
 
   // Request location on app load
   useEffect(() => {
@@ -121,43 +133,131 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Pull to refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const scrollTop = containerRef.current?.scrollTop || 0;
+    if (scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || isRefreshing) return;
+    
+    const scrollTop = containerRef.current?.scrollTop || 0;
+    if (scrollTop > 0) {
+      setIsPulling(false);
+      setPullDistance(0);
+      return;
+    }
+
+    const touchY = e.touches[0].clientY;
+    const distance = touchY - touchStartY.current;
+    
+    if (distance > 0) {
+      // Apply resistance to pull
+      const resistedDistance = Math.min(distance * 0.5, MAX_PULL);
+      setPullDistance(resistedDistance);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isPulling) return;
+    
+    setIsPulling(false);
+    
+    if (pullDistance >= PULL_THRESHOLD) {
+      setIsRefreshing(true);
+      await fetchUnifiedFeed(false);
+      
+      // Add small delay for better UX
+      setTimeout(() => {
+        setIsRefreshing(false);
+        setPullDistance(0);
+        toast({ title: "Feed refreshed!" });
+      }, 500);
+    } else {
+      setPullDistance(0);
+    }
+  };
+
+  // Toggle like/unlike functionality
   const handleLike = async (catchId: string) => {
     if (!currentUser) {
       toast({ title: "Login Required", description: "You must be logged in to like posts." });
       return;
     }
     
-    const alreadyLiked = feedItems.find(item => item.id === catchId)?.likes?.some((l: any) => l.user_id === currentUser.id);
-    if (alreadyLiked) return;
+    const currentItem = feedItems.find(item => item.id === catchId);
+    const alreadyLiked = currentItem?.likes?.some((l: any) => l.user_id === currentUser.id);
 
-    // OPTIMISTIC UPDATE - Update UI immediately
-    setFeedItems(prevItems => 
-      prevItems.map(item => 
-        item.id === catchId 
-          ? { 
-              ...item, 
-              likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
-            }
-          : item
-      )
-    );
-
-    // Then update server
-    const { error } = await supabase.from('likes').insert([{ user_id: currentUser.id, catch_id: catchId }]);
-    
-    if (error) {
-      // Revert on error
+    if (alreadyLiked) {
+      // UNLIKE - Optimistic update
       setFeedItems(prevItems => 
         prevItems.map(item => 
           item.id === catchId 
             ? { 
                 ...item, 
-                likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
+                likes: item.likes.filter((l: any) => l.user_id !== currentUser.id)
               }
             : item
         )
       );
-      toast({ variant: "destructive", title: "Failed to like post" });
+
+      // Remove like from database
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('catch_id', catchId);
+      
+      if (error) {
+        // Revert on error
+        setFeedItems(prevItems => 
+          prevItems.map(item => 
+            item.id === catchId 
+              ? { 
+                  ...item, 
+                  likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }]
+                }
+              : item
+          )
+        );
+        toast({ variant: "destructive", title: "Failed to unlike post" });
+      }
+    } else {
+      // LIKE - Optimistic update
+      setFeedItems(prevItems => 
+        prevItems.map(item => 
+          item.id === catchId 
+            ? { 
+                ...item, 
+                likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
+              }
+            : item
+        )
+      );
+
+      // Add like to database
+      const { error } = await supabase
+        .from('likes')
+        .insert([{ user_id: currentUser.id, catch_id: catchId }]);
+      
+      if (error) {
+        // Revert on error
+        setFeedItems(prevItems => 
+          prevItems.map(item => 
+            item.id === catchId 
+              ? { 
+                  ...item, 
+                  likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
+                }
+              : item
+          )
+        );
+        toast({ variant: "destructive", title: "Failed to like post" });
+      }
     }
   };
 
@@ -231,9 +331,38 @@ const Index = () => {
   );
 
   return (
-    <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
+    <div 
+      ref={containerRef}
+      className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6 overflow-y-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        transform: isPulling ? `translateY(${pullDistance}px)` : 'none',
+        transition: isPulling ? 'none' : 'transform 0.3s ease-out'
+      }}
+    >
+      {/* Pull to refresh indicator */}
+      <div 
+        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center transition-all duration-200"
+        style={{
+          opacity: pullDistance > 0 ? Math.min(pullDistance / PULL_THRESHOLD, 1) : 0,
+          transform: `translateY(${Math.max(pullDistance - 40, 0)}px)`
+        }}
+      >
+        <div className="bg-primary/90 backdrop-blur-md rounded-full p-3 shadow-lg">
+          <RefreshCw 
+            size={20} 
+            className={`text-white ${isRefreshing ? 'animate-spin' : ''}`}
+            style={{
+              transform: `rotate(${pullDistance * 2}deg)`
+            }}
+          />
+        </div>
+      </div>
+
       {/* BRANDED HEADER */}
-      <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
+      <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-40 py-2">
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
@@ -258,8 +387,12 @@ const Index = () => {
               <UserCircle size={14} className="mr-2" /> Profile
             </Button>
           )}
-          <button onClick={() => fetchUnifiedFeed(true)} className="p-2 text-primary/50 hover:text-primary transition-colors">
-            <RefreshCw size={18} />
+          <button 
+            onClick={() => fetchUnifiedFeed(true)} 
+            className="p-2 text-primary/50 hover:text-primary transition-colors"
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>

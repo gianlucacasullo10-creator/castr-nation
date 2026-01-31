@@ -96,11 +96,46 @@ export const checkAndUnlockAchievements = async (userId: string) => {
           console.log(`  📊 Progress: ${catches?.length || 0}/10 catches (${progress}%)`);
           break;
 
+        case 'catch_50_fish':
+          shouldUnlock = (catches?.length || 0) >= 50;
+          progress = Math.min(((catches?.length || 0) / 50) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/50 catches (${progress}%)`);
+          break;
+
+        case 'catch_100_fish':
+          shouldUnlock = (catches?.length || 0) >= 100;
+          progress = Math.min(((catches?.length || 0) / 100) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/100 catches (${progress}%)`);
+          break;
+
+        case 'catch_500_fish':
+          shouldUnlock = (catches?.length || 0) >= 500;
+          progress = Math.min(((catches?.length || 0) / 500) * 100, 100);
+          console.log(`  📊 Progress: ${catches?.length || 0}/500 catches (${progress}%)`);
+          break;
+
         case 'catch_5_pike':
           const pikeCount = catches?.filter(c => c.species?.toLowerCase().includes('pike')).length || 0;
           shouldUnlock = pikeCount >= 5;
           progress = Math.min((pikeCount / 5) * 100, 100);
           console.log(`  📊 Progress: ${pikeCount}/5 pike (${progress}%)`);
+          break;
+
+        case 'catch_5_bass':
+          const bassCount = catches?.filter(c => c.species?.toLowerCase().includes('bass')).length || 0;
+          shouldUnlock = bassCount >= 5;
+          progress = Math.min((bassCount / 5) * 100, 100);
+          console.log(`  📊 Progress: ${bassCount}/5 bass (${progress}%)`);
+          break;
+
+        case 'catch_5_musky':
+          const muskyCount = catches?.filter(c => 
+            c.species?.toLowerCase().includes('musky') || 
+            c.species?.toLowerCase().includes('muskellunge')
+          ).length || 0;
+          shouldUnlock = muskyCount >= 5;
+          progress = Math.min((muskyCount / 5) * 100, 100);
+          console.log(`  📊 Progress: ${muskyCount}/5 musky (${progress}%)`);
           break;
 
         case 'receive_10_likes':

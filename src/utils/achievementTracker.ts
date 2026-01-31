@@ -144,6 +144,99 @@ export const checkAndUnlockAchievements = async (userId: string) => {
           console.log(`  📊 Progress: ${likesReceived?.length || 0}/10 likes (${progress}%)`);
           break;
 
+        case 'open_first_case':
+          // Count inventory items as proxy for cases opened
+          const { data: inventoryItems } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId);
+          const casesOpened = inventoryItems?.length || 0;
+          shouldUnlock = casesOpened >= 1;
+          progress = Math.min((casesOpened / 1) * 100, 100);
+          console.log(`  📊 Progress: ${casesOpened}/1 cases (${progress}%)`);
+          break;
+
+        case 'open_10_cases':
+          const { data: inventoryItems10 } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId);
+          const casesOpened10 = inventoryItems10?.length || 0;
+          shouldUnlock = casesOpened10 >= 10;
+          progress = Math.min((casesOpened10 / 10) * 100, 100);
+          console.log(`  📊 Progress: ${casesOpened10}/10 cases (${progress}%)`);
+          break;
+
+        case 'equip_first_item':
+          const { data: equippedItems } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_equipped', true);
+          const equippedCount = equippedItems?.length || 0;
+          shouldUnlock = equippedCount >= 1;
+          progress = Math.min((equippedCount / 1) * 100, 100);
+          console.log(`  📊 Progress: ${equippedCount}/1 equipped (${progress}%)`);
+          break;
+
+        case 'open_5_cases':
+          const { data: inventoryItems5 } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId);
+          const casesOpened5 = inventoryItems5?.length || 0;
+          shouldUnlock = casesOpened5 >= 5;
+          progress = Math.min((casesOpened5 / 5) * 100, 100);
+          console.log(`  📊 Progress: ${casesOpened5}/5 cases (${progress}%)`);
+          break;
+
+        case 'own_10_gear':
+          const { data: allGear } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId);
+          const gearCount = allGear?.length || 0;
+          shouldUnlock = gearCount >= 10;
+          progress = Math.min((gearCount / 10) * 100, 100);
+          console.log(`  📊 Progress: ${gearCount}/10 gear (${progress}%)`);
+          break;
+
+        case 'get_rare_item':
+          const { data: rareItems } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('rarity', 'rare');
+          const rareCount = rareItems?.length || 0;
+          shouldUnlock = rareCount >= 1;
+          progress = Math.min((rareCount / 1) * 100, 100);
+          console.log(`  📊 Progress: ${rareCount}/1 rare (${progress}%)`);
+          break;
+
+        case 'get_epic_item':
+          const { data: epicItems } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('rarity', 'epic');
+          const epicCount = epicItems?.length || 0;
+          shouldUnlock = epicCount >= 1;
+          progress = Math.min((epicCount / 1) * 100, 100);
+          console.log(`  📊 Progress: ${epicCount}/1 epic (${progress}%)`);
+          break;
+
+        case 'get_legendary_item':
+          const { data: legendaryItems } = await supabase
+            .from('inventory')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('rarity', 'legendary');
+          const legendaryCount = legendaryItems?.length || 0;
+          shouldUnlock = legendaryCount >= 1;
+          progress = Math.min((legendaryCount / 1) * 100, 100);
+          console.log(`  📊 Progress: ${legendaryCount}/1 legendary (${progress}%)`);
+          break;
+
         default:
           // Unknown criteria - skip
           console.log(`  ⚠️ Unknown criteria: "${achievement.criteria}" - skipping`);
@@ -284,5 +377,13 @@ export const checkAchievementsAfterCatch = async (userId: string) => {
 };
 
 export const checkAchievementsAfterLike = async (userId: string) => {
+  await checkAndUnlockAchievements(userId);
+};
+
+export const checkAchievementsAfterCaseOpen = async (userId: string) => {
+  await checkAndUnlockAchievements(userId);
+};
+
+export const checkAchievementsAfterEquip = async (userId: string) => {
   await checkAndUnlockAchievements(userId);
 };

@@ -39,11 +39,22 @@ export const checkAndUnlockAchievements = async (userId: string) => {
     if (catchesError) console.error('Catches fetch error:', catchesError);
     console.log('🎣 Total catches:', catches?.length || 0);
 
-    // Fetch user's likes received
+    // Fetch user's likes received - use simpler query to avoid join issues
+    const { data: userCatches, error: userCatchesError } = await supabase
+      .from('catches')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (userCatchesError) {
+      console.error('User catches fetch error:', userCatchesError);
+    }
+
+    const catchIds = userCatches?.map(c => c.id) || [];
+    
     const { data: likesReceived, error: likesError } = await supabase
       .from('likes')
-      .select('catch_id, catches!inner(user_id)')
-      .eq('catches.user_id', userId);
+      .select('catch_id')
+      .in('catch_id', catchIds.length > 0 ? catchIds : ['']);
 
     if (likesError) console.error('Likes fetch error:', likesError);
     console.log('❤️ Total likes received:', likesReceived?.length || 0);

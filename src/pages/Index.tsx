@@ -294,11 +294,16 @@ const Index = () => {
         );
         toast({ variant: "destructive", title: "Failed to like post" });
       } else {
-        // ✅ CHECK ACHIEVEMENTS FOR THE CATCH OWNER
+        // ✅ CHECK ACHIEVEMENTS FOR THE CATCH OWNER (receiving likes)
         const catchItem = feedItems.find(item => item.id === catchId);
         if (catchItem?.user_id) {
           await checkAchievementsAfterLike(catchItem.user_id);
         }
+        
+        // ✅ ALSO CHECK ACHIEVEMENTS FOR THE USER GIVING THE LIKE
+        const { checkAndUnlockAchievements } = await import("@/utils/achievementTracker");
+        const newAchievements = await checkAndUnlockAchievements(currentUser.id);
+        // Could show notification here if needed
       }
     }
   };

@@ -26,6 +26,12 @@ import FeedSkeleton from "@/components/ui/FeedSkeleton";
 import ImageZoom from "@/components/ImageZoom";
 import { checkAchievementsAfterLike } from "@/utils/achievementTracker";
 
+// Helper function to check achievements after comment
+const checkAchievementsAfterComment = async (userId: string) => {
+  const { checkAndUnlockAchievements } = await import("@/utils/achievementTracker");
+  await checkAndUnlockAchievements(userId);
+};
+
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,6 +310,10 @@ const Index = () => {
       if (error) throw error;
       setCommentText("");
       setActiveCommentId(null);
+      
+      // ✅ CHECK ACHIEVEMENTS AFTER COMMENTING
+      await checkAchievementsAfterComment(currentUser.id);
+      
       fetchUnifiedFeed(false);
       toast({ title: "Comment Posted!" });
     } catch (error: any) {

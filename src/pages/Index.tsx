@@ -22,7 +22,7 @@ import {
   Trash2
 } from "lucide-react";
 import { requestLocationPermission, UserLocation } from "@/utils/location";
-import FeedSkeleton from "@/components/FeedSkeleton";
+import FeedSkeleton from "@/components/ui/FeedSkeleton";
 import ImageZoom from "@/components/ImageZoom";
 
 const Index = () => {

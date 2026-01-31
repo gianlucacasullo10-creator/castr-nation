@@ -14,7 +14,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [scanStatus, setScanStatus] = useState("");
   const [aiResult, setAiResult] = useState<any>(null);
   const [errorResult, setErrorResult] = useState<string | null>(null);
-  const [isCompleted, setIsCompleted] = useState(false); // NEW: Track if we're done
+  const [isCompleted, setIsCompleted] = useState(false);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +100,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   };
 
   const startAIAuthentication = async () => {
-    if (!selectedImage || isCompleted) return; // Prevent if already completed
+    if (!selectedImage || isCompleted) return;
     setIsAnalyzing(true);
     setScanStatus("Establishing Secure Link...");
     setErrorResult(null);
@@ -123,28 +123,26 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         reader.readAsDataURL(selectedImage);
       });
 
-   setScanStatus("AI Analyzing Species...");
-const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
-  body: { 
-    image: base64Image,
-    userId: user.id
-  }
-});
+      setScanStatus("AI Analyzing Species...");
+      const { data, error: aiError } = await supabase.functions.invoke('clever-endpoint', {
+        body: { 
+          image: base64Image,
+          userId: user.id
+        }
+      });
 
-if (aiError) {
-  console.error('Edge function error:', aiError);
-  // Check if there's a more specific error message
-  const errorMessage = aiError.message || 'AI Analysis failed';
-  throw new Error(errorMessage);
-}
+      if (aiError) {
+        console.error('Edge function error:', aiError);
+        const errorMessage = aiError.message || 'AI Analysis failed';
+        throw new Error(errorMessage);
+      }
 
-// Check if the response contains an error
-if (data?.error) {
-  console.error('Edge function returned error:', data.error);
-  throw new Error(data.error);
-}
+      if (data?.error) {
+        console.error('Edge function returned error:', data.error);
+        throw new Error(data.error);
+      }
 
-console.log('Edge function returned:', data);
+      console.log('Edge function returned:', data);
 
       setScanStatus("Uploading Image...");
       const fileName = `${user.id}/${Date.now()}.jpg`;
@@ -157,26 +155,30 @@ console.log('Edge function returned:', data);
         throw new Error(`Image upload failed: ${uploadError.message}`);
       }
 
-     setScanStatus("Saving Catch...");
-const { error: insertError } = await supabase.from('catches').insert([{
-  user_id: user.id,
-  species: data.species,
-  points: data.points,
-  image_url: fileName,
-  image_hash: data.image_hash, // ADD THIS LINE
-  ai_verified: true
-}]);
+      setScanStatus("Saving Catch...");
+      const { error: insertError } = await supabase.from('catches').insert([{
+        user_id: user.id,
+        species: data.species,
+        points: data.points,
+        image_url: fileName,
+        image_hash: data.image_hash,
+        ai_verified: true
+      }]);
 
       if (insertError) {
         console.error('Database insert error:', insertError);
         throw new Error(`Failed to save catch: ${insertError.message}`);
       }
 
+      // ✅ CHECK AND UNLOCK ACHIEVEMENTS
+      setScanStatus("Checking Achievements...");
+      await checkAchievementsAfterCatch(user.id);
+
       // SUCCESS - Lock the state
       console.log('SUCCESS - Showing result screen');
       setAiResult(data);
-setIsAnalyzing(false);
-toast({ title: "CASTRS Verified!" });
+      setIsAnalyzing(false);
+      toast({ title: "CASTRS Verified!" });
 
     } catch (error: any) {
       console.error('Full error:', error);
@@ -212,7 +214,6 @@ toast({ title: "CASTRS Verified!" });
       
       <div className="flex justify-between items-center mb-6 pt-2">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
-        {/* Don't allow closing during success */}
         {!aiResult && (
           <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
             <X size={24} />

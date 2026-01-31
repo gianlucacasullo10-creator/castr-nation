@@ -273,8 +273,7 @@ export const checkAndUnlockAchievements = async (userId: string) => {
           }
           break;
 
-        default:
-          // Count inventory items as proxy for cases opened
+        case 'open_first_case':
           const { data: inventoryItems } = await supabase
             .from('inventory')
             .select('id')

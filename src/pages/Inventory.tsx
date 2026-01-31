@@ -51,10 +51,10 @@ const Inventory = () => {
     setCurrentUser(user);
 
     if (user) {
-      // Fetch user profile for fish points
+      // Fetch user profile for current points
       const { data: profile } = await supabase
         .from('profiles')
-        .select('fish_points')
+        .select('current_points, total_points_earned')
         .eq('id', user.id)
         .single();
       
@@ -150,11 +150,12 @@ const Inventory = () => {
 
       if (deleteError) throw deleteError;
 
-      // Add fish points to user profile
+      // Add points to both current_points and total_points_earned
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          fish_points: (userProfile?.fish_points || 0) + pointsToAdd 
+          current_points: (userProfile?.current_points || 0) + pointsToAdd,
+          total_points_earned: (userProfile?.total_points_earned || 0) + pointsToAdd
         })
         .eq('id', currentUser.id);
 
@@ -167,12 +168,13 @@ const Inventory = () => {
 
       setUserProfile((prev: any) => ({
         ...prev,
-        fish_points: (prev?.fish_points || 0) + pointsToAdd
+        current_points: (prev?.current_points || 0) + pointsToAdd,
+        total_points_earned: (prev?.total_points_earned || 0) + pointsToAdd
       }));
 
       toast({
         title: "Item Recycled!",
-        description: `Gained ${pointsToAdd} fish points 🐟`,
+        description: `Gained ${pointsToAdd} points 🐟`,
       });
 
       setRecycleDialogOpen(false);
@@ -227,13 +229,13 @@ const Inventory = () => {
           </p>
         </div>
         
-        {/* Fish Points Display */}
+        {/* Current Points Display */}
         <div className="bg-primary/10 border-2 border-primary/20 rounded-2xl px-3 py-2 text-right">
           <p className="text-2xl font-black text-primary leading-none">
-            {userProfile?.fish_points || 0}
+            {userProfile?.current_points || 0}
           </p>
           <p className="text-[8px] font-black uppercase text-muted-foreground">
-            Fish Points
+            Points
           </p>
         </div>
       </div>
@@ -381,7 +383,7 @@ const Inventory = () => {
                   +{RECYCLE_VALUES[itemToRecycle?.rarity as keyof typeof RECYCLE_VALUES]}
                 </p>
                 <p className="text-xs font-bold text-muted-foreground uppercase">
-                  Fish Points
+                  Points
                 </p>
               </div>
 

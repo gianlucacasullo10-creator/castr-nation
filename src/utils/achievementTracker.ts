@@ -12,7 +12,9 @@ export const checkAndUnlockAchievements = async (userId: string) => {
   console.log('🔍 Starting achievement check for user:', userId);
 
   try {
-    // Fetch user's current stats - only select columns that exist
+    console.log('🔍 Starting achievement check for user:', userId);
+
+    // Verify user exists - use minimal query
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, current_points, total_points_earned')
@@ -21,10 +23,10 @@ export const checkAndUnlockAchievements = async (userId: string) => {
 
     if (profileError) {
       console.error('❌ Profile fetch error:', profileError);
-      return;
+      console.error('   This might be due to RLS policies. Continuing anyway...');
     }
 
-    console.log('👤 User profile:', profile);
+    console.log('👤 User profile:', profile?.id || 'not found (continuing anyway)');
 
     // Fetch all catches by user
     const { data: catches, error: catchesError } = await supabase
@@ -162,21 +164,35 @@ const unlockAchievement = async (userId: string, achievement: any) => {
         });
     }
 
-    // Award points to user
+    // Award points to user (if we can access the profile)
     if (achievement.reward_points > 0) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('current_points, total_points_earned')
-        .eq('id', userId)
-        .single();
+      try {
+        const { data: currentProfile, error: fetchError } = await supabase
+          .from('profiles')
+          .select('current_points, total_points_earned')
+          .eq('id', userId)
+          .single();
 
-      await supabase
-        .from('profiles')
-        .update({
-          current_points: (profile?.current_points || 0) + achievement.reward_points,
-          total_points_earned: (profile?.total_points_earned || 0) + achievement.reward_points
-        })
-        .eq('id', userId);
+        if (fetchError) {
+          console.log(`  ⚠️ Cannot fetch profile for points (RLS?): ${fetchError.message}`);
+        } else if (currentProfile) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              current_points: (currentProfile.current_points || 0) + achievement.reward_points,
+              total_points_earned: (currentProfile.total_points_earned || 0) + achievement.reward_points
+            })
+            .eq('id', userId);
+
+          if (updateError) {
+            console.log(`  ⚠️ Cannot update profile points (RLS?): ${updateError.message}`);
+          } else {
+            console.log(`  💰 Awarded ${achievement.reward_points} points`);
+          }
+        }
+      } catch (err) {
+        console.log(`  ⚠️ Error awarding points:`, err);
+      }
     }
 
     // Create activity feed post

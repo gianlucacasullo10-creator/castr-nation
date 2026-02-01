@@ -438,7 +438,7 @@ const Index = () => {
         <div className="flex flex-col">
           <h1 className="text-5xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">CASTRS</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1 text-left">
-            Global Angler Force
+            Social Fishing Network
           </p>
         </div>
         

@@ -500,7 +500,7 @@ const Index = () => {
                   <div>
                     <h3 className="text-2xl font-black uppercase italic leading-none tracking-tighter">{item.species}</h3>
                     <div className="flex items-center gap-1 mt-1 opacity-60 italic uppercase text-[10px] font-bold">
-                       <MapPin size={10} /> {item.location_name}
+                       <MapPin size={10} /> {item.location_city || item.location_province || item.location_name || 'Ontario'}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">

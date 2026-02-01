@@ -19,6 +19,8 @@ import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 import CatchUpload from "./components/CatchUpload";
 import Achievements from "./pages/Achievements";
+import CastrsPro from "./pages/CastrsPro";
+import Tournaments from "./pages/Tournaments";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,8 @@ const App = () => {
                 <Route path="/profile/:id" element={<PublicProfile />} />
                 <Route path="/clubs" element={<Clubs />} />
                 <Route path="/achievements" element={<Achievements />} />
+                <Route path="/castrs-pro" element={<CastrsPro />} />
+                <Route path="/tournaments" element={<Tournaments />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

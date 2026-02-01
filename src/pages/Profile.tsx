@@ -299,6 +299,75 @@ const Profile = () => {
         </div>
       )}
 
+      {/* TOP 3 CATCHES */}
+      {catches.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Trophy Cabinet</h3>
+          
+          <div className="grid grid-cols-3 gap-3">
+            {catches
+              .sort((a, b) => b.points - a.points)
+              .slice(0, 3)
+              .map((catchItem, index) => {
+                const publicUrl = catchItem.image_url && catchItem.image_url.includes('/') 
+                  ? supabase.storage.from('catch_photos').getPublicUrl(catchItem.image_url).data.publicUrl 
+                  : null;
+
+                return (
+                  <Card 
+                    key={catchItem.id}
+                    className="relative rounded-2xl overflow-hidden border-2 border-primary/20 group cursor-pointer hover:border-primary transition-all"
+                  >
+                    {/* Rank Badge */}
+                    <div className="absolute top-2 left-2 z-10">
+                      <Badge className={`
+                        font-black text-xs px-2 py-0.5 border-none
+                        ${index === 0 ? 'bg-yellow-500 text-yellow-950' : ''}
+                        ${index === 1 ? 'bg-gray-400 text-gray-900' : ''}
+                        ${index === 2 ? 'bg-orange-600 text-orange-950' : ''}
+                      `}>
+                        #{index + 1}
+                      </Badge>
+                    </div>
+
+                    {/* Image */}
+                    {publicUrl ? (
+                      <div className="aspect-square overflow-hidden">
+                        <img 
+                          src={publicUrl} 
+                          alt={catchItem.species}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-muted flex items-center justify-center">
+                        <span className="text-4xl">🎣</span>
+                      </div>
+                    )}
+
+                    {/* Info Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 text-left">
+                      <p className="text-[10px] font-black uppercase italic text-white leading-none truncate">
+                        {catchItem.species}
+                      </p>
+                      <p className="text-lg font-black text-primary leading-none mt-1">
+                        {catchItem.points}
+                      </p>
+                      <p className="text-[8px] font-bold text-white/60 uppercase">pts</p>
+                    </div>
+                  </Card>
+                );
+              })}
+          </div>
+
+          {catches.length < 3 && (
+            <p className="text-center text-xs text-muted-foreground italic">
+              Upload more catches to fill your trophy cabinet!
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Title Vault */}
       <div className="space-y-4">
         <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Title Vault</h3>

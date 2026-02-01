@@ -1,0 +1,32 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#22D3EE"/>
+  
+  <!-- Large C with Hook -->
+  <g transform="translate(300, 150)">
+    <!-- Main C shape -->
+    <path d="M 400 165 C 400 74.09 326.91 0 235 0 C 143.09 0 70 74.09 70 165 C 70 255.91 143.09 330 235 330" 
+          stroke="#000000" 
+          stroke-width="50" 
+          fill="none"
+          stroke-linecap="round"/>
+    
+    <!-- Fishing hook at bottom of C -->
+    <path d="M 235 330 L 235 380 Q 235 410 265 410 Q 295 410 295 380 L 295 360" 
+          stroke="#000000" 
+          stroke-width="50" 
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Hook barb -->
+    <path d="M 295 360 L 320 345" 
+          stroke="#000000" 
+          stroke-width="40" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="600" y="200" font-family="Arial, sans-serif" font-weight="900" font-size="120" fill="#000000" text-anchor="middle" font-style="italic">CASTRS</text>
+  <text x="600" y="280" font-family="Arial, sans-serif" font-weight="700" font-size="40" fill="#000000" text-anchor="middle" letter-spacing="8">SOCIAL FISHING NETWORK</text>
+</svg>

@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Package, Sparkles } from "lucide-react";
+import { Loader2, Package, Sparkles, Tv } from "lucide-react";
 import CaseOpening from "@/components/CaseOpening";
+import { checkAchievementsAfterCaseOpen } from "@/utils/achievementTracker";
 
 const CASE_PRICE = 500; // Points per case
 
@@ -15,6 +16,7 @@ const Shop = () => {
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const [wonItem, setWonItem] = useState<any>(null);
+  const [watchingAd, setWatchingAd] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -38,86 +40,157 @@ const Shop = () => {
   };
 
   const openCase = async () => {
-  if (!currentUser || !userProfile) return;
+    if (!currentUser || !userProfile) return;
 
-  // Check if user has enough points
-  if (userProfile.current_points < CASE_PRICE) {
-    toast({
-      variant: "destructive",
-      title: "Insufficient Points",
-      description: `You need ${CASE_PRICE} points to open a case.`
-    });
-    return;
-  }
-
-  try {
-    // Start opening animation FIRST (before any async operations)
-    setOpening(true);
-
-    // Deduct points
-    const { error: pointsError } = await supabase
-      .from('profiles')
-      .update({ current_points: userProfile.current_points - CASE_PRICE })
-      .eq('id', currentUser.id);
-
-    if (pointsError) throw pointsError;
-
-    // Get loot table
-    const { data: lootTable, error: lootError } = await supabase
-      .from('gear_loot_table')
-      .select('*');
-
-    if (lootError) throw lootError;
-
-    // Weighted random selection
-    const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
-    let random = Math.random() * totalWeight;
-    
-    let selectedItem = lootTable[0];
-    for (const item of lootTable) {
-      random -= item.drop_weight;
-      if (random <= 0) {
-        selectedItem = item;
-        break;
-      }
+    // Check if user has enough points
+    if (userProfile.current_points < CASE_PRICE) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Points",
+        description: `You need ${CASE_PRICE} points to open a case.`
+      });
+      return;
     }
 
-    // Set won item IMMEDIATELY after selection (no delay)
-    setWonItem(selectedItem);
+    try {
+      // Start opening animation FIRST (before any async operations)
+      setOpening(true);
 
-    // Add to inventory in background
-    const { error: inventoryError } = await supabase
-      .from('inventory')
-      .insert([{
-        user_id: currentUser.id,
-        item_type: selectedItem.item_type,
-        item_name: selectedItem.item_name,
-        rarity: selectedItem.rarity,
-        bonus_percentage: selectedItem.bonus_percentage,
-        is_equipped: false
-      }]);
+      // Deduct points
+      const { error: pointsError } = await supabase
+        .from('profiles')
+        .update({ current_points: userProfile.current_points - CASE_PRICE })
+        .eq('id', currentUser.id);
 
-    if (inventoryError) throw inventoryError;
+      if (pointsError) throw pointsError;
 
-    // Refresh user data in background (don't await)
-    fetchUserData();
+      // Get loot table
+      const { data: lootTable, error: lootError } = await supabase
+        .from('gear_loot_table')
+        .select('*');
 
-  } catch (error: any) {
-    console.error('Case opening error:', error);
-    toast({
-      variant: "destructive",
-      title: "Error Opening Case",
-      description: error.message
-    });
-    setOpening(false);
-    setWonItem(null);
-  }
-};
+      if (lootError) throw lootError;
+
+      // Weighted random selection
+      const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
+      let random = Math.random() * totalWeight;
+      
+      let selectedItem = lootTable[0];
+      for (const item of lootTable) {
+        random -= item.drop_weight;
+        if (random <= 0) {
+          selectedItem = item;
+          break;
+        }
+      }
+
+      // Set won item IMMEDIATELY after selection (no delay)
+      setWonItem(selectedItem);
+
+      // Add to inventory in background
+      const { error: inventoryError } = await supabase
+        .from('inventory')
+        .insert([{
+          user_id: currentUser.id,
+          item_type: selectedItem.item_type,
+          item_name: selectedItem.item_name,
+          rarity: selectedItem.rarity,
+          bonus_percentage: selectedItem.bonus_percentage,
+          is_equipped: false
+        }]);
+
+      if (inventoryError) throw inventoryError;
+
+      // ✅ CHECK ACHIEVEMENTS AFTER CASE OPENING
+      await checkAchievementsAfterCaseOpen(currentUser.id);
+
+      // Refresh user data in background (don't await)
+      fetchUserData();
+
+    } catch (error: any) {
+      console.error('Case opening error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error Opening Case",
+        description: error.message
+      });
+      setOpening(false);
+      setWonItem(null);
+    }
+  };
 
   const handleCaseComplete = () => {
     setOpening(false);
     setWonItem(null);
     fetchUserData(); // Refresh one more time when user closes the animation
+  };
+
+  const handleWatchAd = async () => {
+    setWatchingAd(true);
+
+    // TODO: Integrate with AdMob/Unity Ads SDK
+    // For now, simulate ad watching
+    
+    // Simulate 3 second ad
+    setTimeout(async () => {
+      try {
+        // Open a free case after ad
+        const { data: lootTable, error: lootError } = await supabase
+          .from('gear_loot_table')
+          .select('*');
+
+        if (lootError) throw lootError;
+
+        // Weighted random selection
+        const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        let selectedItem = lootTable[0];
+        for (const item of lootTable) {
+          random -= item.drop_weight;
+          if (random <= 0) {
+            selectedItem = item;
+            break;
+          }
+        }
+
+        setWonItem(selectedItem);
+        setOpening(true);
+
+        // Add to inventory
+        const { error: inventoryError } = await supabase
+          .from('inventory')
+          .insert([{
+            user_id: currentUser.id,
+            item_type: selectedItem.item_type,
+            item_name: selectedItem.item_name,
+            rarity: selectedItem.rarity,
+            bonus_percentage: selectedItem.bonus_percentage,
+            is_equipped: false
+          }]);
+
+        if (inventoryError) throw inventoryError;
+
+        // Check achievements
+        await checkAchievementsAfterCaseOpen(currentUser.id);
+
+        toast({ 
+          title: "Free Case Opened!", 
+          description: "Thanks for watching the ad!" 
+        });
+
+        fetchUserData();
+      } catch (error: any) {
+        console.error('Ad reward error:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
+        });
+      } finally {
+        setWatchingAd(false);
+      }
+    }, 3000);
   };
 
   if (loading) {
@@ -197,6 +270,33 @@ const Shop = () => {
             )}
             Open Case - {CASE_PRICE} pts
           </Button>
+
+          {/* Rewarded Ad Button */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl"></div>
+            <Button
+              onClick={handleWatchAd}
+              disabled={watchingAd || opening}
+              variant="outline"
+              className="relative w-full h-14 rounded-2xl border-2 border-purple-500/50 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 text-white font-black uppercase text-sm disabled:opacity-50"
+            >
+              {watchingAd ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={20} />
+                  Loading Ad...
+                </>
+              ) : (
+                <>
+                  <Tv className="mr-2" size={20} />
+                  Watch Ad - Free Case
+                </>
+              )}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground italic">
+            Watch a short ad to open a case for free!
+          </p>
         </div>
       </Card>
 

@@ -16,71 +16,33 @@ import {
 const Tournaments = () => {
   const { toast } = useToast();
 
-  // Mock tournament data - will be from database later
+  // Tournament data - will be from database later
   const tournaments = [
     {
       id: 1,
-      name: "Bass Pro Shops Spring Challenge",
-      sponsor: "Bass Pro Shops",
-      sponsorLogo: "🎣", // Replace with actual logo later
-      description: "Catch the most largemouth bass to win!",
+      name: "Largest Bass Challenge",
+      sponsor: "CASTRS Official",
+      sponsorLogo: "🎣",
+      description: "Catch the biggest largemouth bass to win exclusive legendary gear!",
       startDate: "March 1, 2026",
-      endDate: "March 7, 2026",
+      endDate: "March 14, 2026",
       status: "upcoming",
       participants: 0,
-      maxParticipants: 500,
+      maxParticipants: null, // Unlimited
       prizes: [
-        { place: "1st", reward: "$100 Bass Pro Gift Card", value: 100 },
-        { place: "2nd-3rd", reward: "3 Months CASTRS Pro", value: 15 },
-        { place: "4th-10th", reward: "5000 Points", value: 5 },
+        { place: "1st", reward: "Limited Edition 1/1 Legendary Rod", value: 100 },
+        { place: "2nd", reward: "Limited Edition 1/1 Epic Lure", value: 50 },
+        { place: "3rd", reward: "1,500 Fish Points", value: 15 },
+        { place: "4th-10th", reward: "500 Fish Points", value: 5 },
+        { place: "11th-50th", reward: "250 Fish Points", value: 2 },
       ],
       rules: [
         "Must catch largemouth bass only",
-        "AI verification required",
-        "Catches must be during tournament dates",
-        "Account must be 30+ days old"
-      ],
-      sponsorLink: "https://basspro.com"
-    },
-    {
-      id: 2,
-      name: "Rapala Weekly Showdown",
-      sponsor: "Rapala",
-      sponsorLogo: "🪝",
-      description: "Most catches with any Rapala lure equipped",
-      startDate: "Feb 15, 2026",
-      endDate: "Feb 22, 2026",
-      status: "active",
-      participants: 127,
-      maxParticipants: 1000,
-      prizes: [
-        { place: "1st", reward: "Rapala Pro Lure Pack + 10000 pts", value: 50 },
-        { place: "2nd-5th", reward: "5000 Points", value: 5 },
-        { place: "6th-20th", reward: "2000 Points", value: 2 },
-      ],
-      rules: [
-        "Must have Rapala lure equipped",
-        "Any species counts",
-        "Minimum 5 catches to qualify"
-      ],
-      sponsorLink: "https://rapala.com"
-    },
-    {
-      id: 3,
-      name: "Local Tackle Shop Tournament",
-      sponsor: "Coming Soon",
-      sponsorLogo: "🏪",
-      description: "Support local fishing businesses",
-      startDate: "April 1, 2026",
-      endDate: "April 30, 2026",
-      status: "coming_soon",
-      participants: 0,
-      maxParticipants: 200,
-      prizes: [
-        { place: "TBD", reward: "Prizes to be announced", value: 0 }
-      ],
-      rules: [
-        "Details coming soon"
+        "Largest bass by weight/points wins",
+        "AI verification required for all catches",
+        "Top 10 entries will be manually reviewed",
+        "Catches must be submitted during tournament dates",
+        "Account must be in good standing"
       ],
       sponsorLink: null
     }
@@ -115,7 +77,7 @@ const Tournaments = () => {
           Tournaments
         </h1>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
-          Compete for real prizes
+          Compete for exclusive rewards
         </p>
       </div>
 
@@ -126,9 +88,9 @@ const Tournaments = () => {
             <Trophy className="text-primary" size={24} />
           </div>
           <div>
-            <h3 className="font-black uppercase text-sm mb-1">Sponsored Events</h3>
+            <h3 className="font-black uppercase text-sm mb-1">Weekly Tournaments</h3>
             <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-              Fish brands sponsor tournaments with real prizes. Join competitions, climb leaderboards, and win!
+              Compete in fishing challenges to win exclusive gear, points, and climb the leaderboards!
             </p>
           </div>
         </div>
@@ -181,7 +143,7 @@ const Tournaments = () => {
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase">Participants</p>
                     <p className="text-xs font-black">
-                      {tournament.participants} / {tournament.maxParticipants}
+                      {tournament.participants} {tournament.maxParticipants ? `/ ${tournament.maxParticipants}` : '(Unlimited)'}
                     </p>
                   </div>
                 </div>

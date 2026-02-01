@@ -112,6 +112,15 @@ const Profile = () => {
   };
 
   const updateDisplayName = async () => {
+    if (!profile) {
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Profile not loaded. Please refresh the page." 
+      });
+      return;
+    }
+
     if (!tempName.trim()) {
       toast({ 
         variant: "destructive", 

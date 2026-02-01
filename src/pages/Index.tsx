@@ -447,27 +447,20 @@ const Index = () => {
             onClick={() => navigate("/tournaments")}
             variant="ghost"
             size="sm"
-            className="rounded-full font-black uppercase text-[10px] px-3 h-8"
+            className="rounded-full font-black uppercase text-xs px-4 h-8"
           >
             🏆 Events
           </Button>
           
-          {!currentUser ? (
+          {!currentUser && (
             <Button 
               onClick={() => navigate("/auth")}
               className="rounded-full bg-primary text-black font-black italic uppercase text-[10px] px-4 h-8 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
             >
               <LogIn size={14} className="mr-2" /> Join
             </Button>
-          ) : (
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate("/profile")}
-              className="rounded-full border border-primary/20 text-primary font-black italic uppercase text-[10px] px-4 h-8"
-            >
-              <UserCircle size={14} className="mr-2" /> Profile
-            </Button>
           )}
+          
           <button 
             onClick={() => fetchUnifiedFeed(true)} 
             className="p-2 text-primary/50 hover:text-primary transition-colors"

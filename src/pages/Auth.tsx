@@ -58,13 +58,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm space-y-8">
-        {/* Stacked Logo */}
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-block">
-            <div className="flex flex-col items-center justify-center bg-primary rounded-3xl px-20 py-6 shadow-2xl w-full">
-              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">CA</span>
-              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">ST</span>
-              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">RS</span>
+            <div className="flex items-center justify-center bg-primary rounded-3xl px-12 py-5 shadow-2xl">
+              <span className="text-5xl font-black italic tracking-tighter text-black">CASTRS</span>
             </div>
           </div>
           <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground mt-4">

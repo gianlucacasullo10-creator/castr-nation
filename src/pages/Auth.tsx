@@ -61,13 +61,13 @@ const Auth = () => {
         {/* Stacked Logo */}
         <div className="text-center mb-8">
           <div className="inline-block">
-            <div className="flex flex-col items-center justify-center bg-primary rounded-3xl px-8 py-6 shadow-2xl">
-              <span className="text-4xl font-black italic tracking-tighter text-black leading-none">CA</span>
-              <span className="text-4xl font-black italic tracking-tighter text-black leading-none">ST</span>
-              <span className="text-4xl font-black italic tracking-tighter text-black leading-none">RS</span>
+            <div className="flex flex-col items-center justify-center bg-primary rounded-3xl px-20 py-6 shadow-2xl w-full">
+              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">CA</span>
+              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">ST</span>
+              <span className="text-5xl font-black italic tracking-tight text-black leading-[0.9]">RS</span>
             </div>
           </div>
-          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-4">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground mt-4">
             Social Fishing Network
           </p>
         </div>

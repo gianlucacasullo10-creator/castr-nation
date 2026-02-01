@@ -443,6 +443,15 @@ const Index = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate("/tournaments")}
+            variant="ghost"
+            size="sm"
+            className="rounded-full font-black uppercase text-[10px] px-3 h-8"
+          >
+            🏆 Events
+          </Button>
+          
           {!currentUser ? (
             <Button 
               onClick={() => navigate("/auth")}

@@ -158,13 +158,23 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       }
 
       setScanStatus("Saving Catch...");
+      
+      // Get user location from localStorage
+      const savedLocation = localStorage.getItem('userLocation');
+      const userLocation = savedLocation ? JSON.parse(savedLocation) : null;
+      
       const { error: insertError } = await supabase.from('catches').insert([{
         user_id: user.id,
         species: data.species,
         points: data.points,
         image_url: fileName,
         image_hash: data.image_hash,
-        ai_verified: true
+        ai_verified: true,
+        location_city: userLocation?.city || null,
+        location_province: userLocation?.province || 'Ontario',
+        location_lat: userLocation?.lat || null,
+        location_lon: userLocation?.lon || null,
+        location_name: userLocation ? `${userLocation.city}, ${userLocation.province}` : 'Ontario'
       }]);
 
       if (insertError) {

@@ -212,6 +212,14 @@ const Profile = () => {
           <Button 
             variant="ghost" 
             size="sm"
+            onClick={() => navigate("/castrs-pro")}
+            className="text-xs font-black uppercase bg-gradient-to-r from-yellow-500/20 to-primary/20 hover:from-yellow-500/30 hover:to-primary/30"
+          >
+            ⭐ Pro
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
             onClick={() => navigate("/achievements")}
             className="text-xs font-black uppercase"
           >

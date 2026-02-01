@@ -309,11 +309,31 @@ const Index = () => {
   };
 
   const handleSendComment = async (itemId: string, type: string) => {
-    if (!commentText.trim() || !currentUser) return;
+    if (!commentText.trim()) {
+      toast({ variant: "destructive", title: "Comment Required", description: "Please enter a comment" });
+      return;
+    }
+    
+    if (!currentUser || !currentUser.id) {
+      toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to comment" });
+      return;
+    }
+
     try {
+      console.log('Posting comment...', { userId: currentUser.id, itemId, type });
+      
       const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
-      const { error } = await supabase.from('comments').insert([{ user_id: currentUser.id, [column]: itemId, comment_text: commentText }]);
-      if (error) throw error;
+      const { error } = await supabase.from('comments').insert([{ 
+        user_id: currentUser.id, 
+        [column]: itemId, 
+        comment_text: commentText.trim() 
+      }]);
+      
+      if (error) {
+        console.error('Comment error:', error);
+        throw error;
+      }
+      
       setCommentText("");
       setActiveCommentId(null);
       
@@ -323,7 +343,8 @@ const Index = () => {
       fetchUnifiedFeed(false);
       toast({ title: "Comment Posted!" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Post Failed", description: error.message });
+      console.error('Failed to post comment:', error);
+      toast({ variant: "destructive", title: "Post Failed", description: error.message || "Could not post comment" });
     }
   };
 

@@ -33,6 +33,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -111,16 +112,42 @@ const Profile = () => {
   };
 
   const updateDisplayName = async () => {
-    if (!tempName.trim()) return;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: tempName })
-      .eq('id', profile.id);
+    if (!tempName.trim()) {
+      toast({ 
+        variant: "destructive", 
+        title: "Name Required", 
+        description: "Display name cannot be empty" 
+      });
+      return;
+    }
 
-    if (!error) {
-      setProfile({ ...profile, display_name: tempName });
+    setIsUpdatingName(true);
+    
+    try {
+      console.log('Updating name to:', tempName.trim());
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ display_name: tempName.trim() })
+        .eq('id', profile.id);
+
+      if (error) {
+        console.error('Name update error:', error);
+        throw error;
+      }
+
+      setProfile({ ...profile, display_name: tempName.trim() });
       setIsEditingName(false);
       toast({ title: "Name Updated!" });
+    } catch (error: any) {
+      console.error('Update failed:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Update Failed", 
+        description: error.message || "Could not update name" 
+      });
+    } finally {
+      setIsUpdatingName(false);
     }
   };
 
@@ -188,9 +215,25 @@ const Profile = () => {
                 onChange={(e) => setTempName(e.target.value)} 
                 className="h-8 bg-muted border-primary font-black uppercase italic text-center" 
                 autoFocus
+                disabled={isUpdatingName}
               />
-              <Button size="icon" className="h-8 w-8 bg-primary text-black" onClick={updateDisplayName}><Check size={14} /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditingName(false)}><X size={14} /></Button>
+              <Button 
+                size="icon" 
+                className="h-8 w-8 bg-primary text-black" 
+                onClick={updateDisplayName}
+                disabled={isUpdatingName}
+              >
+                {isUpdatingName ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              </Button>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8" 
+                onClick={() => setIsEditingName(false)}
+                disabled={isUpdatingName}
+              >
+                <X size={14} />
+              </Button>
             </div>
           ) : (
             <>

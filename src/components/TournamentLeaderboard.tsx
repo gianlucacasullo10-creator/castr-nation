@@ -47,6 +47,8 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   const [refreshing, setRefreshing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showAllRanks, setShowAllRanks] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -93,6 +95,24 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
 
         setRankings(rankedData);
       }
+
+      // Get pending count
+      const { count: pending } = await supabase
+        .from('tournament_catches')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .eq('status', 'pending');
+
+      setPendingCount(pending || 0);
+
+      // Get total submissions count
+      const { count: total } = await supabase
+        .from('tournament_catches')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId);
+
+      setTotalSubmissions(total || 0);
+
     } catch (error: any) {
       console.error('Error fetching leaderboard:', error);
     } finally {
@@ -141,16 +161,16 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col animate-in fade-in">
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="max-w-md mx-auto p-4 space-y-4">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-md mx-auto p-4 space-y-4 min-h-screen">
           {/* Header */}
-          <div className="flex items-start justify-between sticky top-0 bg-black/80 backdrop-blur-sm py-4 -mt-4 z-10">
+          <div className="flex items-start justify-between pt-2">
             <div className="flex-1">
-              <h2 className="text-2xl font-black italic uppercase text-primary tracking-tighter leading-none">
+              <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Leaderboard
               </h2>
-              <p className="text-xs font-bold text-muted-foreground mt-1 truncate">
+              <p className="text-xs font-bold text-muted-foreground mt-1">
                 {tournamentName}
               </p>
             </div>
@@ -160,9 +180,9 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                 disabled={refreshing}
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 rounded-full"
+                className="h-10 w-10 p-0 rounded-full hover:bg-white/10"
               >
-                <RefreshCw className={`${refreshing ? 'animate-spin' : ''}`} size={18} />
+                <RefreshCw className={`text-primary ${refreshing ? 'animate-spin' : ''}`} size={20} />
               </Button>
               <button 
                 onClick={onClose}
@@ -174,46 +194,56 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="p-4 text-center bg-primary/10 border-primary/30">
-              <p className="text-2xl font-black text-primary">{rankings.length}</p>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Approved</p>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="p-4 text-center bg-green-500/10 border-green-500/30 rounded-[24px]">
+              <p className="text-2xl font-black text-green-500">{rankings.length}</p>
+              <p className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Approved</p>
             </Card>
-            {myRank > 0 && (
-              <Card className="p-4 text-center bg-primary/10 border-primary/30">
-                <p className="text-2xl font-black text-primary">#{myRank}</p>
-                <p className="text-xs font-bold uppercase text-muted-foreground">Your Rank</p>
-              </Card>
-            )}
+            <Card className="p-4 text-center bg-yellow-500/10 border-yellow-500/30 rounded-[24px]">
+              <p className="text-2xl font-black text-yellow-500">{pendingCount}</p>
+              <p className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Under Review</p>
+            </Card>
+            <Card className="p-4 text-center bg-primary/10 border-primary/30 rounded-[24px]">
+              <p className="text-2xl font-black text-primary">{totalSubmissions}</p>
+              <p className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Total Catches</p>
+            </Card>
           </div>
 
-          {/* My Rank Card (if outside top 10) */}
-          {myRank > 10 && (
-            <Card className="bg-primary/10 border-2 border-primary/30 rounded-[32px] p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/20 font-black text-primary text-sm">
+          {/* My Rank Card */}
+          {myRank > 0 && (
+            <Card className="bg-gradient-to-r from-primary/20 to-purple-500/20 border-2 border-primary/30 rounded-[32px] p-5">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary/20 border-2 border-primary font-black text-primary text-lg">
                   #{myRank}
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-black uppercase text-primary">Your Position</p>
-                  <p className="text-xs text-muted-foreground font-bold">
+                  <p className="text-base font-black italic uppercase text-primary leading-none">Your Position</p>
+                  <p className="text-xs text-muted-foreground font-bold mt-2">
                     {getPrizeForRank(myRank) || "Keep fishing to rank higher!"}
                   </p>
                 </div>
+                <Trophy className="text-primary" size={28} />
               </div>
             </Card>
           )}
 
           {/* Rankings */}
           {rankings.length === 0 ? (
-            <div className="py-20 text-center">
-              <Trophy className="mx-auto mb-4 text-muted-foreground opacity-30" size={48} />
-              <p className="font-black uppercase italic text-muted-foreground">
+            <div className="py-32 text-center">
+              <div className="bg-muted/30 rounded-full p-8 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Trophy className="text-muted-foreground/30" size={48} />
+              </div>
+              <p className="text-xl font-black uppercase italic text-muted-foreground mb-2">
                 No Approved Catches Yet
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Be the first to submit!
+              <p className="text-sm text-muted-foreground">
+                Be the first to submit and get ranked!
               </p>
+              {pendingCount > 0 && (
+                <p className="text-xs text-yellow-500 mt-4 font-bold">
+                  {pendingCount} catch{pendingCount !== 1 ? 'es' : ''} currently under review
+                </p>
+              )}
             </div>
           ) : (
             <>
@@ -226,16 +256,16 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                   return (
                     <Card 
                       key={entry.id}
-                      className={`flex items-center p-3 gap-3 rounded-[24px] shadow-lg overflow-hidden ${
+                      className={`flex items-center p-4 gap-3 rounded-[32px] border-2 overflow-hidden transition-all ${
                         isCurrentUser 
-                          ? "bg-primary/10 border-2 border-primary" 
+                          ? "bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary shadow-[0_8px_30px_rgba(34,211,238,0.3)]" 
                           : rank === 1 
-                          ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30" 
+                          ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/40 shadow-[0_8px_30px_rgba(234,179,8,0.2)]" 
                           : rank === 2
-                          ? "bg-gradient-to-r from-slate-400/20 to-slate-500/20 border border-slate-400/30"
+                          ? "bg-gradient-to-r from-slate-400/20 to-slate-500/20 border-slate-400/40 shadow-[0_8px_30px_rgba(148,163,184,0.2)]"
                           : rank === 3
-                          ? "bg-gradient-to-r from-amber-700/20 to-amber-800/20 border border-amber-700/30"
-                          : "bg-card border border-muted"
+                          ? "bg-gradient-to-r from-amber-700/20 to-amber-800/20 border-amber-700/40 shadow-[0_8px_30px_rgba(180,83,9,0.2)]"
+                          : "bg-card/50 border-muted hover:border-primary/30"
                       }`}
                     >
                       {/* Rank */}
@@ -252,7 +282,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                       </Avatar>
 
                       {/* Catch Image */}
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden border-2 border-primary/20 shrink-0">
+                      <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary/30 shrink-0 shadow-lg">
                         <img
                           src={getImageUrl(entry.catch.image_url)}
                           alt={entry.catch.species}
@@ -294,16 +324,16 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                 <Button
                   onClick={() => setShowAllRanks(!showAllRanks)}
                   variant="outline"
-                  className="w-full h-12 rounded-2xl font-black uppercase text-xs"
+                  className="w-full h-14 rounded-[24px] font-black uppercase text-xs border-2 border-primary/30 hover:bg-primary/10 hover:border-primary"
                 >
                   {showAllRanks ? (
                     <>
-                      <ChevronUp className="mr-2" size={16} />
-                      Show Top 10
+                      <ChevronUp className="mr-2" size={18} />
+                      Show Top 10 Only
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="mr-2" size={16} />
+                      <ChevronDown className="mr-2" size={18} />
                       Show All {rankings.length} Ranks
                     </>
                   )}
@@ -311,6 +341,9 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
               )}
             </>
           )}
+
+          {/* Bottom spacing */}
+          <div className="h-8" />
         </div>
       </div>
     </div>

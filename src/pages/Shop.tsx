@@ -27,7 +27,7 @@ const Shop = () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
-
+    
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -53,10 +53,7 @@ const Shop = () => {
     }
 
     try {
-      // Start opening animation FIRST (before any async operations)
-      setOpening(true);
-
-      // Deduct points
+      // Deduct points FIRST
       const { error: pointsError } = await supabase
         .from('profiles')
         .update({ current_points: userProfile.current_points - CASE_PRICE })
@@ -84,9 +81,6 @@ const Shop = () => {
         }
       }
 
-      // Set won item IMMEDIATELY after selection (no delay)
-      setWonItem(selectedItem);
-
       // Add to inventory in background
       const { error: inventoryError } = await supabase
         .from('inventory')
@@ -104,6 +98,10 @@ const Shop = () => {
       // ✅ CHECK ACHIEVEMENTS AFTER CASE OPENING
       await checkAchievementsAfterCaseOpen(currentUser.id);
 
+      // BATCH STATE UPDATES - Set both at the same time to prevent re-render
+      setWonItem(selectedItem);
+      setOpening(true);
+
       // Refresh user data in background (don't await)
       fetchUserData();
 
@@ -114,8 +112,6 @@ const Shop = () => {
         title: "Error Opening Case",
         description: error.message
       });
-      setOpening(false);
-      setWonItem(null);
     }
   };
 
@@ -127,14 +123,13 @@ const Shop = () => {
 
   const handleWatchAd = async () => {
     setWatchingAd(true);
-
     // TODO: Integrate with AdMob/Unity Ads SDK
     // For now, simulate ad watching
     
     // Simulate 3 second ad
     setTimeout(async () => {
       try {
-        // Open a free case after ad
+        // Get loot table
         const { data: lootTable, error: lootError } = await supabase
           .from('gear_loot_table')
           .select('*');
@@ -154,9 +149,6 @@ const Shop = () => {
           }
         }
 
-        setWonItem(selectedItem);
-        setOpening(true);
-
         // Add to inventory
         const { error: inventoryError } = await supabase
           .from('inventory')
@@ -174,11 +166,15 @@ const Shop = () => {
         // Check achievements
         await checkAchievementsAfterCaseOpen(currentUser.id);
 
+        // BATCH STATE UPDATES
+        setWonItem(selectedItem);
+        setOpening(true);
+
         toast({ 
           title: "Free Case Opened!", 
           description: "Thanks for watching the ad!" 
         });
-
+        
         fetchUserData();
       } catch (error: any) {
         console.error('Ad reward error:', error);
@@ -293,7 +289,6 @@ const Shop = () => {
               )}
             </Button>
           </div>
-
           <p className="text-center text-xs text-muted-foreground italic">
             Watch a short ad to open a case for free!
           </p>

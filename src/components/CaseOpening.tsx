@@ -56,7 +56,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
     <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      <div className="relative h-screen w-screen flex items-center justify-center">
+      <div className="relative h-screen w-screen flex items-center justify-center px-4">
         <button 
           onClick={onComplete}
           className="absolute top-8 right-8 p-2 text-white/50 hover:text-white transition-colors z-10"
@@ -65,7 +65,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
         </button>
 
         {phase === 'rolling' ? (
-          <div className="text-center space-y-8 animate-in fade-in duration-300 px-4">
+          <div className="text-center space-y-8 animate-in fade-in duration-300">
             <div className="relative">
               <div className="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={48} />
@@ -75,27 +75,27 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
             </p>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-8 max-w-md mx-4 w-full animate-in zoom-in-95 duration-500`}>
-            <div className="text-center space-y-6">
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
+            <div className="text-center space-y-4">
               {/* Rarity Badge */}
               <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>
                 {item.rarity}
               </Badge>
 
               {/* Item Icon */}
-              <div className="text-8xl">
+              <div className="text-7xl">
                 {item.item_type === 'rod' ? '🎣' : '🪝'}
               </div>
 
               {/* Item Name */}
-              <h2 className={`text-3xl font-black italic uppercase ${colors.text}`}>
+              <h2 className={`text-2xl font-black italic uppercase ${colors.text} leading-tight`}>
                 {item.item_name}
               </h2>
 
               {/* Bonus */}
               <div>
                 <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
-                <p className="text-4xl font-black italic text-primary">+{item.bonus_percentage}%</p>
+                <p className="text-3xl font-black italic text-primary">+{item.bonus_percentage}%</p>
               </div>
 
               {/* Type */}
@@ -106,7 +106,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
               {/* Continue Button */}
               <Button
                 onClick={onComplete}
-                className="w-full h-12 rounded-2xl bg-primary text-black font-black uppercase text-sm mt-6 active:scale-95 transition-transform"
+                className="w-full h-12 rounded-2xl bg-primary text-black font-black uppercase text-sm mt-4 active:scale-95 transition-transform"
               >
                 Continue
               </Button>

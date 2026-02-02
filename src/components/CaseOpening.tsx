@@ -27,16 +27,12 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
   const colors = RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS];
 
   useEffect(() => {
-    // Prevent double initialization
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     // Lock body scroll
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-
+    
     // Roll for 2 seconds, then reveal
     const timer = setTimeout(() => {
       setPhase('reveal');
@@ -44,28 +40,31 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
 
     return () => {
       clearTimeout(timer);
-      // Restore body scroll
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
     };
-  }, []); // Empty dependency array
+  }, []);
 
   return (
-    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
+    // FIXED: Used inset-0 and flex centering to align perfectly to viewport
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md">
       
-      <div className="relative h-screen w-screen flex items-center justify-center px-4">
+      {/* FIXED: 
+         1. Added 'relative' to position the close button contextually if needed
+         2. Added 'w-full max-w-[390px]' to strictly enforce iPhone width
+         3. Removed w-screen/h-screen which was breaking the layout
+      */}
+      <div className="relative w-full max-w-[390px] p-6 flex flex-col items-center">
+        
+        {/* Close Button - Positioned top-right of the "Phone" area for better mobile UX */}
         <button 
           onClick={onComplete}
-          className="absolute top-8 right-8 p-2 text-white/50 hover:text-white transition-colors z-10"
+          className="absolute -top-12 right-6 p-2 text-white/50 hover:text-white transition-colors z-10"
         >
           <X size={24} />
         </button>
 
         {phase === 'rolling' ? (
-          <div className="text-center space-y-8 animate-in fade-in duration-300">
+          <div className="text-center space-y-8 animate-in fade-in duration-300 w-full">
             <div className="relative">
               <div className="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={48} />
@@ -75,15 +74,15 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
             </p>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
-            <div className="text-center space-y-4">
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full animate-in zoom-in-95 duration-500 flex flex-col items-center`}>
+            <div className="text-center space-y-4 w-full">
               {/* Rarity Badge */}
               <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>
                 {item.rarity}
               </Badge>
 
               {/* Item Icon */}
-              <div className="text-7xl">
+              <div className="text-7xl py-4">
                 {item.item_type === 'rod' ? '🎣' : '🪝'}
               </div>
 
@@ -93,13 +92,13 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
               </h2>
 
               {/* Bonus */}
-              <div>
+              <div className="py-2">
                 <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
                 <p className="text-3xl font-black italic text-primary">+{item.bonus_percentage}%</p>
               </div>
 
               {/* Type */}
-              <Badge variant="outline" className="font-black text-xs uppercase">
+              <Badge variant="outline" className="font-black text-xs uppercase mb-4">
                 {item.item_type}
               </Badge>
 

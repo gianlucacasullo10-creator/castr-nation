@@ -102,17 +102,21 @@ const AdminReview = () => {
       setLoading(true);
 
       // Fetch all tournament catches with related data
+      // Need to specify which foreign key to use for profiles (user_id vs reviewed_by)
       const { data, error } = await supabase
         .from('tournament_catches')
         .select(`
           *,
           tournament:tournaments(name, species_filter),
-          user:profiles(display_name, username, avatar_url),
+          user:profiles!tournament_catches_user_id_fkey(display_name, username, avatar_url),
           catch:catches(species, points, image_url, location_name, location_city, created_at)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       if (data) {
         // Separate by status
@@ -122,10 +126,24 @@ const AdminReview = () => {
       }
     } catch (error: any) {
       console.error('Error fetching catches:', error);
+      
+      // More detailed error message
+      let errorMessage = "Failed to load tournament submissions";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      if (error.code === 'PGRST116') {
+        errorMessage = "Tournament tables not found. Please run the database setup script.";
+      }
+      if (error.code === '42P01') {
+        errorMessage = "Tournament tables don't exist. Please run tournament_schema.sql in Supabase.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load tournament submissions"
+        description: errorMessage,
+        duration: 10000
       });
     } finally {
       setLoading(false);

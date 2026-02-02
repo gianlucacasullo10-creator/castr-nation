@@ -56,12 +56,12 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
     <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      <div className="relative h-screen w-screen flex items-center justify-center">
-        {/* Content Container - Max width for iPhone */}
-        <div className="max-w-md w-full px-4">
+      <div className="relative h-screen w-screen flex items-center justify-center px-4">
+        {/* Content Container - Centered like other pages */}
+        <div className="max-w-md w-full mx-auto relative">
           <button 
             onClick={onComplete}
-            className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors z-10"
+            className="absolute -top-4 right-0 p-2 text-white/50 hover:text-white transition-colors z-10"
           >
             <X size={24} />
           </button>

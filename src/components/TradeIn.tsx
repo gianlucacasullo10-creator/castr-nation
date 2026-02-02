@@ -333,22 +333,22 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
                       <Card
                         key={item.id}
                         onClick={() => toggleItemSelection(item.id, rarity)}
-                        className={`${colors.bg} border-2 ${isSelected ? colors.border + ' ring-2 ring-primary' : 'border-muted'} rounded-[24px] p-3 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
+                        className={`${colors.bg} border-2 ${isSelected ? colors.border + ' ring-2 ring-primary' : 'border-muted'} rounded-[24px] p-4 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="text-2xl">
+                          <div className="text-3xl">
                             {item.item_type === 'rod' ? '🎣' : '🪝'}
                           </div>
                           <div className="flex-1 text-left">
-                            <h4 className="font-black italic uppercase text-xs leading-none">
+                            <h4 className="font-black italic uppercase text-sm leading-tight text-white">
                               {item.item_name}
                             </h4>
-                            <Badge variant="outline" className="font-bold text-[8px] px-2 py-0 mt-1">
+                            <Badge variant="outline" className="font-bold text-[10px] px-2 py-0.5 mt-1.5 border-white/30">
                               +{item.bonus_percentage}%
                             </Badge>
                           </div>
                           {isSelected && (
-                            <CheckCircle2 className="text-primary" size={20} />
+                            <CheckCircle2 className="text-primary shrink-0" size={24} />
                           )}
                         </div>
                       </Card>

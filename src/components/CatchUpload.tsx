@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Camera, X, ShieldCheck, Loader2, CheckCircle2, AlertCircle, Trophy } from "lucide-react";
 import { checkAchievementsAfterCatch } from "@/utils/achievementTracker";
 import AchievementNotification from "@/components/AchievementNotification";
+
+interface ActiveTournament {
+  id: string;
+  name: string;
+  species_filter: string;
+}
 
 const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -17,7 +23,48 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [errorResult, setErrorResult] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState<any[]>([]);
+  const [activeTournaments, setActiveTournaments] = useState<ActiveTournament[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+  const [userJoinedTournaments, setUserJoinedTournaments] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Fetch active tournaments user has joined
+  useEffect(() => {
+    const fetchActiveTournaments = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Get tournaments user joined
+        const { data: participantData } = await supabase
+          .from('tournament_participants')
+          .select('tournament_id')
+          .eq('user_id', user.id);
+
+        if (!participantData) return;
+        
+        const joinedIds = participantData.map(p => p.tournament_id);
+        setUserJoinedTournaments(joinedIds);
+
+        // Get active tournaments
+        const now = new Date().toISOString();
+        const { data: tournaments } = await supabase
+          .from('tournaments')
+          .select('id, name, species_filter')
+          .lte('start_date', now)
+          .gte('end_date', now)
+          .in('id', joinedIds);
+
+        if (tournaments) {
+          setActiveTournaments(tournaments);
+        }
+      } catch (error) {
+        console.error('Error fetching tournaments:', error);
+      }
+    };
+
+    fetchActiveTournaments();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,23 +210,56 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       const savedLocation = localStorage.getItem('userLocation');
       const userLocation = savedLocation ? JSON.parse(savedLocation) : null;
       
-      const { error: insertError } = await supabase.from('catches').insert([{
-        user_id: user.id,
-        species: data.species,
-        points: data.points,
-        image_url: fileName,
-        image_hash: data.image_hash,
-        ai_verified: true,
-        location_city: userLocation?.city || null,
-        location_province: userLocation?.province || 'Ontario',
-        location_lat: userLocation?.lat || null,
-        location_lon: userLocation?.lon || null,
-        location_name: userLocation ? `${userLocation.city}, ${userLocation.province}` : 'Ontario'
-      }]);
+      const { data: catchData, error: insertError } = await supabase
+        .from('catches')
+        .insert([{
+          user_id: user.id,
+          species: data.species,
+          points: data.points,
+          image_url: fileName,
+          image_hash: data.image_hash,
+          ai_verified: true,
+          location_city: userLocation?.city || null,
+          location_province: userLocation?.province || 'Ontario',
+          location_lat: userLocation?.lat || null,
+          location_lon: userLocation?.lon || null,
+          location_name: userLocation ? `${userLocation.city}, ${userLocation.province}` : 'Ontario'
+        }])
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Database insert error:', insertError);
         throw new Error(`Failed to save catch: ${insertError.message}`);
+      }
+
+      // If tournament selected, submit to tournament
+      if (selectedTournament && catchData) {
+        setScanStatus("Submitting to Tournament...");
+        
+        const { error: tournamentError } = await supabase
+          .from('tournament_catches')
+          .insert({
+            tournament_id: selectedTournament,
+            user_id: user.id,
+            catch_id: catchData.id,
+            size_score: data.points // Use AI points as size score for now
+          });
+
+        if (tournamentError) {
+          console.error('Tournament submission error:', tournamentError);
+          // Don't fail the whole upload, just notify
+          toast({
+            title: "Tournament Submission Failed",
+            description: "Your catch was saved but couldn't be submitted to the tournament.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Submitted to Tournament! 🏆",
+            description: "Your catch is pending review."
+          });
+        }
       }
 
       // ✅ CHECK AND UNLOCK ACHIEVEMENTS
@@ -216,6 +296,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     setErrorResult(null);
     setAiResult(null);
     setIsCompleted(false);
+    setSelectedTournament(null);
   };
 
   const handleSuccessComplete = () => {
@@ -281,6 +362,11 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                 {aiResult.quality_multiplier >= 1.8 && (
                   <p className="text-xs font-black uppercase mt-1 opacity-80">LEGENDARY CATCH!</p>
                 )}
+                {selectedTournament && (
+                  <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1 mt-2">
+                    <Trophy size={12} className="mr-1" /> TOURNAMENT ENTRY
+                  </Badge>
+                )}
                 
                 <Button
                   onClick={handleSuccessComplete}
@@ -291,6 +377,49 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
               </div>
             )}
           </div>
+
+          {/* Tournament Selection (only show if there are active tournaments and no result yet) */}
+          {!aiResult && !errorResult && activeTournaments.length > 0 && (
+            <div className="bg-muted/30 rounded-2xl p-4 border border-muted">
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy size={16} className="text-primary" />
+                <p className="text-xs font-black uppercase text-primary">Submit to Tournament</p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setSelectedTournament(null)}
+                  className={`w-full p-3 rounded-xl text-left text-xs font-bold transition-colors ${
+                    selectedTournament === null 
+                      ? 'bg-primary text-black' 
+                      : 'bg-muted hover:bg-muted/70'
+                  }`}
+                >
+                  Regular Post (No Tournament)
+                </button>
+                {activeTournaments.map((tournament) => (
+                  <button
+                    key={tournament.id}
+                    onClick={() => setSelectedTournament(tournament.id)}
+                    className={`w-full p-3 rounded-xl text-left text-xs font-bold transition-colors ${
+                      selectedTournament === tournament.id 
+                        ? 'bg-primary text-black' 
+                        : 'bg-muted hover:bg-muted/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{tournament.name}</span>
+                      {selectedTournament === tournament.id && (
+                        <CheckCircle2 size={14} />
+                      )}
+                    </div>
+                    <p className="text-[10px] opacity-70 mt-1">
+                      {tournament.species_filter} only
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-auto pb-4">
             {errorResult ? (

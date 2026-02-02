@@ -53,6 +53,20 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   useEffect(() => {
     fetchCurrentUser();
     fetchLeaderboard();
+    
+    // Lock body scroll when modal opens
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    
+    return () => {
+      // Restore body scroll when modal closes
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
   }, [tournamentId]);
 
   const fetchCurrentUser = async () => {
@@ -161,11 +175,11 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   }
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black">
-      <div className="h-screen overflow-y-auto">
-        <div className="max-w-md mx-auto p-4 space-y-4 min-h-screen">
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[200] bg-black">
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-md mx-auto p-4 space-y-4 pb-8">
           {/* Header */}
-          <div className="flex items-start justify-between pt-2 sticky top-0 bg-black z-10 pb-4">
+          <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Leaderboard

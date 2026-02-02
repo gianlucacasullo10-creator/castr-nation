@@ -56,7 +56,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
     <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      <div className="relative h-screen w-screen flex items-center justify-center px-4">
+      <div className="relative h-screen w-screen flex items-center px-4">
         <button 
           onClick={onComplete}
           className="absolute top-8 right-8 p-2 text-white/50 hover:text-white transition-colors z-10"
@@ -65,7 +65,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
         </button>
 
         {phase === 'rolling' ? (
-          <div className="text-center space-y-8 animate-in fade-in duration-300">
+          <div className="text-center space-y-8 animate-in fade-in duration-300 mx-auto">
             <div className="relative">
               <div className="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={48} />
@@ -75,7 +75,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
             </p>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm ml-16 animate-in zoom-in-95 duration-500`}>
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm mx-auto animate-in zoom-in-95 duration-500`}>
             <div className="text-center space-y-4">
               {/* Rarity Badge */}
               <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>

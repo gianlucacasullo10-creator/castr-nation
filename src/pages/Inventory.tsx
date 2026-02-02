@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Check, Trash2, Recycle, AlertCircle } from "lucide-react";
+import { Loader2, Check, Recycle, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { checkAchievementsAfterEquip } from "@/utils/achievementTracker";
+import TradeIn from "@/components/TradeIn";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,7 @@ const Inventory = () => {
   const [recycleDialogOpen, setRecycleDialogOpen] = useState(false);
   const [itemToRecycle, setItemToRecycle] = useState<any>(null);
   const [isRecycling, setIsRecycling] = useState(false);
+  const [showTradeIn, setShowTradeIn] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -223,7 +225,7 @@ const Inventory = () => {
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-start">
         <div className="text-left">
           <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
             Inventory
@@ -233,14 +235,26 @@ const Inventory = () => {
           </p>
         </div>
         
-        {/* Current Points Display */}
-        <div className="bg-primary/10 border-2 border-primary/20 rounded-2xl px-3 py-2 text-right">
-          <p className="text-2xl font-black text-primary leading-none">
-            {userProfile?.current_points || 0}
-          </p>
-          <p className="text-[8px] font-black uppercase text-muted-foreground">
-            Points
-          </p>
+        <div className="flex flex-col gap-2 items-end">
+          {/* Current Points Display */}
+          <div className="bg-primary/10 border-2 border-primary/20 rounded-2xl px-3 py-2 text-right">
+            <p className="text-2xl font-black text-primary leading-none">
+              {userProfile?.current_points || 0}
+            </p>
+            <p className="text-[8px] font-black uppercase text-muted-foreground">
+              Points
+            </p>
+          </div>
+
+          {/* Trade-In Button */}
+          <Button
+            onClick={() => setShowTradeIn(true)}
+            variant="outline"
+            className="font-black uppercase text-xs border-primary/30 hover:bg-primary/10 h-9"
+          >
+            <ArrowRightLeft size={14} className="mr-1" />
+            Trade-In
+          </Button>
         </div>
       </div>
 
@@ -429,6 +443,20 @@ const Inventory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Trade-In Modal */}
+      {showTradeIn && (
+        <TradeIn 
+          onClose={() => setShowTradeIn(false)} 
+          onTradeComplete={() => {
+            fetchInventory();
+            toast({
+              title: "Inventory Updated",
+              description: "Your trade has been completed!"
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

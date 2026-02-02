@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TournamentLeaderboard from "@/components/TournamentLeaderboard";
 import { 
   Trophy, 
   Calendar, 
@@ -11,7 +12,8 @@ import {
   Gift,
   ExternalLink,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  BarChart3
 } from "lucide-react";
 
 interface Tournament {
@@ -38,6 +40,7 @@ const Tournaments = () => {
   const [loading, setLoading] = useState(true);
   const [joiningTournament, setJoiningTournament] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
 
   // Get current user
   useEffect(() => {
@@ -451,6 +454,15 @@ const Tournaments = () => {
                         )}
                       </Button>
                     )}
+                    
+                    {/* View Leaderboard Button */}
+                    <Button
+                      onClick={() => setShowLeaderboard(tournament.id)}
+                      variant="outline"
+                      className="h-12 px-4 rounded-2xl font-bold border-primary/30 hover:bg-primary/10"
+                    >
+                      <BarChart3 size={18} />
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -473,6 +485,15 @@ const Tournaments = () => {
           Contact Us
         </Button>
       </Card>
+
+      {/* Tournament Leaderboard Modal */}
+      {showLeaderboard && (
+        <TournamentLeaderboard
+          tournamentId={showLeaderboard}
+          tournamentName={tournaments.find(t => t.id === showLeaderboard)?.name || "Tournament"}
+          onClose={() => setShowLeaderboard(null)}
+        />
+      )}
     </div>
   );
 };

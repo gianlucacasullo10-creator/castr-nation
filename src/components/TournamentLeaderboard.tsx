@@ -165,7 +165,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
 
   if (loading) {
     return (
-      <div className="fixed inset-[-20px] z-[200] bg-black flex items-center justify-center">
+      <div className="fixed inset-[-50px] z-[200] bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-primary" size={48} />
           <p className="font-black italic uppercase text-primary text-sm">Loading Rankings...</p>
@@ -175,12 +175,12 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   }
 
   return (
-    <div className="fixed inset-[-20px] z-[200] bg-black overflow-hidden">
+    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
       <div className="absolute inset-0 bg-black" />
       <div className="relative h-screen w-screen overflow-y-auto pt-2">
         <div className="max-w-md mx-auto px-4 space-y-4 pb-8">
           {/* Header */}
-          <div className="flex items-start justify-between pt-6 sticky top-0 bg-black z-10 pb-4 -mx-4 px-4">
+          <div className="flex items-start justify-between pt-8 sticky top-0 bg-black z-10 pb-4 -mx-4 px-4">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Leaderboard

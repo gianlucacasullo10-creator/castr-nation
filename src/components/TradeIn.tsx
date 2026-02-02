@@ -480,8 +480,8 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
                     <div className="flex items-center gap-2 flex-wrap">
                       {Object.entries(recipe.requirements).map(([rarity, count], index) => (
                         <div key={rarity} className="flex items-center gap-2">
-                          {index > 0 && <span className="text-muted-foreground text-sm">+</span>}
-                          <Badge variant="outline" className="font-black text-xs">
+                          {index > 0 && <span className="text-white/70 text-sm font-bold">+</span>}
+                          <Badge variant="outline" className="font-black text-xs border-white/40 text-white bg-white/5">
                             {count}x {rarity}
                           </Badge>
                         </div>

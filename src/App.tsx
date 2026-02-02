@@ -21,6 +21,7 @@ import CatchUpload from "./components/CatchUpload";
 import Achievements from "./pages/Achievements";
 import CastrsPro from "./pages/CastrsPro";
 import Tournaments from "./pages/Tournaments";
+import AdminReview from "@/pages/AdminReview";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => {
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/castrs-pro" element={<CastrsPro />} />
                 <Route path="/tournaments" element={<Tournaments />} />
+                <Route path="/admin/review" element={<AdminReview />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,58 @@ import {
 
 const Tournaments = () => {
   const { toast } = useToast();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate countdown
+  const getCountdown = (startDate: string, endDate: string) => {
+    const now = currentTime.getTime();
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+
+    if (now < start) {
+      // Tournament hasn't started - countdown to start
+      const diff = start - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      return {
+        status: 'upcoming',
+        label: 'Starts in',
+        time: `${days}d ${hours}h ${minutes}m ${seconds}s`
+      };
+    } else if (now >= start && now < end) {
+      // Tournament is active - countdown to end
+      const diff = end - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      return {
+        status: 'active',
+        label: 'Ends in',
+        time: `${days}d ${hours}h ${minutes}m ${seconds}s`
+      };
+    } else {
+      // Tournament has ended
+      return {
+        status: 'ended',
+        label: 'Ended',
+        time: ''
+      };
+    }
+  };
 
   // Tournament data - will be from database later
   const tournaments = [
@@ -56,14 +108,30 @@ const Tournaments = () => {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (countdown: { status: string; label: string; time: string }) => {
+    switch (countdown.status) {
       case "active":
-        return <Badge className="bg-green-500 text-white border-none font-black text-xs">🔴 LIVE</Badge>;
+        return (
+          <div className="text-right">
+            <Badge className="bg-green-500 text-white border-none font-black text-xs mb-1">🔴 LIVE</Badge>
+            <p className="text-xs font-bold text-muted-foreground">{countdown.label}</p>
+            <p className="text-sm font-black text-primary">{countdown.time}</p>
+          </div>
+        );
       case "upcoming":
-        return <Badge className="bg-blue-500 text-white border-none font-black text-xs">📅 UPCOMING</Badge>;
-      case "coming_soon":
-        return <Badge className="bg-gray-500 text-white border-none font-black text-xs">⏳ SOON</Badge>;
+        return (
+          <div className="text-right">
+            <Badge className="bg-blue-500 text-white border-none font-black text-xs mb-1">📅 UPCOMING</Badge>
+            <p className="text-xs font-bold text-muted-foreground">{countdown.label}</p>
+            <p className="text-sm font-black text-primary">{countdown.time}</p>
+          </div>
+        );
+      case "ended":
+        return (
+          <div className="text-right">
+            <Badge className="bg-gray-500 text-white border-none font-black text-xs">⏹️ ENDED</Badge>
+          </div>
+        );
       default:
         return null;
     }
@@ -98,27 +166,30 @@ const Tournaments = () => {
 
       {/* Tournaments List */}
       <div className="space-y-4">
-        {tournaments.map((tournament) => (
-          <Card 
-            key={tournament.id}
-            className="border-2 border-muted rounded-[32px] overflow-hidden"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-primary/20 to-purple-500/20 p-6 border-b-2 border-muted">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl">{tournament.sponsorLogo}</span>
-                  <div>
-                    <h3 className="text-lg font-black italic uppercase leading-none">
-                      {tournament.name}
-                    </h3>
-                    <p className="text-xs font-bold text-muted-foreground mt-1">
-                      Sponsored by {tournament.sponsor}
-                    </p>
+        {tournaments.map((tournament) => {
+          const countdown = getCountdown(tournament.startDate, tournament.endDate);
+          
+          return (
+            <Card 
+              key={tournament.id}
+              className="border-2 border-muted rounded-[32px] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary/20 to-purple-500/20 p-6 border-b-2 border-muted">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl">{tournament.sponsorLogo}</span>
+                    <div>
+                      <h3 className="text-lg font-black italic uppercase leading-none">
+                        {tournament.name}
+                      </h3>
+                      <p className="text-xs font-bold text-muted-foreground mt-1">
+                        Sponsored by {tournament.sponsor}
+                      </p>
+                    </div>
                   </div>
+                  {getStatusBadge(countdown)}
                 </div>
-                {getStatusBadge(tournament.status)}
-              </div>
 
               <p className="text-sm font-medium text-foreground/80">
                 {tournament.description}
@@ -185,10 +256,10 @@ const Tournaments = () => {
               <div className="flex gap-2 pt-2">
                 <Button
                   onClick={() => handleJoinTournament(tournament.id)}
-                  disabled={tournament.status === "coming_soon"}
-                  className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-xs"
+                  disabled={countdown.status === "ended"}
+                  className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-xs disabled:opacity-50"
                 >
-                  {tournament.status === "active" ? "Join Now" : tournament.status === "upcoming" ? "Register" : "Coming Soon"}
+                  {countdown.status === "active" ? "Join Now" : countdown.status === "upcoming" ? "Register" : "Tournament Ended"}
                 </Button>
 
                 {tournament.sponsorLink && (
@@ -203,7 +274,8 @@ const Tournaments = () => {
               </div>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* CTA for Sponsors */}

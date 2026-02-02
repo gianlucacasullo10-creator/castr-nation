@@ -161,11 +161,11 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-      <div className="flex-1 overflow-y-auto">
+    <div className="fixed inset-0 z-[200] bg-black">
+      <div className="h-screen overflow-y-auto">
         <div className="max-w-md mx-auto p-4 space-y-4 min-h-screen">
           {/* Header */}
-          <div className="flex items-start justify-between pt-2">
+          <div className="flex items-start justify-between pt-2 sticky top-0 bg-black z-10 pb-4">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Leaderboard

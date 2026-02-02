@@ -1,4 +1,4 @@
-import { Home, Trophy, Camera, Users, User, LogIn, ShoppingBag, Package } from "lucide-react";
+import { Home, Trophy, Camera, Users, User, LogIn, ShoppingBag, Package, Shield } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,18 +6,42 @@ import { supabase } from "@/integrations/supabase/client";
 export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
+      if (session) {
+        checkAdminStatus(session.user.id);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
+      if (session) {
+        checkAdminStatus(session.user.id);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single();
+
+      setIsAdmin(profile?.is_admin || false);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -40,7 +64,7 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
           <span className="text-[9px] mt-1 truncate">Shop</span>
         </Link>
 
-        {/* Camera Button - TRUE CENTER (4th position out of 7) */}
+        {/* Camera Button - TRUE CENTER (4th position out of 7/8) */}
         <div className="flex-1 flex justify-center -mt-6">
           <button 
             onClick={onCameraClick}
@@ -59,6 +83,14 @@ export const BottomNav = ({ onCameraClick }: { onCameraClick?: () => void }) => 
           <Users size={18} />
           <span className="text-[9px] mt-1 truncate">Clubs</span>
         </Link>
+
+        {/* Admin Button - Only shows if user is admin */}
+        {isAdmin && (
+          <Link to="/admin/review" className={`flex flex-col items-center justify-center flex-1 min-w-0 ${isActive('/admin/review') ? 'text-primary' : 'text-muted-foreground'}`}>
+            <Shield size={18} />
+            <span className="text-[9px] mt-1 truncate">Admin</span>
+          </Link>
+        )}
 
         {isLoggedIn !== null && (
           <Link 

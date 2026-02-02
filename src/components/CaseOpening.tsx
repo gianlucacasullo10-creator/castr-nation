@@ -75,7 +75,7 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
             </p>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm ml-8 animate-in zoom-in-95 duration-500`}>
             <div className="text-center space-y-4">
               {/* Rarity Badge */}
               <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>

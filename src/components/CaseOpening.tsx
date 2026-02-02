@@ -45,17 +45,14 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
   }, []);
 
   return (
-    // FIXED: Used inset-0 and flex centering to align perfectly to viewport
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md">
+    // FIXED: 
+    // 1. Increased z-index to [9999] to cover any headers/navbars
+    // 2. Used h-[100dvh] to ensure full height on mobile browsers
+    <div className="fixed inset-0 z-[9999] h-[100dvh] w-screen flex items-center justify-center bg-black/95 backdrop-blur-md touch-none">
       
-      {/* FIXED: 
-         1. Added 'relative' to position the close button contextually if needed
-         2. Added 'w-full max-w-[390px]' to strictly enforce iPhone width
-         3. Removed w-screen/h-screen which was breaking the layout
-      */}
       <div className="relative w-full max-w-[390px] p-6 flex flex-col items-center">
         
-        {/* Close Button - Positioned top-right of the "Phone" area for better mobile UX */}
+        {/* Close Button */}
         <button 
           onClick={onComplete}
           className="absolute -top-12 right-6 p-2 text-white/50 hover:text-white transition-colors z-10"

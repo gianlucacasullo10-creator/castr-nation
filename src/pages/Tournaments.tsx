@@ -113,23 +113,22 @@ const Tournaments = () => {
       case "active":
         return (
           <div className="text-right">
-            <Badge className="bg-green-500 text-white border-none font-black text-xs mb-1">🔴 LIVE</Badge>
-            <p className="text-xs font-bold text-muted-foreground">{countdown.label}</p>
-            <p className="text-sm font-black text-primary">{countdown.time}</p>
+            <Badge className="bg-green-500 text-white border-none font-black text-xs mb-2">LIVE</Badge>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{countdown.label}</p>
+            <p className="text-xs font-black text-primary tabular-nums">{countdown.time}</p>
           </div>
         );
       case "upcoming":
         return (
           <div className="text-right">
-            <Badge className="bg-blue-500 text-white border-none font-black text-xs mb-1">📅 UPCOMING</Badge>
-            <p className="text-xs font-bold text-muted-foreground">{countdown.label}</p>
-            <p className="text-sm font-black text-primary">{countdown.time}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{countdown.label}</p>
+            <p className="text-sm font-black text-primary tabular-nums">{countdown.time}</p>
           </div>
         );
       case "ended":
         return (
           <div className="text-right">
-            <Badge className="bg-gray-500 text-white border-none font-black text-xs">⏹️ ENDED</Badge>
+            <Badge className="bg-gray-500 text-white border-none font-black text-xs">ENDED</Badge>
           </div>
         );
       default:

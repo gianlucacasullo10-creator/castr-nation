@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Check, Recycle, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { checkAchievementsAfterEquip } from "@/utils/achievementTracker";
-import TradeIn from "@/components/TradeIn";
+import TradeIn from "@/components/TradeIn.tsx";
 import {
   AlertDialog,
   AlertDialogAction,

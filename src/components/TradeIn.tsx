@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { X, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { X, ArrowRight, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 
 interface TradeInProps {
   onClose: () => void;
@@ -47,6 +47,9 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
   const [loading, setLoading] = useState(true);
   const [trading, setTrading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<typeof TRADE_RECIPES[0] | null>(null);
+  const [selectedItems, setSelectedItems] = useState<{[key: string]: string[]}>({});
+  const [receivedItem, setReceivedItem] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,7 +81,9 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
         .from('inventory')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_equipped', false); // Only unequipped items can be traded
+        .eq('is_equipped', false)
+        .order('rarity', { ascending: true })
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setInventory(data || []);
@@ -99,30 +104,45 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
     return counts;
   };
 
-  const canTrade = (recipe: typeof TRADE_RECIPES[0]) => {
-    const counts = getItemCounts();
-    return Object.entries(recipe.requirements).every(
-      ([rarity, needed]) => counts[rarity as keyof typeof counts] >= needed
+  const toggleItemSelection = (itemId: string, rarity: string) => {
+    if (!selectedRecipe) return;
+
+    const rarityNeeded = selectedRecipe.requirements[rarity as keyof typeof selectedRecipe.requirements] || 0;
+    const currentSelected = selectedItems[rarity] || [];
+
+    if (currentSelected.includes(itemId)) {
+      // Deselect
+      setSelectedItems(prev => ({
+        ...prev,
+        [rarity]: currentSelected.filter(id => id !== itemId)
+      }));
+    } else {
+      // Select (if under limit)
+      if (currentSelected.length < rarityNeeded) {
+        setSelectedItems(prev => ({
+          ...prev,
+          [rarity]: [...currentSelected, itemId]
+        }));
+      }
+    }
+  };
+
+  const canTrade = () => {
+    if (!selectedRecipe) return false;
+    
+    return Object.entries(selectedRecipe.requirements).every(
+      ([rarity, needed]) => (selectedItems[rarity] || []).length === needed
     );
   };
 
-  const handleTrade = async (recipe: typeof TRADE_RECIPES[0]) => {
-    if (!userId || !canTrade(recipe)) return;
+  const handleTrade = async () => {
+    if (!userId || !selectedRecipe || !canTrade()) return;
 
     setTrading(true);
 
     try {
-      // Get items to trade in
-      const itemsToDelete: string[] = [];
-      const counts = { ...recipe.requirements };
-
-      for (const [rarity, needed] of Object.entries(counts)) {
-        const items = inventory
-          .filter(i => i.rarity === rarity && !i.is_equipped)
-          .slice(0, needed);
-        
-        itemsToDelete.push(...items.map(i => i.id));
-      }
+      // Collect all selected item IDs
+      const itemsToDelete = Object.values(selectedItems).flat();
 
       // Delete the traded items
       const { error: deleteError } = await supabase
@@ -136,7 +156,7 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
       const { data: lootTable, error: lootError } = await supabase
         .from('gear_loot_table')
         .select('*')
-        .eq('rarity', recipe.output);
+        .eq('rarity', selectedRecipe.output);
 
       if (lootError) throw lootError;
       if (!lootTable || lootTable.length === 0) throw new Error('No items found');
@@ -158,14 +178,8 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
 
       if (insertError) throw insertError;
 
-      toast({
-        title: "Trade Successful! 🎉",
-        description: `You received: ${randomItem.item_name}!`
-      });
-
-      // Refresh and notify parent
-      await fetchInventory();
-      onTradeComplete();
+      // Show result
+      setReceivedItem(randomItem);
 
     } catch (error: any) {
       console.error('Trade error:', error);
@@ -174,13 +188,205 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
         title: "Trade Failed",
         description: error.message
       });
-    } finally {
       setTrading(false);
     }
   };
 
+  const handleResultClose = () => {
+    setReceivedItem(null);
+    setSelectedRecipe(null);
+    setSelectedItems({});
+    setTrading(false);
+    fetchInventory();
+    onTradeComplete();
+  };
+
   const counts = getItemCounts();
 
+  // Show result screen
+  if (receivedItem) {
+    const colors = RARITY_COLORS[receivedItem.rarity as keyof typeof RARITY_COLORS];
+    
+    return (
+      <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
+        <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
+        
+        <div className="relative h-screen w-screen flex items-center justify-center px-4">
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
+            <div className="text-center space-y-4">
+              <CheckCircle2 size={48} className="mx-auto text-green-500 mb-3" />
+              
+              <h2 className="text-2xl font-black italic uppercase text-primary">Trade Complete!</h2>
+              
+              {/* Rarity Badge */}
+              <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>
+                {receivedItem.rarity}
+              </Badge>
+
+              {/* Item Icon */}
+              <div className="text-7xl">
+                {receivedItem.item_type === 'rod' ? '🎣' : '🪝'}
+              </div>
+
+              {/* Item Name */}
+              <h3 className={`text-2xl font-black italic uppercase ${colors.text} leading-tight`}>
+                {receivedItem.item_name}
+              </h3>
+
+              {/* Bonus */}
+              <div>
+                <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
+                <p className="text-3xl font-black italic text-primary">+{receivedItem.bonus_percentage}%</p>
+              </div>
+
+              {/* Type */}
+              <Badge variant="outline" className="font-black text-xs uppercase">
+                {receivedItem.item_type}
+              </Badge>
+
+              {/* Continue Button */}
+              <Button
+                onClick={handleResultClose}
+                className="w-full h-12 rounded-2xl bg-primary text-black font-black uppercase text-sm mt-4 active:scale-95 transition-transform"
+              >
+                Continue
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show item selection screen
+  if (selectedRecipe) {
+    return (
+      <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
+        <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
+        
+        <div className="relative h-screen w-screen overflow-y-auto">
+          <div className="max-w-md mx-auto p-4 space-y-4 pb-8">
+            {/* Header */}
+            <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
+              <div className="flex-1">
+                <h2 className="text-2xl font-black italic uppercase text-primary tracking-tighter leading-none">
+                  Select Items
+                </h2>
+                <p className="text-xs font-bold text-muted-foreground mt-1">
+                  Choose which items to trade in
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  setSelectedRecipe(null);
+                  setSelectedItems({});
+                }}
+                className="h-10 w-10 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center"
+              >
+                <X size={24} className="text-white/70" />
+              </button>
+            </div>
+
+            {/* Requirements */}
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-4 rounded-[32px]">
+              <h3 className="font-black uppercase text-xs mb-3 text-primary">Requirements</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                {Object.entries(selectedRecipe.requirements).map(([rarity, count]) => {
+                  const selected = (selectedItems[rarity] || []).length;
+                  const colors = RARITY_COLORS[rarity as keyof typeof RARITY_COLORS];
+                  
+                  return (
+                    <Badge 
+                      key={rarity}
+                      className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-xs px-3 py-1`}
+                    >
+                      {selected}/{count} {rarity}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Item Selection by Rarity */}
+            {Object.entries(selectedRecipe.requirements).map(([rarity, needed]) => {
+              const items = inventory.filter(i => i.rarity === rarity);
+              const colors = RARITY_COLORS[rarity as keyof typeof RARITY_COLORS];
+              const selected = selectedItems[rarity] || [];
+
+              if (items.length === 0) {
+                return (
+                  <Card key={rarity} className="p-6 rounded-[32px] text-center">
+                    <p className="text-muted-foreground text-sm">No {rarity} items available</p>
+                  </Card>
+                );
+              }
+
+              return (
+                <div key={rarity} className="space-y-3">
+                  <h3 className={`text-sm font-black uppercase ${colors.text} ml-2`}>
+                    {rarity} - Select {needed}
+                  </h3>
+                  {items.map(item => {
+                    const isSelected = selected.includes(item.id);
+                    
+                    return (
+                      <Card
+                        key={item.id}
+                        onClick={() => toggleItemSelection(item.id, rarity)}
+                        className={`${colors.bg} border-2 ${isSelected ? colors.border + ' ring-2 ring-primary' : 'border-muted'} rounded-[24px] p-3 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">
+                            {item.item_type === 'rod' ? '🎣' : '🪝'}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h4 className="font-black italic uppercase text-xs leading-none">
+                              {item.item_name}
+                            </h4>
+                            <Badge variant="outline" className="font-bold text-[8px] px-2 py-0 mt-1">
+                              +{item.bonus_percentage}%
+                            </Badge>
+                          </div>
+                          {isSelected && (
+                            <CheckCircle2 className="text-primary" size={20} />
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Trade Button */}
+            <div className="sticky bottom-0 bg-black pt-4 pb-4">
+              <Button
+                onClick={handleTrade}
+                disabled={!canTrade() || trading}
+                className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-sm disabled:opacity-50 disabled:bg-muted"
+              >
+                {trading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    Trading...
+                  </>
+                ) : canTrade() ? (
+                  <>
+                    <Sparkles className="mr-2" size={20} />
+                    Complete Trade
+                  </>
+                ) : (
+                  `Select ${Object.entries(selectedRecipe.requirements).map(([r, n]) => `${n} ${r}`).join(', ')}`
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show recipe selection screen (main view)
   if (loading) {
     return (
       <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
@@ -242,14 +448,16 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
           {/* Trade Recipes */}
           <div className="space-y-4">
             {TRADE_RECIPES.map((recipe) => {
-              const canDoTrade = canTrade(recipe);
+              const hasEnough = Object.entries(recipe.requirements).every(
+                ([rarity, needed]) => counts[rarity as keyof typeof counts] >= needed
+              );
               const colors = RARITY_COLORS[recipe.output as keyof typeof RARITY_COLORS];
 
               return (
                 <Card 
                   key={recipe.id}
                   className={`${colors.bg} border-2 ${colors.border} rounded-[32px] p-6 ${
-                    !canDoTrade ? 'opacity-50' : ''
+                    !hasEnough ? 'opacity-50' : ''
                   }`}
                 >
                   <div className="space-y-4">
@@ -284,25 +492,20 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
                       </Badge>
                     </div>
 
-                    {/* Trade Button */}
+                    {/* Start Button */}
                     <Button
-                      onClick={() => handleTrade(recipe)}
-                      disabled={!canDoTrade || trading}
+                      onClick={() => setSelectedRecipe(recipe)}
+                      disabled={!hasEnough}
                       className={`w-full h-12 rounded-2xl font-black uppercase text-sm ${
-                        canDoTrade 
+                        hasEnough 
                           ? 'bg-primary hover:bg-primary/90 text-black' 
                           : 'bg-muted text-muted-foreground'
                       }`}
                     >
-                      {trading ? (
+                      {hasEnough ? (
                         <>
-                          <Loader2 className="animate-spin mr-2" size={16} />
-                          Trading...
-                        </>
-                      ) : canDoTrade ? (
-                        <>
-                          <Sparkles className="mr-2" size={16} />
-                          Trade Now
+                          <ArrowRight className="mr-2" size={16} />
+                          Select Items
                         </>
                       ) : (
                         'Not Enough Items'
@@ -321,6 +524,10 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
                 <span>Only unequipped items can be traded</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>Choose which specific items to sacrifice</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, X } from "lucide-react";
+import GearImage from "@/components/GearImage";
 
 interface CaseOpeningProps {
   item: {
@@ -10,6 +11,7 @@ interface CaseOpeningProps {
     item_type: string;
     rarity: string;
     bonus_percentage: number;
+    image_url?: string | null;
   };
   onComplete: () => void;
 }
@@ -27,12 +29,16 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
   const colors = RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS];
 
   useEffect(() => {
+    // Prevent double initialization
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     // Lock body scroll
     document.body.style.overflow = 'hidden';
-    
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+
     // Roll for 2 seconds, then reveal
     const timer = setTimeout(() => {
       setPhase('reveal');
@@ -40,28 +46,28 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
 
     return () => {
       clearTimeout(timer);
+      // Restore body scroll
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     };
-  }, []);
+  }, []); // Empty dependency array
 
   return (
-    // FIXED: 
-    // 1. Increased z-index to [9999] to cover any headers/navbars
-    // 2. Used h-[100dvh] to ensure full height on mobile browsers
-    <div className="fixed inset-0 z-[9999] h-[100dvh] w-screen flex items-center justify-center bg-black/95 backdrop-blur-md touch-none">
+    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      <div className="relative w-full max-w-[390px] p-6 flex flex-col items-center">
-        
-        {/* Close Button */}
+      <div className="relative h-screen w-screen flex items-center justify-center px-4">
         <button 
           onClick={onComplete}
-          className="absolute -top-12 right-6 p-2 text-white/50 hover:text-white transition-colors z-10"
+          className="absolute top-8 right-8 p-2 text-white/50 hover:text-white transition-colors z-10"
         >
           <X size={24} />
         </button>
 
         {phase === 'rolling' ? (
-          <div className="text-center space-y-8 animate-in fade-in duration-300 w-full">
+          <div className="text-center space-y-8 animate-in fade-in duration-300">
             <div className="relative">
               <div className="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={48} />
@@ -71,16 +77,21 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
             </p>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full animate-in zoom-in-95 duration-500 flex flex-col items-center`}>
-            <div className="text-center space-y-4 w-full">
+          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
+            <div className="text-center space-y-4">
               {/* Rarity Badge */}
               <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>
                 {item.rarity}
               </Badge>
 
               {/* Item Icon */}
-              <div className="text-7xl py-4">
-                {item.item_type === 'rod' ? '🎣' : '🪝'}
+              <div className="flex justify-center">
+                <GearImage 
+                  imageUrl={item.image_url}
+                  itemType={item.item_type as 'rod' | 'lure'}
+                  rarity={item.rarity as 'common' | 'rare' | 'epic' | 'legendary'}
+                  size="xl"
+                />
               </div>
 
               {/* Item Name */}
@@ -89,13 +100,13 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
               </h2>
 
               {/* Bonus */}
-              <div className="py-2">
+              <div>
                 <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
                 <p className="text-3xl font-black italic text-primary">+{item.bonus_percentage}%</p>
               </div>
 
               {/* Type */}
-              <Badge variant="outline" className="font-black text-xs uppercase mb-4">
+              <Badge variant="outline" className="font-black text-xs uppercase">
                 {item.item_type}
               </Badge>
 

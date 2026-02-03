@@ -111,8 +111,8 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
     <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      <div className="relative h-screen w-screen overflow-y-auto">
-        <div className="max-w-md mx-auto p-4 space-y-4 pb-8">
+      <div className="relative h-screen w-screen overflow-y-auto flex justify-center">
+        <div className="w-full max-w-md p-4 space-y-4 pb-8">
           {/* Header */}
           <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
             <div className="flex-1">

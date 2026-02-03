@@ -294,60 +294,89 @@ const Clubs = () => {
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       {!selectedClub ? (
         <>
-          <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none text-left">Clubs</h1>
+          {/* Header - Centered like Tournaments */}
+          <div className="text-center">
+            <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
+              Clubs
+            </h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+              Join a squad & compete together
+            </p>
+          </div>
           
+          {/* Active Battle Card - Liquid Glass Style */}
           {activeBattle && (
-            <Card className="border-none rounded-[32px] bg-gradient-to-br from-red-950/50 to-orange-950/50 p-6 shadow-xl border-2 border-red-500/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Flame className="text-red-500 animate-pulse" size={24} />
-                  <h3 className="text-lg font-black italic uppercase text-red-400">Active Battle</h3>
+            <Card className="relative rounded-[32px] overflow-hidden border-2 border-white/20 bg-white/[0.08] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-purple-500/20 pointer-events-none" />
+              
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/20 p-2 rounded-xl">
+                      <Swords className="text-primary" size={20} />
+                    </div>
+                    <h3 className="text-lg font-black italic uppercase text-primary">Active Battle</h3>
+                  </div>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-[9px]">
+                    <Timer size={10} className="mr-1" /> {timeRemaining}
+                  </Badge>
                 </div>
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-black text-[9px]">
-                  <Timer size={10} className="mr-1" /> {timeRemaining}
-                </Badge>
+                <p className="text-white/70 text-sm font-bold mb-4">{activeBattle.battle_name}</p>
+                <Button 
+                  onClick={() => {
+                    if (!currentUser) {
+                      toast({ title: "Login Required", description: "Sign in to view the battle leaderboard" });
+                      navigate("/auth");
+                      return;
+                    }
+                    if (clubs.length > 0) {
+                      fetchClubDetails(clubs[0]);
+                      setTimeout(() => {
+                        setView('BATTLE');
+                        fetchBattleLeaderboard(activeBattle.id);
+                      }, 500);
+                    }
+                  }}
+                  className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase text-xs h-12 rounded-2xl"
+                >
+                  View Leaderboard
+                </Button>
               </div>
-              <p className="text-white/70 text-sm font-bold">{activeBattle.battle_name}</p>
-            <Button 
-  onClick={() => {
-    if (!currentUser) {
-      toast({ title: "Login Required", description: "Sign in to view the battle leaderboard" });
-      navigate("/auth");
-      return;
-    }
-    // Find a club to show the leaderboard for (preferably user's club)
-    const userClub = clubs.find(c => {
-      // Check if user is member - you'd need to fetch memberships here
-      // For now, just pick the first club with members
-      return true;
-    });
-    
-    if (clubs.length > 0) {
-      fetchClubDetails(clubs[0]); // Open first club
-      setTimeout(() => {
-        setView('BATTLE');
-        fetchBattleLeaderboard(activeBattle.id);
-      }, 500);
-    }
-  }}
-  className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs"
->
-  View Leaderboard
-</Button>
             </Card>
           )}
 
-          <div className="space-y-4">
+          {/* Info Card */}
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-6 rounded-[32px]">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/20 p-3 rounded-2xl shrink-0">
+                <Users className="text-primary" size={24} />
+              </div>
+              <div>
+                <h3 className="font-black uppercase text-sm mb-1">Team Up</h3>
+                <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                  Join a club to combine points, compete in battles, and chat with fellow anglers!
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Clubs List */}
+          <div className="space-y-3">
             {clubs.map((club) => {
               const tier = getBattleTier(club.battle_wins || 0);
               return (
-                <Card key={club.id} onClick={() => fetchClubDetails(club)} className="border-none rounded-[32px] bg-card p-6 shadow-xl cursor-pointer text-left hover:scale-[1.02] transition-transform">
+                <Card 
+                  key={club.id} 
+                  onClick={() => fetchClubDetails(club)} 
+                  className="border-2 border-muted rounded-[24px] bg-card p-5 cursor-pointer hover:scale-[1.02] hover:border-primary/30 transition-all"
+                >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                      <img src={club.image_url || "/placeholder.svg"} className="h-12 w-12 rounded-xl object-cover border border-primary/20" />
-                      <div className="space-y-1">
+                      <img src={club.image_url || "/placeholder.svg"} className="h-14 w-14 rounded-2xl object-cover border-2 border-primary/20" />
+                      <div className="space-y-1 text-left">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
+                          <h3 className="text-lg font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
                           {club.battle_wins > 0 && (
                             <Badge className={`${tier.bgColor} ${tier.color} border-none font-black text-[8px] px-2`}>
                               {tier.icon} {club.battle_wins}W
@@ -368,6 +397,7 @@ const Clubs = () => {
         </>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+          {/* Back Button & View Tabs */}
           <div className="flex justify-between items-center">
             <button 
               onClick={() => { setSelectedClub(null); setView('INFO'); setIsEditing(false); }} 
@@ -378,27 +408,43 @@ const Clubs = () => {
             <div className="flex gap-2">
               {isMember && view === 'INFO' && (
                 <>
-                  <Button variant="ghost" onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} className="text-primary font-black uppercase text-[10px] italic">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setView('CHAT'); fetchMessages(selectedClub.id); }} 
+                    className="text-primary font-black uppercase text-[10px] italic h-9 rounded-xl border-primary/30"
+                  >
                     <MessageSquare size={14} className="mr-1" /> Chat
                   </Button>
                   {activeBattle && (
-                    <Button variant="ghost" onClick={() => { setView('BATTLE'); fetchBattleLeaderboard(activeBattle.id); }} className="text-red-400 font-black uppercase text-[10px] italic">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => { setView('BATTLE'); fetchBattleLeaderboard(activeBattle.id); }} 
+                      className="text-primary font-black uppercase text-[10px] italic h-9 rounded-xl border-primary/30"
+                    >
                       <Swords size={14} className="mr-1" /> Battle
                     </Button>
                   )}
                 </>
               )}
               {view !== 'INFO' && (
-                <Button variant="ghost" onClick={() => setView('INFO')} className="text-primary font-black uppercase text-[10px] italic">Info</Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setView('INFO')} 
+                  className="text-primary font-black uppercase text-[10px] italic h-9 rounded-xl border-primary/30"
+                >
+                  Info
+                </Button>
               )}
             </div>
           </div>
 
+          {/* INFO VIEW */}
           {view === 'INFO' && (
             <div className="space-y-6">
+              {/* Club Header */}
               <div className="flex flex-col items-center">
                 <div className="relative group mb-4">
-                   <img src={selectedClub.image_url || "/placeholder.svg"} className="h-24 w-24 rounded-[32px] object-cover border-4 border-card shadow-2xl" />
+                   <img src={selectedClub.image_url || "/placeholder.svg"} className="h-24 w-24 rounded-[32px] object-cover border-4 border-primary/20 shadow-2xl" />
                    {currentUser?.id === selectedClub.created_by && (
                       <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[32px] opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
                         <Camera className="text-white" size={20} />
@@ -409,17 +455,17 @@ const Clubs = () => {
                 <div className="w-full text-center">
                   {isEditing ? (
                     <div className="space-y-2">
-                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-10 bg-muted border-primary font-black uppercase italic text-center text-xl" />
-                      <Input value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className="h-8 bg-muted border-none font-black uppercase italic text-center text-xs text-primary" />
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-10 bg-muted border-primary font-black uppercase italic text-center text-xl rounded-2xl" />
+                      <Input value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className="h-8 bg-muted border-none font-black uppercase italic text-center text-xs text-primary rounded-2xl" />
                       <div className="flex justify-center gap-2 mt-2">
-                        <Button size="sm" className="bg-primary text-black" onClick={updateClubDetails}><Check size={14} className="mr-1"/> Save</Button>
+                        <Button size="sm" className="bg-primary text-black rounded-xl" onClick={updateClubDetails}><Check size={14} className="mr-1"/> Save</Button>
                         <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}><X size={14} className="mr-1"/> Cancel</Button>
                       </div>
                     </div>
                   ) : (
                     <div className="relative group">
                       <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{selectedClub.name}</h1>
-                      <div className="flex justify-center gap-2 mt-3">
+                      <div className="flex justify-center gap-2 mt-3 flex-wrap">
                         <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] uppercase italic tracking-widest">{selectedClub.region}</Badge>
                         <Badge className={`${regionalRank === 1 ? "bg-yellow-500 text-black" : "bg-muted text-muted-foreground"} border-none font-black text-[9px] uppercase italic px-3`}>
                           <Trophy size={10} className="mr-1" /> Rank #{regionalRank}
@@ -440,15 +486,16 @@ const Clubs = () => {
                 </div>
               </div>
 
+              {/* Battle Tier Card */}
               {selectedClub.battle_wins > 0 && (
-                <Card className={`${battleTier.bgColor} ${battleTier.borderColor} border-2 rounded-[32px] p-6`}>
+                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 rounded-[32px] p-6">
                   <div className="text-center">
                     <p className="text-4xl mb-2">{battleTier.icon}</p>
-                    <h3 className={`text-2xl font-black italic uppercase ${battleTier.color}`}>{battleTier.name} Tier</h3>
+                    <h3 className="text-2xl font-black italic uppercase text-primary">{battleTier.name} Tier</h3>
                     <p className="text-sm font-bold text-muted-foreground mt-2">{selectedClub.battle_wins} Battle Victories</p>
                     <div className="mt-4 space-y-1">
                       {BATTLE_TIERS.map((tier, index) => {
-                        if (index === BATTLE_TIERS.length - 1) return null; // Skip last tier
+                        if (index === BATTLE_TIERS.length - 1) return null;
                         const nextTier = BATTLE_TIERS[index + 1];
                         const isCurrentTier = selectedClub.battle_wins >= tier.minWins && selectedClub.battle_wins < nextTier.minWins;
                         
@@ -457,12 +504,12 @@ const Clubs = () => {
                           return (
                             <div key={tier.name}>
                               <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                                <span className={tier.color}>{tier.name}</span>
-                                <span className={nextTier.color}>{nextTier.name}</span>
+                                <span className="text-primary">{tier.name}</span>
+                                <span className="text-muted-foreground">{nextTier.name}</span>
                               </div>
-                              <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
                                 <div 
-                                  className={`h-full ${nextTier.bgColor} transition-all duration-500`}
+                                  className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-500"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -479,26 +526,34 @@ const Clubs = () => {
                 </Card>
               )}
 
-              <Card className={`relative overflow-hidden rounded-[40px] p-8 text-white transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary' : 'bg-black border border-white/10'}`}>
+              {/* Total Club Power Card */}
+              <Card className={`relative overflow-hidden rounded-[32px] p-8 transition-all duration-500 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-primary' : 'bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30'}`}>
                 <div className="relative z-10 text-left">
-                  <div className="flex justify-between items-start mb-8">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${totalPoints >= BATTLE_THRESHOLD ? 'text-black/60' : 'text-primary'}`}>Total Club Power</p>
-                      <p className={`text-6xl font-black italic tracking-tighter mt-2 ${totalPoints >= BATTLE_THRESHOLD ? 'text-black' : 'text-white'}`}>{totalPoints.toLocaleString()}</p>
+                      <p className={`text-[10px] font-black uppercase tracking-widest leading-none ${totalPoints >= BATTLE_THRESHOLD ? 'text-black/60' : 'text-muted-foreground'}`}>Total Club Power</p>
+                      <p className={`text-5xl font-black italic tracking-tighter mt-2 ${totalPoints >= BATTLE_THRESHOLD ? 'text-black' : 'text-primary'}`}>{totalPoints.toLocaleString()}</p>
                     </div>
-                    <Swords size={48} className={totalPoints >= BATTLE_THRESHOLD ? "text-black animate-pulse" : "text-white/10"} />
+                    <div className={`p-3 rounded-2xl ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black/20' : 'bg-primary/20'}`}>
+                      <Swords size={32} className={totalPoints >= BATTLE_THRESHOLD ? "text-black" : "text-primary"} />
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className={`h-3 rounded-full overflow-hidden ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black/20' : 'bg-white/10'}`}>
-                      <div className={`h-full transition-all duration-1000 ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black' : 'bg-primary'}`} style={{ width: `${Math.min(100, (totalPoints / BATTLE_THRESHOLD) * 100)}%` }} />
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-black uppercase">
+                      <span className={totalPoints >= BATTLE_THRESHOLD ? 'text-black/60' : 'text-muted-foreground'}>Progress</span>
+                      <span className={totalPoints >= BATTLE_THRESHOLD ? 'text-black' : 'text-primary'}>{Math.min(100, Math.round((totalPoints / BATTLE_THRESHOLD) * 100))}%</span>
+                    </div>
+                    <div className={`h-3 rounded-full overflow-hidden ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black/20' : 'bg-muted'}`}>
+                      <div className={`h-full transition-all duration-1000 rounded-full ${totalPoints >= BATTLE_THRESHOLD ? 'bg-black' : 'bg-gradient-to-r from-primary to-cyan-400'}`} style={{ width: `${Math.min(100, (totalPoints / BATTLE_THRESHOLD) * 100)}%` }} />
                     </div>
                   </div>
                 </div>
               </Card>
 
+              {/* Join/Leave Button */}
               <div className="px-2">
                 {!isMember ? (
-                  <Button onClick={joinClub} className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase italic shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:scale-[1.02] transition-transform">
+                  <Button onClick={joinClub} className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase italic hover:bg-primary/90 transition-all">
                     <Users size={18} className="mr-2" /> Join Squad
                   </Button>
                 ) : (
@@ -510,82 +565,99 @@ const Clubs = () => {
                 )}
               </div>
 
-              <div className="space-y-4">
+              {/* Member Rankings */}
+              <div className="space-y-3">
                 <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Member Rankings</h3>
                 {clubMembers.map((member, index) => (
-                  <div 
+                  <Card 
                     key={member.id} 
                     onClick={() => handleUserClick(member.id)}
-                    className="flex items-center justify-between p-4 bg-card rounded-[24px] border border-border/50 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-4 rounded-[20px] border-2 border-muted cursor-pointer hover:border-primary/30 transition-all"
                   >
                     <div className="flex items-center gap-4 text-left">
-                      <div className="flex flex-col items-center w-4">
-                         {index === 0 ? <Crown size={12} className="text-yellow-500 mb-1" /> : <span className="text-[10px] font-black text-primary/40">{index + 1}</span>}
+                      <div className="flex flex-col items-center w-6">
+                         {index === 0 ? <Crown size={14} className="text-yellow-500" /> : <span className="text-xs font-black text-muted-foreground">{index + 1}</span>}
                       </div>
-                      <Avatar className="h-12 w-12 border-2 border-primary/10">
+                      <Avatar className="h-12 w-12 border-2 border-primary/20">
                         <AvatarImage src={member.avatar_url} />
-                        <AvatarFallback>{member.display_name?.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/10 text-primary font-black">{member.display_name?.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-md font-black italic uppercase leading-none tracking-tight">{member.display_name}</p>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1.5 tracking-tighter opacity-70">{member.equipped_title || "Castr"}</p>
+                        <p className="text-sm font-black italic uppercase leading-none tracking-tight">{member.display_name}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 tracking-tighter">{member.equipped_title || "Castr"}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-md font-black italic text-primary leading-none">{member.totalPoints.toLocaleString()}</p>
-                      <p className="text-[8px] font-black uppercase opacity-40 mt-1">Pts</p>
+                      <p className="text-lg font-black italic text-primary leading-none">{member.totalPoints.toLocaleString()}</p>
+                      <p className="text-[8px] font-black uppercase text-muted-foreground mt-1">Pts</p>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             </div>
           )}
 
+          {/* CHAT VIEW */}
           {view === 'CHAT' && (
             <div className="flex flex-col h-[65vh] animate-in fade-in zoom-in-95 duration-300">
-               <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-left text-2xl font-black italic uppercase tracking-tighter text-primary">Club Chat</h2>
-                  <Badge variant="outline" className="text-[8px] border-primary/20 text-primary/60 font-black px-2 py-0">ENCRYPTED</Badge>
-               </div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-left text-2xl font-black italic uppercase tracking-tighter text-primary">Club Chat</h2>
+                <Badge variant="outline" className="text-[8px] border-primary/20 text-primary/60 font-black px-2 py-0 rounded-lg">LIVE</Badge>
+              </div>
               <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-2 scrollbar-hide">
                 {messages.map((msg) => (
                   <div key={msg.id} className="flex flex-col text-left">
                     <span className="text-[9px] font-black uppercase text-primary italic ml-3 mb-1 opacity-70">{msg.profiles?.display_name}</span>
-                    <div className="bg-muted/40 p-4 rounded-[24px] rounded-tl-none max-w-[85%] border border-white/5 backdrop-blur-sm shadow-sm">
-                      <p className="text-[13px] font-medium leading-relaxed text-foreground/90">{msg.message_text}</p>
+                    <div className="bg-muted/50 p-4 rounded-[20px] rounded-tl-none max-w-[85%] border border-muted">
+                      <p className="text-[13px] font-medium leading-relaxed">{msg.message_text}</p>
                     </div>
                   </div>
                 ))}
                 <div ref={scrollRef} />
               </div>
-              <div className="flex gap-2 pt-6 bg-background border-t border-muted/30">
-                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Drop a transmission..." className="rounded-2xl h-14 bg-muted border-none font-bold text-sm px-5" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
-                <Button onClick={sendMessage} className="rounded-2xl h-14 w-14 bg-primary text-black shrink-0"><Send size={22} /></Button>
+              <div className="flex gap-2 pt-4 border-t border-muted">
+                <Input 
+                  value={newMessage} 
+                  onChange={(e) => setNewMessage(e.target.value)} 
+                  placeholder="Send a message..." 
+                  className="rounded-2xl h-12 bg-muted border-none font-medium text-sm px-5" 
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()} 
+                />
+                <Button onClick={sendMessage} className="rounded-2xl h-12 w-12 bg-primary text-black shrink-0">
+                  <Send size={20} />
+                </Button>
               </div>
             </div>
           )}
 
+          {/* BATTLE VIEW */}
           {view === 'BATTLE' && activeBattle && (
             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-              <Card className="border-none rounded-[32px] bg-gradient-to-br from-red-950/50 to-orange-950/50 p-6 border-2 border-red-500/20">
-                <div className="text-center">
-                  <Flame className="text-red-500 mx-auto mb-3 animate-pulse" size={48} />
-                  <h2 className="text-2xl font-black italic uppercase text-red-400 mb-2">{activeBattle.battle_name}</h2>
-                  <div className="flex items-center justify-center gap-2 text-white/70">
-                    <Timer size={16} />
+              {/* Battle Header Card - Liquid Glass */}
+              <Card className="relative rounded-[32px] overflow-hidden border-2 border-white/20 bg-white/[0.08] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-purple-500/20 pointer-events-none" />
+                
+                <div className="relative p-6 text-center">
+                  <div className="bg-primary/20 p-3 rounded-2xl w-fit mx-auto mb-4">
+                    <Swords className="text-primary" size={32} />
+                  </div>
+                  <h2 className="text-2xl font-black italic uppercase text-primary mb-2">{activeBattle.battle_name}</h2>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Timer size={16} className="text-primary" />
                     <span className="font-black text-sm">{timeRemaining} Remaining</span>
                   </div>
                 </div>
               </Card>
 
-              <div className="space-y-4">
+              {/* Battle Leaderboard */}
+              <div className="space-y-3">
                 <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Battle Leaderboard</h3>
                 {battleLeaderboard.map((participant, index) => {
                   const isMyClub = participant.club_id === selectedClub.id;
                   return (
                     <Card 
                       key={participant.id}
-                      className={`border-none rounded-[24px] p-4 ${isMyClub ? 'bg-primary/10 border-2 border-primary' : 'bg-card'}`}
+                      className={`rounded-[20px] p-4 border-2 transition-all ${isMyClub ? 'bg-primary/10 border-primary' : 'border-muted'}`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-left">
@@ -595,17 +667,17 @@ const Clubs = () => {
                             ) : index === 1 ? (
                               <Trophy size={18} className="text-gray-400" />
                             ) : index === 2 ? (
-                              <Trophy size={16} className="text-orange-600" />
+                              <Trophy size={16} className="text-orange-400" />
                             ) : (
                               <span className="text-lg font-black text-muted-foreground">#{index + 1}</span>
                             )}
                           </div>
                           <img 
                             src={participant.clubs.image_url || "/placeholder.svg"} 
-                            className="h-12 w-12 rounded-xl object-cover border border-primary/20" 
+                            className="h-12 w-12 rounded-xl object-cover border-2 border-primary/20" 
                           />
                           <div>
-                            <p className="text-lg font-black italic uppercase leading-none">{participant.clubs.name}</p>
+                            <p className="text-base font-black italic uppercase leading-none">{participant.clubs.name}</p>
                             <p className="text-[9px] font-black text-muted-foreground uppercase mt-1">{participant.clubs.region}</p>
                           </div>
                         </div>

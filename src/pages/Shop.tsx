@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Package, Sparkles, Tv } from "lucide-react";
+import { Loader2, Package, Sparkles, Tv, Trophy } from "lucide-react";
 import CaseOpening from "@/components/CaseOpening";
 import { checkAchievementsAfterCaseOpen } from "@/utils/achievementTracker";
 
@@ -199,8 +199,8 @@ const Shop = () => {
 
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-left">
+      {/* Header - Centered like Tournaments */}
+      <div className="text-center">
         <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
           Gear Shop
         </h1>
@@ -209,72 +209,101 @@ const Shop = () => {
         </p>
       </div>
 
-      {/* Points Display */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 p-6 rounded-[32px]">
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-black uppercase text-muted-foreground">Current Balance</span>
-            <span className="text-3xl font-black italic text-primary">{userProfile?.current_points || 0}</span>
+      {/* Points Display - Info card style */}
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-6 rounded-[32px]">
+        <div className="flex items-start gap-4">
+          <div className="bg-primary/20 p-3 rounded-2xl shrink-0">
+            <Trophy className="text-primary" size={24} />
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-black uppercase text-muted-foreground">Lifetime Earned</span>
-            <span className="text-xl font-bold text-muted-foreground">{userProfile?.total_points_earned || 0}</span>
+          <div className="flex-1 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black uppercase text-muted-foreground">Current Balance</span>
+              <span className="text-2xl font-black italic text-primary">{userProfile?.current_points || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-black uppercase text-muted-foreground">Lifetime Earned</span>
+              <span className="text-lg font-bold text-muted-foreground">{userProfile?.total_points_earned || 0}</span>
+            </div>
           </div>
         </div>
       </Card>
 
-      {/* Case Card */}
-      <Card className="border-none rounded-[32px] overflow-hidden bg-gradient-to-br from-orange-950/30 to-red-950/30 border-2 border-orange-500/20">
-        <div className="p-8 space-y-6">
+      {/* Case Card - Liquid Glass Effect */}
+      <Card className="relative rounded-[32px] overflow-hidden border-2 border-white/20 bg-white/[0.08] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+        {/* Gradient overlay for liquid glass effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 pointer-events-none" />
+        
+        <div className="relative p-8 space-y-6">
+          {/* Case Icon */}
           <div className="flex items-center justify-center">
             <div className="relative">
-              <Package className="text-orange-500 animate-pulse" size={80} />
-              <Sparkles className="absolute -top-2 -right-2 text-yellow-500" size={24} />
+              <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full scale-150" />
+              <div className="relative bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 rounded-3xl p-6">
+                <Package className="text-primary" size={64} />
+              </div>
+              <Sparkles className="absolute -top-1 -right-1 text-primary animate-pulse" size={24} />
             </div>
           </div>
 
+          {/* Title */}
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-black italic uppercase text-orange-400">Mystery Gear Case</h2>
-            <p className="text-sm text-muted-foreground font-bold">Unlock rods & lures with point bonuses</p>
+            <h2 className="text-2xl font-black italic uppercase text-primary">Mystery Gear Case</h2>
+            <p className="text-sm text-muted-foreground font-medium">Unlock rods & lures with point bonuses</p>
           </div>
 
-          {/* Drop Rates */}
+          {/* Drop Rates - Glass cards */}
           <div className="grid grid-cols-2 gap-2">
-            <Badge className="bg-gray-500/20 text-gray-200 border-gray-500/30 justify-center font-black text-xs">
-              Common 50%
-            </Badge>
-            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 justify-center font-black text-xs">
-              Rare 30%
-            </Badge>
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 justify-center font-black text-xs">
-              Epic 15%
-            </Badge>
-            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 justify-center font-black text-xs">
-              Legendary 5%
-            </Badge>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-gray-400/20 rounded-2xl px-3 py-2 text-center">
+              <span className="text-[10px] font-black uppercase text-gray-400">Common</span>
+              <span className="text-xs font-black text-gray-300 ml-2">50%</span>
+            </div>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-blue-400/30 rounded-2xl px-3 py-2 text-center">
+              <span className="text-[10px] font-black uppercase text-blue-400">Rare</span>
+              <span className="text-xs font-black text-blue-300 ml-2">30%</span>
+            </div>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-purple-400/30 rounded-2xl px-3 py-2 text-center">
+              <span className="text-[10px] font-black uppercase text-purple-400">Epic</span>
+              <span className="text-xs font-black text-purple-300 ml-2">15%</span>
+            </div>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-yellow-400/30 rounded-2xl px-3 py-2 text-center">
+              <span className="text-[10px] font-black uppercase text-yellow-400">Legendary</span>
+              <span className="text-xs font-black text-yellow-300 ml-2">5%</span>
+            </div>
           </div>
 
-          <Button
-            onClick={openCase}
-            disabled={opening || (userProfile?.current_points || 0) < CASE_PRICE}
-            className="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black uppercase text-sm shadow-[0_8px_30px_rgba(249,115,22,0.3)] disabled:opacity-50"
-          >
-            {opening ? (
-              <Loader2 className="animate-spin mr-2" size={20} />
-            ) : (
-              <Package className="mr-2" size={20} />
-            )}
-            Open Case - {CASE_PRICE} pts
-          </Button>
+          {/* Open Case Button - Liquid Glass */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-cyan-400/50 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
+            <Button
+              onClick={openCase}
+              disabled={opening || (userProfile?.current_points || 0) < CASE_PRICE}
+              className="relative w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-cyan-400 hover:from-primary/90 hover:to-cyan-400/90 text-black font-black uppercase text-sm border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {opening ? (
+                <Loader2 className="animate-spin mr-2" size={20} />
+              ) : (
+                <Package className="mr-2" size={20} />
+              )}
+              Open Case - {CASE_PRICE} pts
+            </Button>
+          </div>
 
-          {/* Rewarded Ad Button */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl"></div>
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <span className="text-[10px] font-black uppercase text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          </div>
+
+          {/* Rewarded Ad Button - Liquid Glass */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity" />
             <Button
               onClick={handleWatchAd}
               disabled={watchingAd || opening}
               variant="outline"
-              className="relative w-full h-14 rounded-2xl border-2 border-purple-500/50 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 text-white font-black uppercase text-sm disabled:opacity-50"
+              className="relative w-full h-14 rounded-2xl bg-white/[0.06] backdrop-blur-sm border-2 border-white/20 hover:bg-white/[0.12] hover:border-white/30 text-white font-black uppercase text-sm disabled:opacity-50 transition-all"
             >
               {watchingAd ? (
                 <>
@@ -289,10 +318,30 @@ const Shop = () => {
               )}
             </Button>
           </div>
-          <p className="text-center text-xs text-muted-foreground italic">
+          
+          <p className="text-center text-[10px] text-muted-foreground font-medium">
             Watch a short ad to open a case for free!
           </p>
         </div>
+      </Card>
+
+      {/* Info Card */}
+      <Card className="bg-white/[0.04] backdrop-blur-sm border-2 border-dashed border-white/10 p-6 rounded-[32px]">
+        <h3 className="font-black uppercase text-xs mb-3 text-center text-muted-foreground">How It Works</h3>
+        <ul className="space-y-2 text-xs text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Earn points by uploading verified catches</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Spend points to open mystery gear cases</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Equip gear for catch bonus multipliers</span>
+          </li>
+        </ul>
       </Card>
 
       {/* Case Opening Animation */}

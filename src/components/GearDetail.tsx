@@ -35,28 +35,26 @@ const GearDetail = ({ item, onClose, onEquip }: GearDetailProps) => {
   const colors = RARITY_COLORS[item.rarity];
 
   useEffect(() => {
-    // Lock body scroll
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
     };
   }, []);
 
   return (
-    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
+    // FIXED: Standardized full-screen overlay with max z-index
+    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex justify-center overflow-hidden">
       
-      <div className="relative h-screen w-screen overflow-y-auto">
-        <div className="max-w-md mx-auto p-4 space-y-6 pb-8">
-          {/* Header */}
-          <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
+      {/* FIXED: 
+         - w-full max-w-[390px] centers the content to iPhone width
+         - overflow-y-auto allows scrolling if the phone screen is short
+         - h-dvh ensures it takes up exactly the mobile viewport height
+      */}
+      <div className="relative h-dvh w-full max-w-[390px] overflow-y-auto px-4">
+        
+        <div className="flex flex-col space-y-6 pb-12 pt-4">
+          {/* Header - Sticky at the very top */}
+          <div className="flex items-start justify-between sticky top-0 bg-transparent z-10 py-2">
             <div className="flex-1">
               <h2 className="text-2xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Gear Details
@@ -64,7 +62,7 @@ const GearDetail = ({ item, onClose, onEquip }: GearDetailProps) => {
             </div>
             <button 
               onClick={onClose}
-              className="h-10 w-10 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-black/50 hover:bg-white/10 transition-colors flex items-center justify-center"
             >
               <X size={24} className="text-white/70" />
             </button>

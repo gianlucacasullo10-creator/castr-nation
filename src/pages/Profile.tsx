@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import GearImage from "@/components/GearImage";
+import FriendsManager from "@/components/FriendsManager";
 import { 
   Loader2, 
   Trophy, 
@@ -14,7 +15,8 @@ import {
   Camera, 
   Edit2, 
   Check, 
-  X 
+  X,
+  Users
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -35,6 +37,7 @@ const Profile = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [showFriendsManager, setShowFriendsManager] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -232,18 +235,15 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Friends Button */}
       <Button 
-  onClick={() => setShowFriendsManager(true)}
-  variant="outline"
-  className="font-black uppercase text-xs"
->
-  <Users size={14} className="mr-1" />
-  {profile?.friend_count || 0} Friends
-</Button>
-
-{showFriendsManager && (
-  <FriendsManager onClose={() => setShowFriendsManager(false)} />
-)}
+        onClick={() => setShowFriendsManager(true)}
+        variant="outline"
+        className="w-full font-black uppercase text-xs"
+      >
+        <Users size={14} className="mr-1" />
+        {profile?.friend_count || 0} Friends
+      </Button>
 
       <Card className="border-none bg-card rounded-[40px] shadow-2xl p-10 text-center relative border-t-8 border-primary overflow-hidden">
         {/* AVATAR WITH UPLOAD OVERLAY */}
@@ -506,6 +506,11 @@ const Profile = () => {
           })}
         </div>
       </div>
+
+      {/* Friends Manager Modal */}
+      {showFriendsManager && (
+        <FriendsManager onClose={() => setShowFriendsManager(false)} />
+      )}
     </div>
   );
 };

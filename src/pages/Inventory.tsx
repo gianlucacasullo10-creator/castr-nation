@@ -4,9 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Check, Recycle, AlertCircle, ArrowRightLeft } from "lucide-react";
+import { Loader2, Check, Recycle, AlertCircle, ArrowRightLeft, Package } from "lucide-react";
 import { checkAchievementsAfterEquip } from "@/utils/achievementTracker";
 import TradeIn from "@/components/TradeIn.tsx";
+import GearImage from "@/components/GearImage";
+import GearDetail from "@/components/GearDetail";
+import GearGallery from "@/components/GearGallery";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +45,8 @@ const Inventory = () => {
   const [itemToRecycle, setItemToRecycle] = useState<any>(null);
   const [isRecycling, setIsRecycling] = useState(false);
   const [showTradeIn, setShowTradeIn] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [selectedGear, setSelectedGear] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -255,6 +260,16 @@ const Inventory = () => {
             <ArrowRightLeft size={14} className="mr-1" />
             Trade-In
           </Button>
+
+          {/* Gallery Button */}
+          <Button
+            onClick={() => setShowGallery(true)}
+            variant="outline"
+            className="font-black uppercase text-xs border-primary/30 hover:bg-primary/10 h-9"
+          >
+            <Package size={14} className="mr-1" />
+            Gallery
+          </Button>
         </div>
       </div>
 
@@ -312,15 +327,19 @@ const Inventory = () => {
             {items.map(item => (
               <Card
                 key={item.id}
-                className={`${colors.bg} border-2 ${colors.border} rounded-[24px] p-4 ${
+                onClick={() => setSelectedGear(item)}
+                className={`${colors.bg} border-2 ${colors.border} rounded-[24px] p-4 cursor-pointer transition-all hover:scale-[1.01] ${
                   item.is_equipped ? 'ring-2 ring-primary' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="text-3xl">
-                      {item.item_type === 'rod' ? '🎣' : '🪝'}
-                    </div>
+                    <GearImage 
+                      imageUrl={item.image_url}
+                      itemType={item.item_type}
+                      rarity={item.rarity}
+                      size="sm"
+                    />
                     <div className="text-left flex-1">
                       <h4 className="font-black italic uppercase text-sm leading-none">
                         {item.item_name}
@@ -336,7 +355,7 @@ const Inventory = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button
                       onClick={() => equipItem(item.id, item.item_type, item.is_equipped)}
                       size="sm"
@@ -454,6 +473,23 @@ const Inventory = () => {
               title: "Inventory Updated",
               description: "Your trade has been completed!"
             });
+          }}
+        />
+      )}
+
+      {/* Gear Gallery Modal */}
+      {showGallery && (
+        <GearGallery onClose={() => setShowGallery(false)} />
+      )}
+
+      {/* Gear Detail Modal */}
+      {selectedGear && (
+        <GearDetail 
+          item={selectedGear}
+          onClose={() => setSelectedGear(null)}
+          onEquip={(itemId) => {
+            equipItem(itemId, selectedGear.item_type, selectedGear.is_equipped);
+            setSelectedGear(null);
           }}
         />
       )}

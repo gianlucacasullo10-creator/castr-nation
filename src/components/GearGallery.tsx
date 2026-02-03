@@ -27,18 +27,9 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
 
   useEffect(() => {
     fetchGallery();
-    
-    // Lock body scroll
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
     };
   }, []);
 
@@ -48,7 +39,6 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get all possible gear from loot table
       const { data: lootData, error: lootError } = await supabase
         .from('gear_loot_table')
         .select('*')
@@ -58,7 +48,6 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
       if (lootError) throw lootError;
       setAllGear(lootData || []);
 
-      // Get user's owned gear
       const { data: inventoryData, error: inventoryError } = await supabase
         .from('inventory')
         .select('item_name')
@@ -66,7 +55,6 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
 
       if (inventoryError) throw inventoryError;
 
-      // Create set of owned item names
       const owned = new Set(inventoryData?.map(item => item.item_name) || []);
       setOwnedGearIds(owned);
 
@@ -87,13 +75,11 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
     percentage: allGear.length > 0 ? Math.round((ownedGearIds.size / allGear.length) * 100) : 0
   };
 
+  // FIXED: Standardized Loader background and centering
   if (loading) {
     return (
-      <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-        <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
-        <div className="relative h-screen w-screen flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary" size={48} />
-        </div>
+      <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
       </div>
     );
   }
@@ -108,13 +94,15 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
   }
 
   return (
-    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
+    // FIXED: Changed inset-[-50px] to inset-0 and added z-[9999]
+    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col items-center">
       
-      <div className="relative h-screen w-screen overflow-y-auto flex justify-center">
-        <div className="w-full max-w-md p-4 space-y-4 pb-8">
-          {/* Header */}
-          <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
+      {/* FIXED: Added h-dvh and max-width for iPhone style layout */}
+      <div className="relative h-dvh w-full max-w-[390px] overflow-y-auto px-4 flex flex-col items-center">
+        
+        <div className="w-full space-y-4 pb-12 pt-4">
+          {/* Header - Fixed alignment with the container */}
+          <div className="flex items-start justify-between sticky top-0 bg-black/50 backdrop-blur-md z-10 py-4">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Gear Gallery
@@ -147,27 +135,16 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
 
           {/* Filter Tabs */}
           <div className="flex gap-2">
-            <Button
-              onClick={() => setFilter('all')}
-              variant={filter === 'all' ? 'default' : 'outline'}
-              className="flex-1 font-black uppercase text-xs"
-            >
-              All
-            </Button>
-            <Button
-              onClick={() => setFilter('rod')}
-              variant={filter === 'rod' ? 'default' : 'outline'}
-              className="flex-1 font-black uppercase text-xs"
-            >
-              Rods
-            </Button>
-            <Button
-              onClick={() => setFilter('lure')}
-              variant={filter === 'lure' ? 'default' : 'outline'}
-              className="flex-1 font-black uppercase text-xs"
-            >
-              Lures
-            </Button>
+            {(['all', 'rod', 'lure'] as const).map((t) => (
+              <Button
+                key={t}
+                onClick={() => setFilter(t)}
+                variant={filter === t ? 'default' : 'outline'}
+                className="flex-1 font-black uppercase text-xs"
+              >
+                {t === 'rod' ? 'Rods' : t === 'lure' ? 'Lures' : 'All'}
+              </Button>
+            ))}
           </div>
 
           {/* Gear Grid */}
@@ -185,7 +162,6 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
                   }`}
                 >
                   <div className="space-y-3">
-                    {/* Gear Image */}
                     <div className="flex justify-center relative">
                       <GearImage 
                         imageUrl={isOwned ? item.image_url : null}
@@ -200,7 +176,6 @@ const GearGallery = ({ onClose }: GearGalleryProps) => {
                       )}
                     </div>
 
-                    {/* Item Info */}
                     <div className="text-center">
                       <Badge className={`${colors.bg} ${colors.text} border-none font-black text-[8px] px-2 py-0.5 mb-1`}>
                         {item.rarity}

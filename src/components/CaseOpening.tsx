@@ -17,10 +17,34 @@ interface CaseOpeningProps {
 }
 
 const RARITY_COLORS = {
-  common: { bg: "bg-gray-500/20", border: "border-gray-500", text: "text-gray-100", glow: "shadow-[0_0_40px_rgba(156,163,175,0.5)]" },
-  rare: { bg: "bg-blue-500/20", border: "border-blue-500", text: "text-blue-200", glow: "shadow-[0_0_40px_rgba(59,130,246,0.5)]" },
-  epic: { bg: "bg-purple-500/20", border: "border-purple-500", text: "text-purple-200", glow: "shadow-[0_0_40px_rgba(168,85,247,0.5)]" },
-  legendary: { bg: "bg-yellow-500/20", border: "border-yellow-500", text: "text-yellow-200", glow: "shadow-[0_0_60px_rgba(234,179,8,0.8)]" },
+  common: { 
+    bg: "bg-gray-100", 
+    border: "border-gray-300", 
+    text: "text-gray-600", 
+    badgeBg: "bg-gray-200",
+    gradient: "from-gray-200/50 to-gray-100/30"
+  },
+  rare: { 
+    bg: "bg-blue-50", 
+    border: "border-blue-300", 
+    text: "text-blue-600", 
+    badgeBg: "bg-blue-100",
+    gradient: "from-blue-200/50 to-blue-100/30"
+  },
+  epic: { 
+    bg: "bg-purple-50", 
+    border: "border-purple-300", 
+    text: "text-purple-600", 
+    badgeBg: "bg-purple-100",
+    gradient: "from-purple-200/50 to-purple-100/30"
+  },
+  legendary: { 
+    bg: "bg-yellow-50", 
+    border: "border-yellow-400", 
+    text: "text-yellow-600", 
+    badgeBg: "bg-yellow-100",
+    gradient: "from-yellow-200/50 to-yellow-100/30"
+  },
 };
 
 const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
@@ -52,73 +76,99 @@ const CaseOpening = ({ item, onComplete }: CaseOpeningProps) => {
       document.body.style.width = '';
       document.body.style.height = '';
     };
-  }, []); // Empty dependency array
+  }, []);
 
   return (
-    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
-      
-      <div className="relative h-screen w-screen flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-[9999] bg-[#f5f5f5] flex justify-center overflow-hidden">
+      <div className="relative h-dvh w-full max-w-md flex flex-col items-center justify-center px-4">
+        
+        {/* Close Button */}
         <button 
           onClick={onComplete}
-          className="absolute top-8 right-8 p-2 text-white/50 hover:text-white transition-colors z-10"
+          className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/5 hover:bg-black/10 transition-colors flex items-center justify-center z-30"
         >
-          <X size={24} />
+          <X size={20} className="text-gray-500" />
         </button>
 
         {phase === 'rolling' ? (
           <div className="text-center space-y-8 animate-in fade-in duration-300">
+            {/* Spinner */}
             <div className="relative">
               <div className="w-32 h-32 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" size={48} />
             </div>
-            <p className="text-2xl font-black italic uppercase text-primary animate-pulse">
-              Opening Case...
-            </p>
+            <div>
+              <p className="text-3xl font-black italic uppercase text-primary animate-pulse">
+                Opening Case...
+              </p>
+              <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">
+                Good luck!
+              </p>
+            </div>
           </div>
         ) : (
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-6 w-full max-w-sm animate-in zoom-in-95 duration-500`}>
-            <div className="text-center space-y-4">
-              {/* Rarity Badge */}
-              <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-4 py-1 uppercase`}>
-                {item.rarity}
-              </Badge>
-
-              {/* Item Icon */}
-              <div className="flex justify-center">
-                <GearImage 
-                  imageUrl={item.image_url}
-                  itemType={item.item_type as 'rod' | 'lure'}
-                  rarity={item.rarity as 'common' | 'rare' | 'epic' | 'legendary'}
-                  size="xl"
-                />
-              </div>
-
-              {/* Item Name */}
-              <h2 className={`text-2xl font-black italic uppercase ${colors.text} leading-tight`}>
-                {item.item_name}
-              </h2>
-
-              {/* Bonus */}
-              <div>
-                <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
-                <p className="text-3xl font-black italic text-primary">+{item.bonus_percentage}%</p>
-              </div>
-
-              {/* Type */}
-              <Badge variant="outline" className="font-black text-xs uppercase">
-                {item.item_type}
-              </Badge>
-
-              {/* Continue Button */}
-              <Button
-                onClick={onComplete}
-                className="w-full h-12 rounded-2xl bg-primary text-black font-black uppercase text-sm mt-4 active:scale-95 transition-transform"
-              >
-                Continue
-              </Button>
+          <div className="w-full space-y-6 animate-in zoom-in-95 fade-in duration-500">
+            {/* Header */}
+            <div className="text-center">
+              <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
+                You Got!
+              </h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                New gear unlocked
+              </p>
             </div>
-          </Card>
+
+            {/* Item Card */}
+            <Card className={`bg-gradient-to-br ${colors.gradient} border-2 ${colors.border} rounded-[32px] p-6 overflow-hidden`}>
+              <div className="text-center space-y-5">
+                {/* Rarity Badge */}
+                <div className="flex justify-center">
+                  <Badge className={`${colors.badgeBg} ${colors.text} border-2 ${colors.border} font-black text-sm px-6 py-2 uppercase`}>
+                    {item.rarity}
+                  </Badge>
+                </div>
+
+                {/* Item Icon */}
+                <div className="flex justify-center py-4">
+                  <GearImage 
+                    imageUrl={item.image_url}
+                    itemType={item.item_type as 'rod' | 'lure'}
+                    rarity={item.rarity as 'common' | 'rare' | 'epic' | 'legendary'}
+                    size="xl"
+                  />
+                </div>
+
+                {/* Item Name */}
+                <h2 className={`text-2xl font-black italic uppercase ${colors.text} leading-tight`}>
+                  {item.item_name}
+                </h2>
+
+                {/* Type Badge */}
+                <Badge variant="outline" className="font-black text-xs uppercase border-gray-300 text-gray-500">
+                  {item.item_type}
+                </Badge>
+
+                {/* Bonus */}
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 rounded-3xl p-5">
+                  <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
+                  <p className="text-5xl font-black italic text-primary">+{item.bonus_percentage}%</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Continue Button */}
+            <Button
+              onClick={onComplete}
+              className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-sm active:scale-95 transition-transform"
+            >
+              Continue
+            </Button>
+
+            {/* Hint */}
+            <p className="text-center text-[10px] text-muted-foreground font-medium">
+              Equip this gear in your inventory for bonus points!
+            </p>
+          </div>
         )}
       </div>
     </div>

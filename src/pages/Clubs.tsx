@@ -322,7 +322,7 @@ const Clubs = () => {
                     <Timer size={10} className="mr-1" /> {timeRemaining}
                   </Badge>
                 </div>
-                <p className="text-white/70 text-sm font-bold mb-4">{activeBattle.battle_name}</p>
+                <p className="text-gray-600 text-sm font-bold mb-4">{activeBattle.battle_name}</p>
                 <Button 
                   onClick={() => {
                     if (!currentUser) {

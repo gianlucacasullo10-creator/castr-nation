@@ -35,12 +35,6 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
     fetchCurrentUser();
     if (activeTab === 'friends') fetchFriends();
     if (activeTab === 'requests') fetchPendingRequests();
-
-    // Lock body scroll
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [activeTab]);
 
   const fetchCurrentUser = async () => {
@@ -54,17 +48,19 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get accepted friendships
       const { data: friendships } = await supabase
         .from('friendships')
         .select('*')
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
         .eq('status', 'accepted');
 
-      if (!friendships || friendships.length === 0) {
+      if (!friendships) {
         setFriends([]);
         return;
       }
 
+      // Get friend profiles
       const friendIds = friendships.map(f => 
         f.user_id === user.id ? f.friend_id : f.user_id
       );
@@ -88,6 +84,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get pending requests WHERE current user is the recipient
       const { data: requests } = await supabase
         .from('friendships')
         .select('*, profiles!friendships_user_id_fkey(id, display_name, avatar_url)')
@@ -107,6 +104,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
     
     setLoading(true);
     try {
+      // Search by display name
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, avatar_url, total_points_earned')
@@ -119,11 +117,13 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
         return;
       }
 
+      // Check existing friendships
       const { data: existingFriendships } = await supabase
         .from('friendships')
         .select('friend_id, user_id, status')
         .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
 
+      // Mark profiles with friendship status
       const enrichedProfiles = profiles.map(profile => {
         const friendship = existingFriendships?.find(f => 
           f.user_id === profile.id || f.friend_id === profile.id
@@ -144,6 +144,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
 
   const sendFriendRequest = async (friendId: string) => {
     if (!currentUserId) return;
+
     try {
       const { error } = await supabase
         .from('friendships')
@@ -152,11 +153,17 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
           friend_id: friendId,
           status: 'pending'
         });
+
       if (error) throw error;
+
       toast({ title: "Friend Request Sent!" });
-      searchUsers();
+      searchUsers(); // Refresh results
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to send request", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to send request",
+        description: error.message 
+      });
     }
   };
 
@@ -166,11 +173,17 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
         .from('friendships')
         .update({ status: 'accepted' })
         .eq('id', requestId);
+
       if (error) throw error;
+
       toast({ title: "Friend Request Accepted!" });
       fetchPendingRequests();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to accept", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to accept",
+        description: error.message 
+      });
     }
   };
 
@@ -180,39 +193,50 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
         .from('friendships')
         .delete()
         .eq('id', requestId);
+
       if (error) throw error;
+
       toast({ title: "Friend Request Rejected" });
       fetchPendingRequests();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to reject", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to reject",
+        description: error.message 
+      });
     }
   };
 
   const removeFriend = async (friendId: string) => {
     if (!currentUserId) return;
+
     try {
       const { error } = await supabase
         .from('friendships')
         .delete()
         .or(`and(user_id.eq.${currentUserId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUserId})`);
+
       if (error) throw error;
+
       toast({ title: "Friend Removed" });
       fetchFriends();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to remove friend", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to remove friend",
+        description: error.message 
+      });
     }
   };
 
   return (
-    // FIXED: Standardized overlay to match Gear Gallery/Detail
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex justify-center overflow-hidden">
+    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-md" />
       
-      {/* FIXED: Dynamic viewport height and max-width for mobile layout consistency */}
-      <div className="relative h-dvh w-full max-w-[390px] overflow-y-auto px-4">
-        
-        <div className="flex flex-col space-y-4 pb-12 pt-4">
-          {/* Header - Sticky with background blur to cover content during scroll */}
-          <div className="flex items-start justify-between sticky top-0 bg-black/50 backdrop-blur-md z-20 py-4">
+      <div className="relative h-screen w-screen overflow-y-auto">
+        <div className="max-w-md mx-auto p-4 space-y-4 pb-8">
+          {/* Header */}
+          <div className="flex items-start justify-between pt-4 sticky top-0 bg-black z-10 pb-4">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Friends
@@ -223,156 +247,164 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             </div>
             <button 
               onClick={onClose}
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
+              className="h-10 w-10 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center"
             >
               <X size={24} className="text-white/70" />
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 sticky top-[84px] bg-black/50 backdrop-blur-md z-20 py-2">
-            {(['friends', 'requests', 'search'] as const).map((tab) => (
-              <Button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                variant={activeTab === tab ? 'default' : 'outline'}
-                className="flex-1 font-black uppercase text-[10px] h-9 relative"
-              >
-                {tab === 'friends' && <Users size={14} className="mr-1" />}
-                {tab === 'requests' && <UserPlus size={14} className="mr-1" />}
-                {tab === 'search' && <Search size={14} className="mr-1" />}
-                {tab === 'friends' ? 'Friends' : tab === 'requests' ? 'Requests' : 'Add'}
-                
-                {tab === 'requests' && pendingRequests.length > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-red-500 text-white text-[8px] animate-pulse">
-                    {pendingRequests.length}
-                  </Badge>
-                )}
-              </Button>
-            ))}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setActiveTab('friends')}
+              variant={activeTab === 'friends' ? 'default' : 'outline'}
+              className="flex-1 font-black uppercase text-xs"
+            >
+              <Users size={14} className="mr-1" />
+              Friends
+            </Button>
+            <Button
+              onClick={() => setActiveTab('requests')}
+              variant={activeTab === 'requests' ? 'default' : 'outline'}
+              className="flex-1 font-black uppercase text-xs relative"
+            >
+              <UserPlus size={14} className="mr-1" />
+              Requests
+              {pendingRequests.length > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-[10px]">
+                  {pendingRequests.length}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              onClick={() => setActiveTab('search')}
+              variant={activeTab === 'search' ? 'default' : 'outline'}
+              className="flex-1 font-black uppercase text-xs"
+            >
+              <Search size={14} className="mr-1" />
+              Add
+            </Button>
           </div>
 
-          {/* Content Area */}
-          <div className="min-h-[200px]">
-            {loading && (
-              <div className="flex justify-center py-12">
-                <Loader2 className="animate-spin text-primary" size={32} />
-              </div>
-            )}
+          {/* Content */}
+          {loading && (
+            <div className="flex justify-center py-12">
+              <Loader2 className="animate-spin text-primary" size={32} />
+            </div>
+          )}
 
-            {/* Friends List */}
-            {activeTab === 'friends' && !loading && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {friends.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white/5 border-dashed border-white/10">
-                    <Users className="mx-auto mb-3 text-muted-foreground/50" size={48} />
-                    <p className="text-muted-foreground font-bold">No friends yet</p>
-                    <p className="text-xs text-muted-foreground mt-2 uppercase">Compete for the biggest catch!</p>
-                  </Card>
-                ) : (
-                  friends.map(friend => (
-                    <Card key={friend.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 border-2 border-primary/20">
-                          <AvatarImage src={friend.avatar_url} />
-                          <AvatarFallback className="bg-primary/10 text-primary font-black">
-                            {friend.display_name?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-black uppercase text-sm">{friend.display_name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Trophy size={12} className="text-primary" />
-                            <p className="text-xs text-muted-foreground font-bold">
-                              {friend.total_points_earned || 0} pts
-                            </p>
-                          </div>
+          {/* Friends List */}
+          {activeTab === 'friends' && !loading && (
+            <div className="space-y-3">
+              {friends.length === 0 ? (
+                <Card className="p-12 text-center rounded-[32px]">
+                  <Users className="mx-auto mb-3 text-muted-foreground" size={48} />
+                  <p className="text-muted-foreground font-bold">No friends yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">Add friends to compete!</p>
+                </Card>
+              ) : (
+                friends.map(friend => (
+                  <Card key={friend.id} className="p-4 rounded-[24px]">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={friend.avatar_url} />
+                        <AvatarFallback>{friend.display_name?.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-black uppercase text-sm">{friend.display_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Trophy size={12} className="text-primary" />
+                          <p className="text-xs text-muted-foreground font-bold">
+                            {friend.total_points_earned || 0} pts
+                          </p>
                         </div>
+                      </div>
+                      <Button
+                        onClick={() => removeFriend(friend.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Pending Requests */}
+          {activeTab === 'requests' && !loading && (
+            <div className="space-y-3">
+              {pendingRequests.length === 0 ? (
+                <Card className="p-12 text-center rounded-[32px]">
+                  <UserPlus className="mx-auto mb-3 text-muted-foreground" size={48} />
+                  <p className="text-muted-foreground font-bold">No pending requests</p>
+                </Card>
+              ) : (
+                pendingRequests.map(request => (
+                  <Card key={request.id} className="p-4 rounded-[24px]">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={request.profiles?.avatar_url} />
+                        <AvatarFallback>{request.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-black uppercase text-sm">{request.profiles?.display_name}</p>
+                        <p className="text-xs text-muted-foreground">Wants to be friends</p>
+                      </div>
+                      <div className="flex gap-2">
                         <Button
-                          onClick={() => removeFriend(friend.id)}
-                          variant="ghost"
+                          onClick={() => acceptFriendRequest(request.id)}
                           size="sm"
-                          className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 hover:bg-red-500/10 h-7"
+                          className="bg-green-600 hover:bg-green-700 h-8 w-8 p-0"
                         >
-                          Remove
+                          <Check size={16} />
+                        </Button>
+                        <Button
+                          onClick={() => rejectFriendRequest(request.id)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0"
+                        >
+                          <XCircle size={16} />
                         </Button>
                       </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Pending Requests */}
-            {activeTab === 'requests' && !loading && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {pendingRequests.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white/5 border-dashed border-white/10">
-                    <UserPlus className="mx-auto mb-3 text-muted-foreground/50" size={48} />
-                    <p className="text-muted-foreground font-bold">Inbox empty</p>
+                    </div>
                   </Card>
-                ) : (
-                  pendingRequests.map(request => (
-                    <Card key={request.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={request.profiles?.avatar_url} />
-                          <AvatarFallback>{request.profiles?.display_name?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-black uppercase text-sm">{request.profiles?.display_name}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Wants to join your crew</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => acceptFriendRequest(request.id)}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 h-8 w-8 p-0 rounded-full"
-                          >
-                            <Check size={16} />
-                          </Button>
-                          <Button
-                            onClick={() => rejectFriendRequest(request.id)}
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10 h-8 w-8 p-0 rounded-full"
-                          >
-                            <XCircle size={16} />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                )}
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Search Users */}
+          {activeTab === 'search' && (
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search by username..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
+                  className="flex-1 text-white placeholder:text-white/50"
+                />
+                <Button onClick={searchUsers} disabled={loading}>
+                  <Search size={16} />
+                </Button>
               </div>
-            )}
 
-            {/* Search Users */}
-            {activeTab === 'search' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Search username..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-                    className="flex-1 bg-white/5 border-white/10 uppercase text-xs font-bold"
-                  />
-                  <Button onClick={searchUsers} disabled={loading} className="h-10">
-                    <Search size={16} />
-                  </Button>
-                </div>
-
+              {searchResults.length > 0 && (
                 <div className="space-y-3">
                   {searchResults.map(user => (
-                    <Card key={user.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
+                    <Card key={user.id} className="p-4 rounded-[24px]">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
                           <AvatarImage src={user.avatar_url} />
                           <AvatarFallback>{user.display_name?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm">{user.display_name}</p>
+                          <p className="font-black uppercase text-sm text-white">{user.display_name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Trophy size={12} className="text-primary" />
                             <p className="text-xs text-muted-foreground font-bold">
@@ -381,20 +413,20 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </div>
                         </div>
                         {user.friendshipStatus === 'accepted' ? (
-                          <Badge className="bg-green-500/20 text-green-500 border-none uppercase text-[8px] font-black">
+                          <Badge className="bg-green-500/20 text-green-500 border-none">
                             Friends
                           </Badge>
                         ) : user.friendshipStatus === 'pending' ? (
-                          <Badge className="bg-yellow-500/20 text-yellow-500 border-none uppercase text-[8px] font-black">
+                          <Badge className="bg-yellow-500/20 text-yellow-500 border-none">
                             Pending
                           </Badge>
                         ) : (
                           <Button
                             onClick={() => sendFriendRequest(user.id)}
                             size="sm"
-                            className="font-black uppercase text-[10px] h-7 px-3 rounded-full"
+                            className="font-black uppercase text-xs"
                           >
-                            <UserPlus size={12} className="mr-1" />
+                            <UserPlus size={14} className="mr-1" />
                             Add
                           </Button>
                         )}
@@ -402,9 +434,9 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                     </Card>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

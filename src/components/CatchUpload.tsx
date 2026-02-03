@@ -159,10 +159,21 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       if (!user) throw new Error("Please log in first.");
 
       setScanStatus("Verifying Photo Authenticity...");
+      
+      // Relaxed verification: Check for EXIF data but don't be too strict
       const hasValidExif = await checkImageExif(selectedImage);
       
-      if (!hasValidExif) {
-        throw new Error("Photo verification failed! This image doesn't contain camera metadata. Please take a NEW photo directly with your camera app - no screenshots or downloaded images.");
+      // Allow photo if:
+      // 1. It has valid EXIF data, OR
+      // 2. It's a reasonably sized photo (likely from camera, not a tiny screenshot)
+      const isReasonableSize = selectedImage.size > 100000; // > 100KB
+      
+      if (!hasValidExif && !isReasonableSize) {
+        throw new Error("Photo verification failed! Please take a NEW photo directly with your camera app - no screenshots or downloaded images.");
+      }
+      
+      if (!hasValidExif && isReasonableSize) {
+        console.log('⚠️ Photo missing EXIF but size is reasonable, allowing through');
       }
 
       const base64Image = await new Promise<string>((resolve, reject) => {

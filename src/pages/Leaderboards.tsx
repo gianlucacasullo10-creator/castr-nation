@@ -11,36 +11,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trophy, Medal, Loader2, MapPin, AlertCircle, Crown } from "lucide-react";
+import { Trophy, Medal, Loader2, MapPin, AlertCircle, Crown, Users } from "lucide-react";
 import { requestLocationPermission, calculateDistance, UserLocation } from "@/utils/location";
+import FriendsManager from "@/components/FriendsManager";
 
 const Leaderboards = () => {
   const navigate = useNavigate();
   const [rankings, setRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [leaderboardType, setLeaderboardType] = useState<"provincial" | "local">("provincial");
+  const [leaderboardType, setLeaderboardType] = useState<"provincial" | "local" | "friends">("provincial");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
+  const [showFriendsManager, setShowFriendsManager] = useState(false);
+  const [friendIds, setFriendIds] = useState<string[]>([]);
 
   const LOCAL_RADIUS_KM = 50; // 50km radius for "Your Area"
 
   useEffect(() => {
     fetchCurrentUser();
     checkLocationPermission();
+    fetchFriendIds();
   }, []);
 
   useEffect(() => {
     if (leaderboardType === "provincial") {
       fetchProvincialRankings();
-    } else {
+    } else if (leaderboardType === "local") {
       fetchLocalRankings();
+    } else if (leaderboardType === "friends") {
+      fetchFriendsRankings();
     }
-  }, [leaderboardType, userLocation]);
+  }, [leaderboardType, userLocation, friendIds]);
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
+  };
+
+  const fetchFriendIds = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('user_id, friend_id')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+
+      if (friendships) {
+        const ids = friendships.map(f => 
+          f.user_id === user.id ? f.friend_id : f.user_id
+        );
+        setFriendIds(ids);
+      }
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+    }
   };
 
   const checkLocationPermission = async () => {
@@ -203,6 +231,54 @@ const Leaderboards = () => {
     }
   };
 
+  const fetchFriendsRankings = async () => {
+    if (friendIds.length === 0) {
+      setRankings([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Fetch friend profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, active_title')
+        .in('id', friendIds);
+
+      if (profileError) throw profileError;
+
+      // Fetch all catches
+      const { data: catches, error: catchError } = await supabase
+        .from('catches')
+        .select('user_id, points')
+        .in('user_id', friendIds);
+
+      if (catchError) throw catchError;
+
+      // Calculate totals
+      const userTotals: Record<string, number> = {};
+      catches?.forEach((c) => {
+        userTotals[c.user_id] = (userTotals[c.user_id] || 0) + (c.points || 0);
+      });
+
+      // Map and sort
+      const finalRankings = (profiles || [])
+        .map(profile => ({
+          ...profile,
+          totalPoints: userTotals[profile.id] || 0
+        }))
+        .sort((a, b) => b.totalPoints - a.totalPoints);
+
+      setRankings(finalRankings);
+    } catch (error: any) {
+      console.error("Friends Leaderboard Error:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRankIcon = (index: number) => {
     if (index === 0) return <Trophy className="text-yellow-500" size={20} />;
     if (index === 1) return <Medal className="text-slate-400" size={20} />;
@@ -211,6 +287,12 @@ const Leaderboards = () => {
   };
 
   const myRank = rankings.findIndex(r => r.id === currentUser?.id) + 1;
+
+  const getLeaderboardTitle = () => {
+    if (leaderboardType === "provincial") return "ONTARIO DIVISION";
+    if (leaderboardType === "local") return "YOUR AREA";
+    return "YOUR FRIENDS";
+  };
 
   if (loading) return (
     <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">
@@ -222,13 +304,24 @@ const Leaderboards = () => {
   return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       {/* Header */}
-      <div className="text-left">
-        <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
-          The Standings
-        </h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
-          {leaderboardType === "provincial" ? "ONTARIO DIVISION" : "YOUR AREA"}
-        </p>
+      <div className="flex justify-between items-start">
+        <div className="text-left">
+          <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
+            The Standings
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+            {getLeaderboardTitle()}
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowFriendsManager(true)}
+          variant="outline"
+          size="sm"
+          className="font-black uppercase text-xs"
+        >
+          <Users size={14} className="mr-1" />
+          Friends
+        </Button>
       </div>
 
       {/* Dropdown Selector */}
@@ -248,6 +341,9 @@ const Leaderboards = () => {
               disabled={!userLocation}
             >
               Your Area (50km) {!userLocation && "🔒"}
+            </SelectItem>
+            <SelectItem value="friends" className="font-black uppercase italic">
+              Friends Only ({friendIds.length})
             </SelectItem>
           </SelectContent>
         </Select>
@@ -275,8 +371,30 @@ const Leaderboards = () => {
         </Card>
       )}
 
+      {/* No Friends Warning */}
+      {leaderboardType === "friends" && friendIds.length === 0 && (
+        <Card className="bg-blue-950/30 border-blue-500/30 p-4 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <Users className="text-blue-500 shrink-0" size={20} />
+            <div className="text-left">
+              <h3 className="text-sm font-black uppercase text-blue-500 mb-1">No Friends Yet</h3>
+              <p className="text-xs text-blue-200/70 leading-relaxed">
+                Add friends to see them on the leaderboard and compete together!
+              </p>
+              <Button 
+                onClick={() => setShowFriendsManager(true)}
+                size="sm"
+                className="mt-3 bg-blue-500 text-black hover:bg-blue-600 font-black uppercase text-xs"
+              >
+                Add Friends
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Current User Rank Card */}
-      {myRank > 0 && (leaderboardType === "provincial" || userLocation) && (
+      {myRank > 0 && (leaderboardType === "provincial" || userLocation || leaderboardType === "friends") && (
         <Card className="bg-primary/10 border-primary/30 border-2 rounded-[32px] p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -286,7 +404,9 @@ const Leaderboards = () => {
               <div className="text-left">
                 <p className="text-sm font-black uppercase text-primary">Your Rank</p>
                 <p className="text-xs text-muted-foreground font-bold">
-                  {leaderboardType === "provincial" ? "in Ontario" : `within ${LOCAL_RADIUS_KM}km`}
+                  {leaderboardType === "provincial" && "in Ontario"}
+                  {leaderboardType === "local" && `within ${LOCAL_RADIUS_KM}km`}
+                  {leaderboardType === "friends" && "among friends"}
                 </p>
               </div>
             </div>
@@ -300,7 +420,9 @@ const Leaderboards = () => {
         {rankings.length === 0 ? (
           <div className="py-20 text-center opacity-30 font-black uppercase italic">
             {leaderboardType === "local" && !userLocation 
-              ? "Enable location to view nearby anglers" 
+              ? "Enable location to view nearby anglers"
+              : leaderboardType === "friends"
+              ? "Add friends to see rankings"
               : "No Anglers Ranked Yet"}
           </div>
         ) : (
@@ -349,6 +471,16 @@ const Leaderboards = () => {
           })
         )}
       </div>
+
+      {/* Friends Manager Modal */}
+      {showFriendsManager && (
+        <FriendsManager 
+          onClose={() => {
+            setShowFriendsManager(false);
+            fetchFriendIds(); // Refresh friends when modal closes
+          }} 
+        />
+      )}
     </div>
   );
 };

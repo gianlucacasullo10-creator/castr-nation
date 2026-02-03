@@ -331,13 +331,12 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Search username..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-                    {/* FIXED: Darker background, brighter text, and custom placeholder color */}
-                    className="flex-1 bg-black/40 border-white/20 text-white placeholder:text-white/40 uppercase text-xs font-black h-12"
-                  />
+  placeholder="Search username..."
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
+  className="flex-1 bg-black/40 border-white/20 text-white placeholder:text-white/40 uppercase text-xs font-black h-12"
+/>
                   <Button onClick={searchUsers} disabled={loading} className="h-12 px-6">
                     <Search size={18} />
                   </Button>

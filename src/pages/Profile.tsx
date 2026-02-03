@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import GearImage from "@/components/GearImage";
 import { 
   Loader2, 
   Trophy, 
@@ -291,15 +292,22 @@ const Profile = () => {
         </div>
       </Card>
 
-      {/* EQUIPPED GEAR SHOWCASE */}
+      {/* EQUIPPED GEAR SHOWCASE - UPDATED WITH GEARIMAGE */}
       {equippedGear.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Equipped Loadout</h3>
           
           <div className="grid grid-cols-2 gap-3">
-            {equippedRod && (
+            {equippedRod ? (
               <Card className={`${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].glow} border-2 ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].border} rounded-[24px] p-4 text-center`}>
-                <div className="text-4xl mb-2">🎣</div>
+                <div className="flex justify-center mb-2">
+                  <GearImage 
+                    imageUrl={equippedRod.image_url}
+                    itemType="rod"
+                    rarity={equippedRod.rarity}
+                    size="md"
+                  />
+                </div>
                 <p className={`text-xs font-black uppercase italic leading-none ${RARITY_COLORS[equippedRod.rarity as keyof typeof RARITY_COLORS].text}`}>
                   {equippedRod.item_name}
                 </p>
@@ -308,11 +316,30 @@ const Profile = () => {
                 </Badge>
                 <p className="text-[10px] font-bold text-primary mt-1">+{equippedRod.bonus_percentage}%</p>
               </Card>
+            ) : (
+              <Card className="bg-muted/10 border-2 border-dashed border-muted rounded-[24px] p-4 text-center opacity-50">
+                <div className="flex justify-center mb-2">
+                  <GearImage 
+                    imageUrl={null}
+                    itemType="rod"
+                    rarity="common"
+                    size="md"
+                  />
+                </div>
+                <p className="text-xs font-bold uppercase text-muted-foreground">No Rod</p>
+              </Card>
             )}
 
-            {equippedLure && (
+            {equippedLure ? (
               <Card className={`${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].bg} ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].glow} border-2 ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].border} rounded-[24px] p-4 text-center`}>
-                <div className="text-4xl mb-2">🪝</div>
+                <div className="flex justify-center mb-2">
+                  <GearImage 
+                    imageUrl={equippedLure.image_url}
+                    itemType="lure"
+                    rarity={equippedLure.rarity}
+                    size="md"
+                  />
+                </div>
                 <p className={`text-xs font-black uppercase italic leading-none ${RARITY_COLORS[equippedLure.rarity as keyof typeof RARITY_COLORS].text}`}>
                   {equippedLure.item_name}
                 </p>
@@ -321,12 +348,20 @@ const Profile = () => {
                 </Badge>
                 <p className="text-[10px] font-bold text-primary mt-1">+{equippedLure.bonus_percentage}%</p>
               </Card>
+            ) : (
+              <Card className="bg-muted/10 border-2 border-dashed border-muted rounded-[24px] p-4 text-center opacity-50">
+                <div className="flex justify-center mb-2">
+                  <GearImage 
+                    imageUrl={null}
+                    itemType="lure"
+                    rarity="common"
+                    size="md"
+                  />
+                </div>
+                <p className="text-xs font-bold uppercase text-muted-foreground">No Lure</p>
+              </Card>
             )}
           </div>
-
-          {!equippedRod && !equippedLure && (
-            <p className="text-center text-sm text-muted-foreground italic">No gear equipped. Visit the Shop!</p>
-          )}
 
           <button 
             onClick={() => navigate('/inventory')}

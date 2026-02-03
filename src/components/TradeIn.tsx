@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { X, ArrowRight, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import GearImage from "@/components/GearImage";
 
 interface TradeInProps {
   onClose: () => void;
@@ -224,8 +225,13 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
               </Badge>
 
               {/* Item Icon */}
-              <div className="text-7xl">
-                {receivedItem.item_type === 'rod' ? '🎣' : '🪝'}
+              <div className="flex justify-center">
+                <GearImage 
+                  imageUrl={receivedItem.image_url}
+                  itemType={receivedItem.item_type}
+                  rarity={receivedItem.rarity}
+                  size="xl"
+                />
               </div>
 
               {/* Item Name */}
@@ -336,9 +342,12 @@ const TradeIn = ({ onClose, onTradeComplete }: TradeInProps) => {
                         className={`${colors.bg} border-2 ${isSelected ? colors.border + ' ring-2 ring-primary' : 'border-muted'} rounded-[24px] p-4 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="text-3xl">
-                            {item.item_type === 'rod' ? '🎣' : '🪝'}
-                          </div>
+                          <GearImage 
+                            imageUrl={item.image_url}
+                            itemType={item.item_type}
+                            rarity={item.rarity}
+                            size="sm"
+                          />
                           <div className="flex-1 text-left">
                             <h4 className="font-black italic uppercase text-sm leading-tight text-white">
                               {item.item_name}

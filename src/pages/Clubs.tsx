@@ -20,8 +20,9 @@ import {
   Camera,
   Check,
   X,
-  Flame,
-  Timer
+  Timer,
+  Plus,
+  LogOut
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getBattleTier, BATTLE_TIERS } from "@/utils/battleTiers";
@@ -43,6 +44,12 @@ const Clubs = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editRegion, setEditRegion] = useState("");
+
+  // Create club state
+  const [showCreateClub, setShowCreateClub] = useState(false);
+  const [newClubName, setNewClubName] = useState("");
+  const [newClubRegion, setNewClubRegion] = useState("");
+  const [creatingClub, setCreatingClub] = useState(false);
   
   // Battle state
   const [activeBattle, setActiveBattle] = useState<any>(null);
@@ -148,6 +155,59 @@ const Clubs = () => {
     setLoading(false);
   };
 
+  const createClub = async () => {
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Login Required", description: "Sign in to create a club" });
+      return;
+    }
+    if (!newClubName.trim() || !newClubRegion.trim()) {
+      toast({ variant: "destructive", title: "Missing Info", description: "Please enter a club name and region" });
+      return;
+    }
+
+    setCreatingClub(true);
+    try {
+      // Create the club
+      const { data: newClub, error: clubError } = await supabase
+        .from('clubs')
+        .insert([{
+          name: newClubName.trim(),
+          region: newClubRegion.trim(),
+          created_by: currentUser.id
+        }])
+        .select()
+        .single();
+
+      if (clubError) throw clubError;
+
+      // Auto-join the creator to the club
+      const { error: memberError } = await supabase
+        .from('club_members')
+        .insert([{
+          club_id: newClub.id,
+          user_id: currentUser.id
+        }]);
+
+      if (memberError) throw memberError;
+
+      toast({ title: "Club Created! 🎉", description: `${newClubName} is ready to compete!` });
+      
+      // Reset form and refresh
+      setNewClubName("");
+      setNewClubRegion("");
+      setShowCreateClub(false);
+      fetchClubs();
+
+      // Open the new club
+      setTimeout(() => fetchClubDetails(newClub), 500);
+
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Create Failed", description: error.message });
+    } finally {
+      setCreatingClub(false);
+    }
+  };
+
   const joinClub = async () => {
     if (!currentUser || !selectedClub) return;
     try {
@@ -173,8 +233,11 @@ const Clubs = () => {
         .eq('user_id', currentUser.id);
       if (error) throw error;
       setIsMember(false);
-      fetchClubDetails(selectedClub);
       toast({ title: "FREE AGENT", description: "You have left the club." });
+      // Go back to club list
+      setSelectedClub(null);
+      setView('INFO');
+      fetchClubs();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Action Failed", description: error.message });
     }
@@ -361,38 +424,97 @@ const Clubs = () => {
             </div>
           </Card>
 
+          {/* Create Club Button */}
+          {!showCreateClub ? (
+            <Button 
+              onClick={() => {
+                if (!currentUser) {
+                  toast({ title: "Login Required", description: "Sign in to create a club" });
+                  navigate("/auth");
+                  return;
+                }
+                setShowCreateClub(true);
+              }}
+              variant="outline"
+              className="w-full h-14 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 font-black uppercase text-xs text-primary"
+            >
+              <Plus size={18} className="mr-2" />
+              Create New Club
+            </Button>
+          ) : (
+            <Card className="border-2 border-primary/30 rounded-[32px] p-6 space-y-4">
+              <h3 className="font-black uppercase text-sm text-center">Create Your Club</h3>
+              <Input
+                placeholder="Club Name"
+                value={newClubName}
+                onChange={(e) => setNewClubName(e.target.value)}
+                className="h-12 rounded-2xl bg-muted border-none font-bold text-center"
+              />
+              <Input
+                placeholder="Region (e.g. Ontario, Toronto)"
+                value={newClubRegion}
+                onChange={(e) => setNewClubRegion(e.target.value)}
+                className="h-12 rounded-2xl bg-muted border-none font-bold text-center"
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowCreateClub(false)}
+                  variant="outline"
+                  className="flex-1 h-12 rounded-2xl font-black uppercase text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={createClub}
+                  disabled={creatingClub || !newClubName.trim() || !newClubRegion.trim()}
+                  className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black uppercase text-xs"
+                >
+                  {creatingClub ? <Loader2 className="animate-spin" size={16} /> : "Create"}
+                </Button>
+              </div>
+            </Card>
+          )}
+
           {/* Clubs List */}
           <div className="space-y-3">
-            {clubs.map((club) => {
-              const tier = getBattleTier(club.battle_wins || 0);
-              return (
-                <Card 
-                  key={club.id} 
-                  onClick={() => fetchClubDetails(club)} 
-                  className="border-2 border-muted rounded-[24px] bg-card p-5 cursor-pointer hover:scale-[1.02] hover:border-primary/30 transition-all"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <img src={club.image_url || "/placeholder.svg"} className="h-14 w-14 rounded-2xl object-cover border-2 border-primary/20" />
-                      <div className="space-y-1 text-left">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
-                          {club.battle_wins > 0 && (
-                            <Badge className={`${tier.bgColor} ${tier.color} border-none font-black text-[8px] px-2`}>
-                              {tier.icon} {club.battle_wins}W
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
-                          <MapPin size={12} /> {club.region}
+            {clubs.length === 0 ? (
+              <Card className="p-8 text-center rounded-[32px] border-2 border-dashed border-muted">
+                <Users className="mx-auto mb-3 text-muted-foreground/50" size={48} />
+                <p className="text-muted-foreground font-bold">No clubs yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Be the first to create one!</p>
+              </Card>
+            ) : (
+              clubs.map((club) => {
+                const tier = getBattleTier(club.battle_wins || 0);
+                return (
+                  <Card 
+                    key={club.id} 
+                    onClick={() => fetchClubDetails(club)} 
+                    className="border-2 border-muted rounded-[24px] bg-card p-5 cursor-pointer hover:scale-[1.02] hover:border-primary/30 transition-all"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <img src={club.image_url || "/placeholder.svg"} className="h-14 w-14 rounded-2xl object-cover border-2 border-primary/20" />
+                        <div className="space-y-1 text-left">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-black italic uppercase leading-none tracking-tighter">{club.name}</h3>
+                            {club.battle_wins > 0 && (
+                              <Badge className={`${tier.bgColor} ${tier.color} border-none font-black text-[8px] px-2`}>
+                                {tier.icon} {club.battle_wins}W
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary">
+                            <MapPin size={12} /> {club.region}
+                          </div>
                         </div>
                       </div>
+                      <Users className="text-primary/40" size={24} />
                     </div>
-                    <Users className="text-primary/40" size={24} />
-                  </div>
-                </Card>
-              );
-            })}
+                  </Card>
+                );
+              })
+            )}
           </div>
         </>
       ) : (
@@ -551,15 +673,19 @@ const Clubs = () => {
               </Card>
 
               {/* Join/Leave Button */}
-              <div className="px-2">
+              <div className="px-2 space-y-2">
                 {!isMember ? (
                   <Button onClick={joinClub} className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase italic hover:bg-primary/90 transition-all">
                     <Users size={18} className="mr-2" /> Join Squad
                   </Button>
                 ) : (
                   currentUser?.id !== selectedClub.created_by && (
-                    <Button variant="ghost" onClick={leaveClub} className="w-full h-10 text-muted-foreground font-black uppercase italic text-[10px] hover:text-destructive">
-                      Leave Club
+                    <Button 
+                      variant="outline" 
+                      onClick={leaveClub} 
+                      className="w-full h-12 rounded-2xl border-2 border-red-500/30 text-red-500 hover:bg-red-500/10 font-black uppercase italic text-xs"
+                    >
+                      <LogOut size={16} className="mr-2" /> Leave Club
                     </Button>
                   )
                 )}
@@ -568,31 +694,38 @@ const Clubs = () => {
               {/* Member Rankings */}
               <div className="space-y-3">
                 <h3 className="text-left text-[11px] font-black uppercase italic tracking-widest text-muted-foreground ml-2">Member Rankings</h3>
-                {clubMembers.map((member, index) => (
-                  <Card 
-                    key={member.id} 
-                    onClick={() => handleUserClick(member.id)}
-                    className="flex items-center justify-between p-4 rounded-[20px] border-2 border-muted cursor-pointer hover:border-primary/30 transition-all"
-                  >
-                    <div className="flex items-center gap-4 text-left">
-                      <div className="flex flex-col items-center w-6">
-                         {index === 0 ? <Crown size={14} className="text-yellow-500" /> : <span className="text-xs font-black text-muted-foreground">{index + 1}</span>}
-                      </div>
-                      <Avatar className="h-12 w-12 border-2 border-primary/20">
-                        <AvatarImage src={member.avatar_url} />
-                        <AvatarFallback className="bg-primary/10 text-primary font-black">{member.display_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-black italic uppercase leading-none tracking-tight">{member.display_name}</p>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 tracking-tighter">{member.equipped_title || "Castr"}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-black italic text-primary leading-none">{member.totalPoints.toLocaleString()}</p>
-                      <p className="text-[8px] font-black uppercase text-muted-foreground mt-1">Pts</p>
-                    </div>
+                {clubMembers.length === 0 ? (
+                  <Card className="p-8 text-center rounded-[24px] border-2 border-dashed border-muted">
+                    <Users className="mx-auto mb-3 text-muted-foreground/50" size={32} />
+                    <p className="text-muted-foreground font-bold text-sm">No members yet</p>
                   </Card>
-                ))}
+                ) : (
+                  clubMembers.map((member, index) => (
+                    <Card 
+                      key={member.id} 
+                      onClick={() => handleUserClick(member.id)}
+                      className="flex items-center justify-between p-4 rounded-[20px] border-2 border-muted cursor-pointer hover:border-primary/30 transition-all"
+                    >
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="flex flex-col items-center w-6">
+                           {index === 0 ? <Crown size={14} className="text-yellow-500" /> : <span className="text-xs font-black text-muted-foreground">{index + 1}</span>}
+                        </div>
+                        <Avatar className="h-12 w-12 border-2 border-primary/20">
+                          <AvatarImage src={member.avatar_url} />
+                          <AvatarFallback className="bg-primary/10 text-primary font-black">{member.display_name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-black italic uppercase leading-none tracking-tight">{member.display_name}</p>
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 tracking-tighter">{member.equipped_title || "Castr"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black italic text-primary leading-none">{member.totalPoints.toLocaleString()}</p>
+                        <p className="text-[8px] font-black uppercase text-muted-foreground mt-1">Pts</p>
+                      </div>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           )}

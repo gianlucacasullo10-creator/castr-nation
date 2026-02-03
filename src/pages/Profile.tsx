@@ -232,6 +232,19 @@ const Profile = () => {
         </div>
       </div>
 
+      <Button 
+  onClick={() => setShowFriendsManager(true)}
+  variant="outline"
+  className="font-black uppercase text-xs"
+>
+  <Users size={14} className="mr-1" />
+  {profile?.friend_count || 0} Friends
+</Button>
+
+{showFriendsManager && (
+  <FriendsManager onClose={() => setShowFriendsManager(false)} />
+)}
+
       <Card className="border-none bg-card rounded-[40px] shadow-2xl p-10 text-center relative border-t-8 border-primary overflow-hidden">
         {/* AVATAR WITH UPLOAD OVERLAY */}
         <div className="relative group mx-auto mb-6 w-32 h-32">

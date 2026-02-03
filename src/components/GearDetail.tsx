@@ -25,10 +25,34 @@ interface GearDetailProps {
 }
 
 const RARITY_COLORS = {
-  common: { bg: "bg-gray-500/20", border: "border-gray-500", text: "text-gray-100", glow: "shadow-[0_0_40px_rgba(156,163,175,0.5)]" },
-  rare: { bg: "bg-blue-500/20", border: "border-blue-500", text: "text-blue-200", glow: "shadow-[0_0_40px_rgba(59,130,246,0.5)]" },
-  epic: { bg: "bg-purple-500/20", border: "border-purple-500", text: "text-purple-200", glow: "shadow-[0_0_40px_rgba(168,85,247,0.5)]" },
-  legendary: { bg: "bg-yellow-500/20", border: "border-yellow-500", text: "text-yellow-200", glow: "shadow-[0_0_60px_rgba(234,179,8,0.8)]" },
+  common: { 
+    bg: "bg-gray-100", 
+    border: "border-gray-300", 
+    text: "text-gray-600", 
+    badgeBg: "bg-gray-200",
+    gradient: "from-gray-200/50 to-gray-100/30"
+  },
+  rare: { 
+    bg: "bg-blue-50", 
+    border: "border-blue-300", 
+    text: "text-blue-600", 
+    badgeBg: "bg-blue-100",
+    gradient: "from-blue-200/50 to-blue-100/30"
+  },
+  epic: { 
+    bg: "bg-purple-50", 
+    border: "border-purple-300", 
+    text: "text-purple-600", 
+    badgeBg: "bg-purple-100",
+    gradient: "from-purple-200/50 to-purple-100/30"
+  },
+  legendary: { 
+    bg: "bg-yellow-50", 
+    border: "border-yellow-400", 
+    text: "text-yellow-600", 
+    badgeBg: "bg-yellow-100",
+    gradient: "from-yellow-200/50 to-yellow-100/30"
+  },
 };
 
 const GearDetail = ({ item, onClose, onEquip }: GearDetailProps) => {
@@ -42,44 +66,40 @@ const GearDetail = ({ item, onClose, onEquip }: GearDetailProps) => {
   }, []);
 
   return (
-    // FIXED: Standardized full-screen overlay with max z-index
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex justify-center overflow-hidden">
-      
-      {/* FIXED: 
-         - w-full max-w-[390px] centers the content to iPhone width
-         - overflow-y-auto allows scrolling if the phone screen is short
-         - h-dvh ensures it takes up exactly the mobile viewport height
-      */}
-      <div className="relative h-dvh w-full max-w-[390px] overflow-y-auto px-4">
+    <div className="fixed inset-0 z-[9999] bg-[#f5f5f5] flex justify-center overflow-hidden">
+      <div className="relative h-dvh w-full max-w-md overflow-y-auto">
         
-        <div className="flex flex-col space-y-6 pb-12 pt-4">
-          {/* Header - Sticky at the very top */}
-          <div className="flex items-start justify-between sticky top-0 bg-transparent z-10 py-2">
-            <div className="flex-1">
-              <h2 className="text-2xl font-black italic uppercase text-primary tracking-tighter leading-none">
-                Gear Details
-              </h2>
-            </div>
-            <button 
-              onClick={onClose}
-              className="h-10 w-10 rounded-full bg-black/50 hover:bg-white/10 transition-colors flex items-center justify-center"
-            >
-              <X size={24} className="text-white/70" />
-            </button>
+        <div className="flex flex-col space-y-6 pb-24 pt-4 px-4">
+          {/* Header - Centered like Tournaments */}
+          <div className="text-center pt-2">
+            <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
+              Gear Details
+            </h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+              {item.item_type} Statistics
+            </p>
           </div>
 
-          {/* Main Card */}
-          <Card className={`${colors.bg} ${colors.glow} border-4 ${colors.border} rounded-[40px] p-8`}>
-            <div className="space-y-6">
+          {/* Close Button - Positioned top right */}
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/5 hover:bg-black/10 transition-colors flex items-center justify-center z-30"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+
+          {/* Main Gear Card */}
+          <Card className={`bg-gradient-to-br ${colors.gradient} border-2 ${colors.border} rounded-[32px] p-6 overflow-hidden`}>
+            <div className="space-y-5">
               {/* Rarity Badge */}
               <div className="flex justify-center">
-                <Badge className={`${colors.bg} ${colors.text} border-2 ${colors.border} font-black text-sm px-6 py-2 uppercase`}>
+                <Badge className={`${colors.badgeBg} ${colors.text} border-2 ${colors.border} font-black text-sm px-6 py-2 uppercase`}>
                   {item.rarity}
                 </Badge>
               </div>
 
               {/* Gear Image */}
-              <div className="flex justify-center">
+              <div className="flex justify-center py-4">
                 <GearImage 
                   imageUrl={item.image_url}
                   itemType={item.item_type}
@@ -91,84 +111,84 @@ const GearDetail = ({ item, onClose, onEquip }: GearDetailProps) => {
 
               {/* Item Name */}
               <div className="text-center">
-                <h3 className={`text-3xl font-black italic uppercase ${colors.text} leading-tight`}>
+                <h3 className={`text-2xl font-black italic uppercase ${colors.text} leading-tight`}>
                   {item.item_name}
                 </h3>
-                <Badge variant="outline" className="font-black text-xs uppercase mt-2">
+                <Badge variant="outline" className="font-black text-xs uppercase mt-2 border-gray-300 text-gray-500">
                   {item.item_type}
                 </Badge>
               </div>
 
-              {/* Bonus */}
-              <div className="text-center bg-primary/10 border-2 border-primary/30 rounded-3xl p-4">
-                <p className="text-sm font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
+              {/* Bonus - Highlighted */}
+              <div className="text-center bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 rounded-3xl p-5">
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Catch Bonus</p>
                 <p className="text-5xl font-black italic text-primary">+{item.bonus_percentage}%</p>
               </div>
 
               {/* Description */}
               {item.description && (
-                <div className="bg-muted/30 border-2 border-muted/30 rounded-3xl p-4">
-                  <p className="text-sm text-muted-foreground italic text-center leading-relaxed">
+                <div className="bg-white/60 border-2 border-gray-200 rounded-3xl p-4">
+                  <p className="text-sm text-gray-600 italic text-center leading-relaxed">
                     "{item.description}"
                   </p>
                 </div>
               )}
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/5 border-2 border-white/10 rounded-2xl p-3 text-center">
-                  <TrendingUp className="mx-auto mb-2 text-primary" size={20} />
-                  <p className="text-2xl font-black text-white">{item.times_used || 0}</p>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Times Used</p>
-                </div>
-                <div className="bg-white/5 border-2 border-white/10 rounded-2xl p-3 text-center">
-                  <Award className="mx-auto mb-2 text-primary" size={20} />
-                  <p className="text-2xl font-black text-white">{item.catches_made || 0}</p>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Catches</p>
-                </div>
-                <div className="bg-white/5 border-2 border-white/10 rounded-2xl p-3 text-center">
-                  <Calendar className="mx-auto mb-2 text-primary" size={20} />
-                  <p className="text-2xl font-black text-white">
-                    {item.biggest_catch_weight ? `${item.biggest_catch_weight}lb` : '0lb'}
-                  </p>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Biggest</p>
-                </div>
-              </div>
-
-              {/* Acquired Date */}
-              {item.created_at && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">
-                    Acquired {new Date(item.created_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </p>
-                </div>
-              )}
-
-              {/* Equip Button */}
-              {onEquip && (
-                <Button
-                  onClick={() => onEquip(item.id)}
-                  className={`w-full h-14 rounded-2xl font-black uppercase text-sm ${
-                    item.is_equipped 
-                      ? 'bg-muted text-muted-foreground' 
-                      : 'bg-primary hover:bg-primary/90 text-black'
-                  }`}
-                  disabled={item.is_equipped}
-                >
-                  {item.is_equipped ? 'Currently Equipped' : 'Equip Item'}
-                </Button>
-              )}
             </div>
           </Card>
 
-          {/* Additional Info */}
-          <Card className="bg-muted/30 border-2 border-dashed border-muted p-6 rounded-[32px]">
-            <h3 className="font-black uppercase text-xs mb-3 text-center">Pro Tip</h3>
-            <p className="text-xs text-muted-foreground text-center">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="bg-white border-2 border-gray-100 rounded-[20px] p-4 text-center">
+              <TrendingUp className="mx-auto mb-2 text-primary" size={20} />
+              <p className="text-2xl font-black text-gray-800">{item.times_used || 0}</p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase">Times Used</p>
+            </Card>
+            <Card className="bg-white border-2 border-gray-100 rounded-[20px] p-4 text-center">
+              <Award className="mx-auto mb-2 text-primary" size={20} />
+              <p className="text-2xl font-black text-gray-800">{item.catches_made || 0}</p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase">Catches</p>
+            </Card>
+            <Card className="bg-white border-2 border-gray-100 rounded-[20px] p-4 text-center">
+              <Calendar className="mx-auto mb-2 text-primary" size={20} />
+              <p className="text-2xl font-black text-gray-800">
+                {item.biggest_catch_weight ? `${item.biggest_catch_weight}lb` : '0lb'}
+              </p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase">Biggest</p>
+            </Card>
+          </div>
+
+          {/* Acquired Date */}
+          {item.created_at && (
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                Acquired {new Date(item.created_at).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
+              </p>
+            </div>
+          )}
+
+          {/* Equip Button */}
+          {onEquip && (
+            <Button
+              onClick={() => onEquip(item.id)}
+              className={`w-full h-14 rounded-2xl font-black uppercase text-sm ${
+                item.is_equipped 
+                  ? 'bg-gray-200 text-gray-500 hover:bg-gray-200' 
+                  : 'bg-primary hover:bg-primary/90 text-black'
+              }`}
+              disabled={item.is_equipped}
+            >
+              {item.is_equipped ? 'Currently Equipped' : 'Equip Item'}
+            </Button>
+          )}
+
+          {/* Pro Tip Card */}
+          <Card className="bg-white border-2 border-dashed border-gray-200 p-6 rounded-[32px]">
+            <h3 className="font-black uppercase text-xs mb-2 text-center text-gray-800">Pro Tip</h3>
+            <p className="text-xs text-gray-500 text-center leading-relaxed">
               Use this {item.item_type} regularly to level it up and increase its stats. Higher rarity gear has better bonuses!
             </p>
           </Card>

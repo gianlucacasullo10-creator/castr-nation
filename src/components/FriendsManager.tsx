@@ -203,41 +203,62 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex justify-center overflow-hidden">
-      <div className="relative h-dvh w-full max-w-[390px] overflow-y-auto px-4">
+    <div className="fixed inset-0 z-[9999] bg-[#f5f5f5] flex justify-center overflow-hidden">
+      <div className="relative h-dvh w-full max-w-md overflow-y-auto">
         
-        <div className="flex flex-col space-y-4 pb-12 pt-4">
-          <div className="flex items-start justify-between sticky top-0 bg-black/50 backdrop-blur-md z-20 py-4">
-            <div className="flex-1">
-              <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
-                Friends
-              </h2>
-              <p className="text-xs font-bold text-muted-foreground mt-1">
-                {friends.length} Friends
-              </p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
-            >
-              <X size={24} className="text-white/70" />
-            </button>
+        <div className="flex flex-col space-y-6 pb-24 pt-4 px-4">
+          {/* Header - Centered like Tournaments */}
+          <div className="text-center pt-2">
+            <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
+              Friends
+            </h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
+              {friends.length} Friends Connected
+            </p>
           </div>
 
-          <div className="flex gap-2 sticky top-[84px] bg-black/50 backdrop-blur-md z-20 py-2">
+          {/* Close Button - Positioned top right */}
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/5 hover:bg-black/10 transition-colors flex items-center justify-center z-30"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+
+          {/* Info Card - Matching Tournaments style */}
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-6 rounded-[32px]">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/20 p-3 rounded-2xl shrink-0">
+                <Users className="text-primary" size={24} />
+              </div>
+              <div>
+                <h3 className="font-black uppercase text-sm mb-1 text-gray-800">Your Network</h3>
+                <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                  Connect with fellow anglers, compete on friend leaderboards, and share your catches!
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Tab Buttons */}
+          <div className="flex gap-2">
             {(['friends', 'requests', 'search'] as const).map((tab) => (
               <Button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 variant={activeTab === tab ? 'default' : 'outline'}
-                className="flex-1 font-black uppercase text-[10px] h-9 relative"
+                className={`flex-1 font-black uppercase text-[10px] h-11 rounded-2xl relative ${
+                  activeTab === tab 
+                    ? 'bg-primary text-black hover:bg-primary/90' 
+                    : 'bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
               >
                 {tab === 'friends' && <Users size={14} className="mr-1" />}
                 {tab === 'requests' && <UserPlus size={14} className="mr-1" />}
                 {tab === 'search' && <Search size={14} className="mr-1" />}
                 {tab === 'friends' ? 'Friends' : tab === 'requests' ? 'Requests' : 'Add'}
                 {tab === 'requests' && pendingRequests.length > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-red-500 text-white text-[8px] animate-pulse">
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-[9px] font-black">
                     {pendingRequests.length}
                   </Badge>
                 )}
@@ -245,6 +266,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             ))}
           </div>
 
+          {/* Content Area */}
           <div className="min-h-[200px]">
             {loading && (
               <div className="flex justify-center py-12">
@@ -252,16 +274,18 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
               </div>
             )}
 
+            {/* Friends Tab */}
             {activeTab === 'friends' && !loading && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {friends.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white/5 border-dashed border-white/10">
-                    <Users className="mx-auto mb-3 text-muted-foreground/50" size={48} />
-                    <p className="text-muted-foreground font-bold">No friends yet</p>
+                  <Card className="p-12 text-center rounded-[32px] bg-white border-2 border-dashed border-gray-200">
+                    <Users className="mx-auto mb-3 text-gray-300" size={48} />
+                    <p className="text-gray-500 font-bold">No friends yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Search for anglers to connect with!</p>
                   </Card>
                 ) : (
                   friends.map(friend => (
-                    <Card key={friend.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
+                    <Card key={friend.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2 border-primary/20">
                           <AvatarImage src={friend.avatar_url} />
@@ -270,7 +294,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm text-white">{friend.display_name}</p>
+                          <p className="font-black uppercase text-sm text-gray-800">{friend.display_name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Trophy size={12} className="text-primary" />
                             <p className="text-xs text-muted-foreground font-bold">
@@ -282,7 +306,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           onClick={() => removeFriend(friend.id)}
                           variant="ghost"
                           size="sm"
-                          className="text-[10px] font-black uppercase text-red-500 h-7"
+                          className="text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 h-8 rounded-xl"
                         >
                           Remove
                         </Button>
@@ -293,30 +317,43 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
               </div>
             )}
 
+            {/* Requests Tab */}
             {activeTab === 'requests' && !loading && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {pendingRequests.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white/5 border-dashed border-white/10">
-                    <UserPlus className="mx-auto mb-3 text-muted-foreground/50" size={48} />
-                    <p className="text-muted-foreground font-bold">Inbox empty</p>
+                  <Card className="p-12 text-center rounded-[32px] bg-white border-2 border-dashed border-gray-200">
+                    <UserPlus className="mx-auto mb-3 text-gray-300" size={48} />
+                    <p className="text-gray-500 font-bold">No pending requests</p>
+                    <p className="text-xs text-gray-400 mt-1">Friend requests will appear here</p>
                   </Card>
                 ) : (
                   pendingRequests.map(request => (
-                    <Card key={request.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
+                    <Card key={request.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
+                        <Avatar className="h-12 w-12 border-2 border-primary/20">
                           <AvatarImage src={request.profiles?.avatar_url} />
-                          <AvatarFallback>{request.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="bg-primary/10 text-primary font-black">
+                            {request.profiles?.display_name?.charAt(0)}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm text-white">{request.profiles?.display_name}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Wants to join</p>
+                          <p className="font-black uppercase text-sm text-gray-800">{request.profiles?.display_name}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Wants to connect</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={() => acceptFriendRequest(request.id)} size="sm" className="bg-green-600 h-8 w-8 p-0 rounded-full">
+                          <Button 
+                            onClick={() => acceptFriendRequest(request.id)} 
+                            size="sm" 
+                            className="bg-green-500 hover:bg-green-600 h-9 w-9 p-0 rounded-full"
+                          >
                             <Check size={16} />
                           </Button>
-                          <Button onClick={() => rejectFriendRequest(request.id)} size="sm" variant="ghost" className="text-red-500 h-8 w-8 p-0 rounded-full">
+                          <Button 
+                            onClick={() => rejectFriendRequest(request.id)} 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-500 border-red-200 hover:bg-red-50 h-9 w-9 p-0 rounded-full"
+                          >
                             <XCircle size={16} />
                           </Button>
                         </div>
@@ -327,32 +364,45 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
               </div>
             )}
 
+            {/* Search Tab */}
             {activeTab === 'search' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex gap-2">
                   <Input
-  placeholder="Search username..."
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-  className="flex-1 bg-black/40 border-white/20 text-white placeholder:text-white/40 uppercase text-xs font-black h-12"
-/>
-                  <Button onClick={searchUsers} disabled={loading} className="h-12 px-6">
+                    placeholder="Search username..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
+                    className="flex-1 bg-white border-2 border-gray-200 text-gray-800 placeholder:text-gray-400 text-xs font-bold h-12 rounded-2xl focus:border-primary"
+                  />
+                  <Button 
+                    onClick={searchUsers} 
+                    disabled={loading} 
+                    className="h-12 px-5 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black"
+                  >
                     <Search size={18} />
                   </Button>
                 </div>
 
                 <div className="space-y-3">
+                  {searchResults.length === 0 && searchQuery && !loading && (
+                    <Card className="p-8 text-center rounded-[32px] bg-white border-2 border-gray-100">
+                      <p className="text-gray-500 font-bold text-sm">No users found</p>
+                      <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
+                    </Card>
+                  )}
+                  
                   {searchResults.map(user => (
-                    <Card key={user.id} className="p-4 rounded-[24px] bg-white/5 border-white/10">
+                    <Card key={user.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 border-2 border-white/10">
+                        <Avatar className="h-12 w-12 border-2 border-gray-200">
                           <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback className="bg-white/5 text-white">{user.display_name?.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="bg-gray-100 text-gray-600 font-black">
+                            {user.display_name?.charAt(0)}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          {/* FIXED: Name is now white and bold for maximum visibility */}
-                          <p className="font-black uppercase text-sm text-white tracking-wide">
+                          <p className="font-black uppercase text-sm text-gray-800 tracking-wide">
                             {user.display_name}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -363,11 +413,19 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </div>
                         </div>
                         {user.friendshipStatus === 'accepted' ? (
-                          <Badge className="bg-green-500/20 text-green-500 border-none uppercase text-[8px] font-black">Friends</Badge>
+                          <Badge className="bg-green-100 text-green-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
+                            Friends
+                          </Badge>
                         ) : user.friendshipStatus === 'pending' ? (
-                          <Badge className="bg-yellow-500/20 text-yellow-500 border-none uppercase text-[8px] font-black">Pending</Badge>
+                          <Badge className="bg-yellow-100 text-yellow-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
+                            Pending
+                          </Badge>
                         ) : (
-                          <Button onClick={() => sendFriendRequest(user.id)} size="sm" className="font-black uppercase text-[10px] h-8 px-4 rounded-full">
+                          <Button 
+                            onClick={() => sendFriendRequest(user.id)} 
+                            size="sm" 
+                            className="font-black uppercase text-[10px] h-9 px-4 rounded-full bg-primary hover:bg-primary/90 text-black"
+                          >
                             <UserPlus size={12} className="mr-1" />
                             Add
                           </Button>

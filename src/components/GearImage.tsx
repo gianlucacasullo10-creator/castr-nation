@@ -15,22 +15,26 @@ const RARITY_COLORS = {
 
 const GearImage = ({ imageUrl, itemType, rarity, size = 'md', className = '' }: GearImageProps) => {
   const sizeClasses = {
-    sm: 'w-12 h-12',
-    md: 'w-24 h-24',
-    lg: 'w-32 h-32',
+    sm: 'w-16 h-16',
+    md: 'w-28 h-28',
+    lg: 'w-36 h-36',
     xl: 'w-48 h-48',
   };
 
   // If we have a real image, show it
   if (imageUrl) {
     return (
-      <div className={`${sizeClasses[size]} ${className} relative`}>
+      <div className={`${sizeClasses[size]} ${className} relative flex items-center justify-center`}>
         <img 
           src={imageUrl} 
           alt={`${rarity} ${itemType}`}
           className="w-full h-full object-contain"
           style={{
-            filter: `drop-shadow(0 0 8px ${RARITY_COLORS[rarity]}40)`
+            filter: `drop-shadow(0 0 12px ${RARITY_COLORS[rarity]}60)`
+          }}
+          onError={(e) => {
+            console.error('Image failed to load:', imageUrl);
+            e.currentTarget.style.display = 'none';
           }}
         />
       </div>
@@ -48,7 +52,7 @@ const GearImage = ({ imageUrl, itemType, rarity, size = 'md', className = '' }: 
       }}
     >
       {/* Placeholder icon */}
-      <div className="text-4xl opacity-50">
+      <div className="text-5xl opacity-50">
         {itemType === 'rod' ? '🎣' : '🪝'}
       </div>
     </div>

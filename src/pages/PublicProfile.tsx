@@ -66,6 +66,10 @@ const PublicProfile = () => {
           .single();
 
         if (profileError) throw profileError;
+        
+        console.log('URL id:', id);
+        console.log('Profile data:', profileData);
+        console.log('Profile user_id:', profileData?.user_id);
 
         // 2. Fetch Catch Stats & Data
         const { data: catchData } = await supabase
@@ -77,11 +81,15 @@ const PublicProfile = () => {
 
         // 3. Fetch Equipped Gear
         // Try both the URL id and profile's user_id to handle mismatched profiles
-        const { data: gearData } = await supabase
+        const { data: gearData, error: gearError } = await supabase
           .from('inventory')
           .select('*')
           .or(`user_id.eq.${id},user_id.eq.${profileData?.user_id}`)
           .eq('is_equipped', true);
+        
+        console.log('Gear query for user_id:', id, 'or', profileData?.user_id);
+        console.log('Gear data:', gearData);
+        console.log('Gear error:', gearError);
 
         // 4. Fetch Friend Count
         const { count } = await supabase

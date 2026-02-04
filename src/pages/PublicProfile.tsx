@@ -76,10 +76,11 @@ const PublicProfile = () => {
         const total = catchData?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
 
         // 3. Fetch Equipped Gear
+        // Try both the URL id and profile's user_id to handle mismatched profiles
         const { data: gearData } = await supabase
           .from('inventory')
           .select('*')
-          .eq('user_id', id)
+          .or(`user_id.eq.${id},user_id.eq.${profileData?.user_id}`)
           .eq('is_equipped', true);
 
         // 4. Fetch Friend Count

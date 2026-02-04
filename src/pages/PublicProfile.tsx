@@ -80,14 +80,13 @@ const PublicProfile = () => {
         const total = catchData?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
 
         // 3. Fetch Equipped Gear
-        // Try both the URL id and profile's user_id to handle mismatched profiles
         const { data: gearData, error: gearError } = await supabase
           .from('inventory')
           .select('*')
-          .or(`user_id.eq.${id},user_id.eq.${profileData?.user_id}`)
+          .eq('user_id', id)
           .eq('is_equipped', true);
         
-        console.log('Gear query for user_id:', id, 'or', profileData?.user_id);
+        console.log('Gear query for user_id:', id);
         console.log('Gear data:', gearData);
         console.log('Gear error:', gearError);
 

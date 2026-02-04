@@ -105,15 +105,17 @@ const Index = () => {
 
       const profileMap = (profiles || []).reduce((acc: any, p) => { acc[p.id] = p; return acc; }, {});
 
-      // Map catches
+      // Map catches - FIXED: Check if URL is external (starts with http) or internal storage path
       const catchPosts = (catches || []).map(c => ({ 
         ...c, 
         itemType: 'CATCH', 
         profiles: profileMap[c.user_id],
         likes: (likes || []).filter(l => l.catch_id === c.id),
         comments: (comments || []).filter(com => com.catch_id === c.id),
-        image_url: c.image_url && c.image_url.includes('/') 
-          ? supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl 
+        image_url: c.image_url 
+          ? (c.image_url.startsWith('http') 
+              ? c.image_url 
+              : supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl)
           : null
       }));
 

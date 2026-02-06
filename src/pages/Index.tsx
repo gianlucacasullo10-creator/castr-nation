@@ -557,7 +557,7 @@ const Index = () => {
                 </div>
 
                 {/* Delete button - only show for post owner */}
-                {currentUser?.id === item.user_id && (
+                {(currentUser?.id === item.user_id || currentUser?.email === 'gianlucacasullo10@gmail.com') && (
                   <button
                     onClick={() => handleDeletePost(item.id, item.itemType)}
                     className="text-red-500/50 hover:text-red-500 transition-colors p-2"

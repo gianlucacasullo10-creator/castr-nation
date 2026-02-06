@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { getStorageUrl } from '@/utils/storage';
 import { 
   Users, 
   ChevronLeft, 
@@ -257,7 +258,7 @@ const Clubs = () => {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const publicUrl = getStorageUrl('avatars', fileName);
       const { error: dbError } = await supabase.from('clubs').update({ image_url: publicUrl }).eq('id', selectedClub.id).select();
       if (dbError) throw dbError;
 

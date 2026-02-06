@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import GearImage from "@/components/GearImage";
+import { getStorageUrl } from '@/utils/storage';
 
 const RARITY_COLORS = {
   common: { 
@@ -280,7 +281,7 @@ const PublicProfile = () => {
                 const publicUrl = catchItem.image_url 
                   ? (catchItem.image_url.startsWith('http') 
                       ? catchItem.image_url 
-                      : supabase.storage.from('catch_photos').getPublicUrl(catchItem.image_url).data.publicUrl)
+                      : getStorageUrl('catch_photos', catchItem.image_url))
                   : null;
 
                 return (

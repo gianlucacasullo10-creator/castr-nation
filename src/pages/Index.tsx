@@ -56,8 +56,8 @@ const Index = () => {
   const navigate = useNavigate();
 
   // Pull to refresh constants
-  const PULL_THRESHOLD = 80; // Distance needed to trigger refresh
-  const MAX_PULL = 120; // Maximum pull distance
+  const PULL_THRESHOLD = 80;
+  const MAX_PULL = 120;
 
   // Request location on app load
   useEffect(() => {
@@ -106,7 +106,6 @@ const Index = () => {
 
       const profileMap = (profiles || []).reduce((acc: any, p) => { acc[p.id] = p; return acc; }, {});
 
-      // Map catches - FIXED: Check if URL is external (starts with http) or internal storage path
       const catchPosts = (catches || []).map(c => ({ 
         ...c, 
         itemType: 'CATCH', 
@@ -114,13 +113,12 @@ const Index = () => {
         likes: (likes || []).filter(l => l.catch_id === c.id),
         comments: (comments || []).filter(com => com.catch_id === c.id),
         image_url: c.image_url 
-  ? (c.image_url.startsWith('http') 
-      ? c.image_url 
-      : getStorageUrl('catch_photos', c.image_url))
-  : null
+          ? (c.image_url.startsWith('http') 
+              ? c.image_url 
+              : getStorageUrl('catch_photos', c.image_url))
+          : null
       }));
 
-      // Map achievement activities
       const achievementPosts = (activities || [])
         .filter(a => a.activity_type === 'achievement')
         .map(a => ({ 
@@ -130,29 +128,25 @@ const Index = () => {
           comments: (comments || []).filter(com => com.activity_id === a.id)
         }));
 
-      // Mix achievements into feed every 5-7 catch posts
       const mixed: any[] = [];
       let achievementIndex = 0;
-      let nextAchievementAt = Math.floor(Math.random() * 3) + 5; // Random between 5-7
+      let nextAchievementAt = Math.floor(Math.random() * 3) + 5;
 
       catchPosts.forEach((catchPost, index) => {
         mixed.push(catchPost);
         
-        // Insert an achievement every 5-7 posts if we have more to show
         if (index + 1 === nextAchievementAt && achievementIndex < achievementPosts.length) {
           mixed.push(achievementPosts[achievementIndex]);
           achievementIndex++;
-          nextAchievementAt = index + Math.floor(Math.random() * 3) + 5; // Next one in 5-7 posts
+          nextAchievementAt = index + Math.floor(Math.random() * 3) + 5;
         }
       });
 
-      // Add any remaining achievements at the end
       while (achievementIndex < achievementPosts.length) {
         mixed.push(achievementPosts[achievementIndex]);
         achievementIndex++;
       }
 
-      // Sort by created_at to maintain chronological order
       mixed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setFeedItems(mixed);
@@ -195,7 +189,6 @@ const Index = () => {
     const distance = touchY - touchStartY.current;
     
     if (distance > 0) {
-      // Apply resistance to pull
       const resistedDistance = Math.min(distance * 0.5, MAX_PULL);
       setPullDistance(resistedDistance);
     }
@@ -210,7 +203,6 @@ const Index = () => {
       setIsRefreshing(true);
       await fetchUnifiedFeed(false);
       
-      // Add small delay for better UX
       setTimeout(() => {
         setIsRefreshing(false);
         setPullDistance(0);
@@ -232,19 +224,14 @@ const Index = () => {
     const alreadyLiked = currentItem?.likes?.some((l: any) => l.user_id === currentUser.id);
 
     if (alreadyLiked) {
-      // UNLIKE - Optimistic update
       setFeedItems(prevItems => 
         prevItems.map(item => 
           item.id === catchId 
-            ? { 
-                ...item, 
-                likes: item.likes.filter((l: any) => l.user_id !== currentUser.id)
-              }
+            ? { ...item, likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) }
             : item
         )
       );
 
-      // Remove like from database
       const { error } = await supabase
         .from('likes')
         .delete()
@@ -252,61 +239,45 @@ const Index = () => {
         .eq('catch_id', catchId);
       
       if (error) {
-        // Revert on error
         setFeedItems(prevItems => 
           prevItems.map(item => 
             item.id === catchId 
-              ? { 
-                  ...item, 
-                  likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }]
-                }
+              ? { ...item, likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] }
               : item
           )
         );
         toast({ variant: "destructive", title: "Failed to unlike post" });
       }
     } else {
-      // LIKE - Optimistic update
       setFeedItems(prevItems => 
         prevItems.map(item => 
           item.id === catchId 
-            ? { 
-                ...item, 
-                likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] 
-              }
+            ? { ...item, likes: [...(item.likes || []), { user_id: currentUser.id, catch_id: catchId }] }
             : item
         )
       );
 
-      // Add like to database
       const { error } = await supabase
         .from('likes')
         .insert([{ user_id: currentUser.id, catch_id: catchId }]);
       
       if (error) {
-        // Revert on error
         setFeedItems(prevItems => 
           prevItems.map(item => 
             item.id === catchId 
-              ? { 
-                  ...item, 
-                  likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) 
-                }
+              ? { ...item, likes: item.likes.filter((l: any) => l.user_id !== currentUser.id) }
               : item
           )
         );
         toast({ variant: "destructive", title: "Failed to like post" });
       } else {
-        // ✅ CHECK ACHIEVEMENTS FOR THE CATCH OWNER (receiving likes)
         const catchItem = feedItems.find(item => item.id === catchId);
         if (catchItem?.user_id) {
           await checkAchievementsAfterLike(catchItem.user_id);
         }
         
-        // ✅ ALSO CHECK ACHIEVEMENTS FOR THE USER GIVING THE LIKE
         const { checkAndUnlockAchievements } = await import("@/utils/achievementTracker");
         const newAchievements = await checkAndUnlockAchievements(currentUser.id);
-        // Could show notification here if needed
       }
     }
   };
@@ -340,7 +311,6 @@ const Index = () => {
       setCommentText("");
       setActiveCommentId(null);
       
-      // ✅ CHECK ACHIEVEMENTS AFTER COMMENTING
       await checkAchievementsAfterComment(currentUser.id);
       
       fetchUnifiedFeed(false);
@@ -357,28 +327,23 @@ const Index = () => {
     const confirmDelete = window.confirm('Are you sure you want to delete this post?');
     if (!confirmDelete) return;
 
+    const isAdmin = currentUser.email === 'gianlucacasullo10@gmail.com';
+
     try {
       if (itemType === 'CATCH') {
-        const { error } = await supabase
-          .from('catches')
-          .delete()
-          .eq('id', itemId)
-          .eq('user_id', currentUser.id);
-
+        let query = supabase.from('catches').delete().eq('id', itemId);
+        if (!isAdmin) query = query.eq('user_id', currentUser.id);
+        const { error } = await query;
         if (error) throw error;
         toast({ title: "Catch Deleted" });
       } else if (itemType === 'ACTIVITY') {
-        const { error } = await supabase
-          .from('activities')
-          .delete()
-          .eq('id', itemId)
-          .eq('user_id', currentUser.id);
-
+        let query = supabase.from('activities').delete().eq('id', itemId);
+        if (!isAdmin) query = query.eq('user_id', currentUser.id);
+        const { error } = await query;
         if (error) throw error;
         toast({ title: "Activity Deleted" });
       }
 
-      // OPTIMISTIC UPDATE - Remove from UI immediately
       setFeedItems(prevItems => prevItems.filter(item => item.id !== itemId));
     } catch (error: any) {
       toast({ 
@@ -386,7 +351,6 @@ const Index = () => {
         title: "Delete Failed", 
         description: error.message 
       });
-      // Refresh on error to restore state
       fetchUnifiedFeed(false);
     }
   };
@@ -556,7 +520,7 @@ const Index = () => {
                   </button>
                 </div>
 
-                {/* Delete button - only show for post owner */}
+                {/* Delete button - show for post owner OR admin */}
                 {(currentUser?.id === item.user_id || currentUser?.email === 'gianlucacasullo10@gmail.com') && (
                   <button
                     onClick={() => handleDeletePost(item.id, item.itemType)}
@@ -569,7 +533,6 @@ const Index = () => {
 
               {item.comments?.length > 0 && (
                 <div className="space-y-3 pt-2 text-left">
-                  {/* Show first 3 comments or all if expanded */}
                   {item.comments
                     .slice(0, expandedComments.has(item.id) ? item.comments.length : 3)
                     .map((comment: any) => (
@@ -593,7 +556,6 @@ const Index = () => {
                       </div>
                     ))}
                   
-                  {/* Show More/Less Button */}
                   {item.comments.length > 3 && (
                     <button
                       onClick={() => {

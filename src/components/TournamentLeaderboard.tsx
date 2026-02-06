@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getStorageUrl } from '@/utils/storage';
 import { 
   Trophy, 
   Medal, 
@@ -140,8 +141,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   };
 
   const getImageUrl = (path: string) => {
-    const { data } = supabase.storage.from('catch_photos').getPublicUrl(path);
-    return data.publicUrl;
+    return getStorageUrl('catch_photos', path);
   };
 
   const getRankIcon = (rank: number) => {

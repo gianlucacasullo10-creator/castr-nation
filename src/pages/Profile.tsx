@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import GearImage from "@/components/GearImage";
 import FriendsManager from "@/components/FriendsManager";
+import { getStorageUrl } from '@/utils/storage';
 import { 
   Loader2, 
   Trophy, 
@@ -99,7 +100,7 @@ const Profile = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicUrl = getStorageUrl('avatars', filePath);
 
       const { error: updateError } = await supabase
         .from('profiles')
@@ -396,7 +397,7 @@ const Profile = () => {
               .slice(0, 3)
               .map((catchItem, index) => {
                 const publicUrl = catchItem.image_url && catchItem.image_url.includes('/') 
-                  ? supabase.storage.from('catch_photos').getPublicUrl(catchItem.image_url).data.publicUrl 
+                  ? getStorageUrl('catch_photos', catchItem.image_url) 
                   : null;
 
                 return (

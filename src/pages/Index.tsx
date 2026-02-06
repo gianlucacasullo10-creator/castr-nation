@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import CatchUpload from "@/components/CatchUpload"; 
+import { getStorageUrl } from '@/utils/storage';
 import {  
   Heart,  
   MessageCircle,  
@@ -113,10 +114,10 @@ const Index = () => {
         likes: (likes || []).filter(l => l.catch_id === c.id),
         comments: (comments || []).filter(com => com.catch_id === c.id),
         image_url: c.image_url 
-          ? (c.image_url.startsWith('http') 
-              ? c.image_url 
-              : supabase.storage.from('catch_photos').getPublicUrl(c.image_url).data.publicUrl)
-          : null
+  ? (c.image_url.startsWith('http') 
+      ? c.image_url 
+      : getStorageUrl('catch_photos', c.image_url))
+  : null
       }));
 
       // Map achievement activities

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { getStorageUrl } from '@/utils/storage';
 import {
   Shield,
   CheckCircle2,
@@ -245,8 +246,7 @@ const AdminReview = () => {
   };
 
   const getImageUrl = (path: string) => {
-    const { data } = supabase.storage.from('catch_photos').getPublicUrl(path);
-    return data.publicUrl;
+    return getStorageUrl('catch_photos', path);
   };
 
   const renderCatchCard = (catchSubmission: TournamentCatch, showActions: boolean = true) => (

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Camera, MapPin, Fish, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getStorageUrl } from '@/utils/storage';
 
 const FISH_SPECIES = [
   "Largemouth Bass", "Smallmouth Bass", "Spotted Bass", 
@@ -87,8 +88,7 @@ const Capture = () => {
         const filePath = `${user.id}/${Math.random()}.jpg`;
         const { error: uploadError } = await supabase.storage.from('catch_photos').upload(filePath, image);
         if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('catch_photos').getPublicUrl(filePath);
-        imageUrl = publicUrl;
+        imageUrl = getStorageUrl('catch_photos', filePath);
       }
 
       let pointsScored = Math.round(getFishPoints(species) * (Math.random() * (1.8 - 1.1) + 1.1));

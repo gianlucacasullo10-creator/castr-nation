@@ -90,6 +90,7 @@ const Shop = () => {
           item_name: selectedItem.item_name,
           rarity: selectedItem.rarity,
           bonus_percentage: selectedItem.bonus_percentage,
+          image_url: selectedItem.image_url, // ✅ ADDED
           is_equipped: false
         }]);
 
@@ -158,6 +159,7 @@ const Shop = () => {
             item_name: selectedItem.item_name,
             rarity: selectedItem.rarity,
             bonus_percentage: selectedItem.bonus_percentage,
+            image_url: selectedItem.image_url, // ✅ ADDED
             is_equipped: false
           }]);
 

@@ -1,0 +1,20 @@
+{
+  "name": "castrs-promo-videos",
+  "version": "1.0.0",
+  "description": "Remotion promotional videos for Castrs Nation",
+  "scripts": {
+    "start": "remotion studio",
+    "render": "remotion render PromoReel1 out/reel1.mp4 --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "remotion": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.3.0"
+  }
+}

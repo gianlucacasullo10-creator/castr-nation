@@ -44,6 +44,7 @@ const Inventory = () => {
   const [recycleDialogOpen, setRecycleDialogOpen] = useState(false);
   const [itemToRecycle, setItemToRecycle] = useState<any>(null);
   const [isRecycling, setIsRecycling] = useState(false);
+  const [equipLoading, setEquipLoading] = useState<string | null>(null);
   const [showTradeIn, setShowTradeIn] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [selectedGear, setSelectedGear] = useState<any>(null);
@@ -84,8 +85,9 @@ const Inventory = () => {
   };
 
   const equipItem = async (itemId: string, itemType: string, currentlyEquipped: boolean) => {
-    if (!currentUser) return;
+    if (!currentUser || equipLoading) return;
 
+    setEquipLoading(itemId);
     try {
       if (currentlyEquipped) {
         // Unequip
@@ -97,15 +99,16 @@ const Inventory = () => {
         if (error) throw error;
         toast({ title: "Item Unequipped" });
       } else {
-        // Unequip any other items of the same type first
-        await supabase
+        // Unequip any other items of the same type first, then equip this one
+        const { error: unequipError } = await supabase
           .from('inventory')
           .update({ is_equipped: false })
           .eq('user_id', currentUser.id)
           .eq('item_type', itemType)
           .eq('is_equipped', true);
 
-        // Equip this item
+        if (unequipError) throw unequipError;
+
         const { error } = await supabase
           .from('inventory')
           .update({ is_equipped: true })
@@ -113,8 +116,7 @@ const Inventory = () => {
 
         if (error) throw error;
         toast({ title: "Item Equipped!", description: "Bonus now active on catches" });
-        
-        // ✅ CHECK ACHIEVEMENTS AFTER EQUIPPING
+
         await checkAchievementsAfterEquip(currentUser.id);
       }
 
@@ -125,6 +127,8 @@ const Inventory = () => {
         title: "Error",
         description: error.message
       });
+    } finally {
+      setEquipLoading(null);
     }
   };
 
@@ -360,9 +364,12 @@ const Inventory = () => {
                       onClick={() => equipItem(item.id, item.item_type, item.is_equipped)}
                       size="sm"
                       variant={item.is_equipped ? 'default' : 'outline'}
+                      disabled={equipLoading === item.id}
                       className="font-black uppercase text-xs w-full"
                     >
-                      {item.is_equipped ? (
+                      {equipLoading === item.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : item.is_equipped ? (
                         <>
                           <Check size={14} className="mr-1" /> Equipped
                         </>

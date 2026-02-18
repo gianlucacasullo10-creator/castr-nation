@@ -53,15 +53,7 @@ const Shop = () => {
     }
 
     try {
-      // Deduct points FIRST
-      const { error: pointsError } = await supabase
-        .from('profiles')
-        .update({ current_points: userProfile.current_points - CASE_PRICE })
-        .eq('id', currentUser.id);
-
-      if (pointsError) throw pointsError;
-
-      // Get loot table
+      // Get loot table first, before touching points
       const { data: lootTable, error: lootError } = await supabase
         .from('gear_loot_table')
         .select('*');
@@ -71,7 +63,7 @@ const Shop = () => {
       // Weighted random selection
       const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
       let random = Math.random() * totalWeight;
-      
+
       let selectedItem = lootTable[0];
       for (const item of lootTable) {
         random -= item.drop_weight;
@@ -81,8 +73,8 @@ const Shop = () => {
         }
       }
 
-      // Add to inventory in background
-      const { error: inventoryError } = await supabase
+      // Add to inventory FIRST — only spend points if this succeeds
+      const { data: newInventoryItem, error: inventoryError } = await supabase
         .from('inventory')
         .insert([{
           user_id: currentUser.id,
@@ -90,11 +82,25 @@ const Shop = () => {
           item_name: selectedItem.item_name,
           rarity: selectedItem.rarity,
           bonus_percentage: selectedItem.bonus_percentage,
-          image_url: selectedItem.image_url, // ✅ ADDED
+          image_url: selectedItem.image_url,
           is_equipped: false
-        }]);
+        }])
+        .select('id')
+        .single();
 
       if (inventoryError) throw inventoryError;
+
+      // Deduct points only after item is safely in inventory
+      const { error: pointsError } = await supabase
+        .from('profiles')
+        .update({ current_points: userProfile.current_points - CASE_PRICE })
+        .eq('id', currentUser.id);
+
+      if (pointsError) {
+        // Compensating action: remove the item we just added so user isn't charged
+        await supabase.from('inventory').delete().eq('id', newInventoryItem.id);
+        throw pointsError;
+      }
 
       // ✅ CHECK ACHIEVEMENTS AFTER CASE OPENING
       await checkAchievementsAfterCaseOpen(currentUser.id);

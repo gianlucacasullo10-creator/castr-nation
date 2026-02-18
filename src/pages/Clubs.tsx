@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -58,7 +58,10 @@ const Clubs = () => {
   const [timeRemaining, setTimeRemaining] = useState("");
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
+
+  const MESSAGE_MAX_LENGTH = 500;
 
   const BATTLE_THRESHOLD = 2000;
 
@@ -78,14 +81,23 @@ const Clubs = () => {
     }
   };
 
-  const calculateTimeRemaining = (endDate: string) => {
-    const interval = setInterval(() => {
+  const calculateTimeRemaining = useCallback((endDate: string) => {
+    // Clear any existing timer before starting a new one
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    const tick = () => {
       const now = new Date().getTime();
       const end = new Date(endDate).getTime();
       const distance = end - now;
 
       if (distance < 0) {
-        clearInterval(interval);
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
         setTimeRemaining("Battle Ended");
         return;
       }
@@ -95,10 +107,11 @@ const Clubs = () => {
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
 
       setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
-  };
+    tick(); // Show immediately without waiting 1s
+    timerIntervalRef.current = setInterval(tick, 1000);
+  }, []);
 
   const fetchBattleLeaderboard = async (battleId: string) => {
     // Get all participants
@@ -300,8 +313,18 @@ const Clubs = () => {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUser) return;
+
+    if (newMessage.trim().length > MESSAGE_MAX_LENGTH) {
+      toast({
+        variant: "destructive",
+        title: "Message Too Long",
+        description: `Messages must be ${MESSAGE_MAX_LENGTH} characters or less.`
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase.from('club_messages').insert([{ club_id: selectedClub.id, user_id: currentUser.id, message_text: newMessage }]);
+      const { error } = await supabase.from('club_messages').insert([{ club_id: selectedClub.id, user_id: currentUser.id, message_text: newMessage.trim() }]);
       if (error) throw error;
       setNewMessage("");
       fetchMessages(selectedClub.id);
@@ -312,38 +335,52 @@ const Clubs = () => {
 
   const fetchClubDetails = async (club: any) => {
     setLoading(true);
-    const { data: allMemberships } = await supabase.from('club_members').select('user_id, club_id');
-    const { data: allCatches } = await supabase.from('catches').select('user_id, points');
-    
-    const clubScoreMap: Record<string, number> = {};
-    allMemberships?.forEach(m => {
-      const userPoints = allCatches?.filter(c => c.user_id === m.user_id).reduce((sum, c) => sum + (c.points || 0), 0) || 0;
-      clubScoreMap[m.club_id] = (clubScoreMap[m.club_id] || 0) + userPoints;
-    });
+    try {
+      const { data: allMemberships } = await supabase.from('club_members').select('user_id, club_id');
+      const { data: allCatches } = await supabase.from('catches').select('user_id, points');
 
-    const regionalClubs = clubs.filter(c => c.region === club.region).map(c => ({ ...c, score: clubScoreMap[c.id] || 0 })).sort((a, b) => b.score - a.score);
-    const rank = regionalClubs.findIndex(c => c.id === club.id) + 1;
-    setRegionalRank(rank);
+      const clubScoreMap: Record<string, number> = {};
+      allMemberships?.forEach(m => {
+        const userPoints = allCatches?.filter(c => c.user_id === m.user_id).reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+        clubScoreMap[m.club_id] = (clubScoreMap[m.club_id] || 0) + userPoints;
+      });
 
-    const currentClubMemberIds = allMemberships?.filter(m => m.club_id === club.id).map(m => m.user_id) || [];
-    setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
+      const regionalClubs = clubs.filter(c => c.region === club.region).map(c => ({ ...c, score: clubScoreMap[c.id] || 0 })).sort((a, b) => b.score - a.score);
+      const rank = regionalClubs.findIndex(c => c.id === club.id) + 1;
+      setRegionalRank(rank);
 
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const memberStats = (profiles || []).filter(p => currentClubMemberIds.includes(p.id))
-      .map(p => ({
-        ...p,
-        totalPoints: (allCatches || []).filter(c => c.user_id === p.id).reduce((acc, curr) => acc + (curr.points || 0), 0)
-      })).sort((a, b) => b.totalPoints - a.totalPoints);
+      const currentClubMemberIds = allMemberships?.filter(m => m.club_id === club.id).map(m => m.user_id) || [];
+      setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
 
-    setTotalPoints(clubScoreMap[club.id] || 0);
-    setClubMembers(memberStats);
-    setSelectedClub(club);
-    setEditName(club.name);
-    setEditRegion(club.region);
-    setLoading(false);
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      const memberStats = (profiles || []).filter(p => currentClubMemberIds.includes(p.id))
+        .map(p => ({
+          ...p,
+          totalPoints: (allCatches || []).filter(c => c.user_id === p.id).reduce((acc, curr) => acc + (curr.points || 0), 0)
+        })).sort((a, b) => b.totalPoints - a.totalPoints);
+
+      setTotalPoints(clubScoreMap[club.id] || 0);
+      setClubMembers(memberStats);
+      setSelectedClub(club);
+      setEditName(club.name);
+      setEditRegion(club.region);
+    } catch (error: any) {
+      console.error('fetchClubDetails error:', error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to load club details." });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchClubs(); }, []);
+  useEffect(() => {
+    fetchClubs();
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   if (loading && !selectedClub) return (
     <div className="flex h-[80vh] flex-col items-center justify-center space-y-4">

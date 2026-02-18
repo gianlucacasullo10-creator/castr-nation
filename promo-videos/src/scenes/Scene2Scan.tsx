@@ -7,35 +7,122 @@ const SUCCESS = '#2DC74B';
 const MUTED   = 'rgba(255,255,255,0.06)';
 const TEXT    = '#E8F4FA';
 
-// Mini bass SVG drawn inside the camera viewfinder
+// Realistic bass photo inside the camera viewfinder
 const MiniBass: React.FC = () => (
   <svg viewBox="0 0 420 420" width="100%" height="100%">
-    <rect width="420" height="420" fill="#091C2C" />
-    {/* Subtle underwater light shafts */}
-    <rect x={140} y={0} width={40} height={420} fill="rgba(71,200,224,0.04)" transform="rotate(-8,180,210)" />
-    <rect x={260} y={0} width={25} height={420} fill="rgba(71,200,224,0.03)" transform="rotate(5,270,210)" />
-    {/* Water floor */}
-    <rect x={0} y={330} width={420} height={90} fill="#061018" />
-    <ellipse cx={80}  cy={350} rx={40} ry={12} fill="#050E16" />
-    <ellipse cx={340} cy={360} rx={30} ry={10} fill="#050E16" />
+    <defs>
+      {/* Outdoor bokeh background */}
+      <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stopColor="#5A9AB8" />
+        <stop offset="55%"  stopColor="#3A6E88" />
+        <stop offset="100%" stopColor="#183848" />
+      </linearGradient>
+      {/* Bass body — dark olive back → silver belly */}
+      <linearGradient id="bassBody" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stopColor="#1A3020" />
+        <stop offset="22%"  stopColor="#2C5234" />
+        <stop offset="52%"  stopColor="#4A7A54" />
+        <stop offset="80%"  stopColor="#8AB098" />
+        <stop offset="100%" stopColor="#C8DCC8" />
+      </linearGradient>
+      {/* Tail gradient */}
+      <linearGradient id="tailG" x1="1" y1="0" x2="0" y2="0">
+        <stop offset="0%"   stopColor="#2C5234" />
+        <stop offset="100%" stopColor="#162818" />
+      </linearGradient>
+      {/* Eye gradient */}
+      <radialGradient id="eyeG" cx="38%" cy="36%" r="55%">
+        <stop offset="0%"   stopColor="#7A5228" />
+        <stop offset="55%"  stopColor="#2C1808" />
+        <stop offset="100%" stopColor="#080804" />
+      </radialGradient>
+      {/* Warm light shaft */}
+      <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stopColor="rgba(120,200,230,0.12)" />
+        <stop offset="100%" stopColor="rgba(120,200,230,0)" />
+      </linearGradient>
+    </defs>
 
-    {/* Bass fish */}
-    <g transform="translate(210,195) rotate(-8) scale(2.6)">
-      <ellipse cx={0} cy={0} rx={62} ry={26} fill="#3A6A4A" />
-      <path d="M -57 -9 C -18 -28 18 -28 57 -9" stroke="#2A5038" strokeWidth={12} fill="none" />
-      <ellipse cx={5} cy={11} rx={46} ry={12} fill="#9BBFA8" />
-      <path d="M -56 0 L -90 -30 L -84 0 L -90 30 Z" fill="#2A5038" />
-      <path d="M -12 -26 L -3 -52 L 14 -49 L 28 -40 L 33 -26" fill="#2A5038" />
-      <circle cx={43} cy={-5} r={8}   fill="white" />
-      <circle cx={44} cy={-5} r={5}   fill="#1A2010" />
-      <circle cx={46} cy={-7} r={2}   fill="white" />
-      <path d="M 59 0 Q 67 6 64 12" stroke="#1A2010" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+    {/* Background: blurred outdoor lake scene */}
+    <rect width="420" height="420" fill="url(#bg1)" />
+    {/* Bokeh circles (out-of-focus background lights) */}
+    <circle cx={60}  cy={80}  r={28} fill="rgba(180,220,240,0.10)" />
+    <circle cx={360} cy={60}  r={20} fill="rgba(180,220,240,0.08)" />
+    <circle cx={320} cy={340} r={35} fill="rgba(60,120,90,0.12)" />
+    <circle cx={80}  cy={370} r={22} fill="rgba(60,120,90,0.10)" />
+    {/* Light shafts through water */}
+    <rect x={100} y={0} width={50}  height={420} fill="url(#shaft)" transform="skewX(-6)" />
+    <rect x={260} y={0} width={30}  height={420} fill="url(#shaft)" transform="skewX(8)" />
+    {/* Vague water surface line */}
+    <rect x={0} y={310} width={420} height={110} fill="rgba(10,30,44,0.45)" />
+
+    {/* ── Bass fish ── centered, slight upward tilt */}
+    <g transform="translate(210,200) rotate(-10) scale(2.75)">
+      {/* Main body shape — more accurate than simple ellipse */}
+      <path d="M -68 0 C -68 -28 -36 -34 0 -31 C 38 -28 65 -16 72 0 C 65 16 38 28 0 31 C -36 34 -68 28 -68 0 Z"
+        fill="url(#bassBody)" />
+
+      {/* Dark olive back */}
+      <path d="M -62 -12 C -22 -32 22 -32 62 -12" stroke="#162818" strokeWidth={15} fill="none" />
+
+      {/* Lateral line (distinctive bass ID feature) */}
+      <path d="M -54 -1 L 62 -1" stroke="rgba(0,0,0,0.22)" strokeWidth={3.5} strokeLinecap="round" />
+
+      {/* Scale texture */}
+      <path d="M -32 -8 Q -20 -20 -8 -8" stroke="rgba(0,0,0,0.14)" strokeWidth={1.5} fill="none" />
+      <path d="M  -8 -8 Q   4 -20 16 -8" stroke="rgba(0,0,0,0.14)" strokeWidth={1.5} fill="none" />
+      <path d="M  16 -8 Q  28 -20 40 -8" stroke="rgba(0,0,0,0.14)" strokeWidth={1.5} fill="none" />
+      <path d="M  40 -8 Q  52 -20 62 -8" stroke="rgba(0,0,0,0.12)" strokeWidth={1.5} fill="none" />
+      <path d="M -30  8 Q -18  -4 -6  8" stroke="rgba(0,0,0,0.11)" strokeWidth={1.5} fill="none" />
+      <path d="M  -6  8 Q   6  -4 18  8" stroke="rgba(0,0,0,0.11)" strokeWidth={1.5} fill="none" />
+      <path d="M  18  8 Q  30  -4 42  8" stroke="rgba(0,0,0,0.11)" strokeWidth={1.5} fill="none" />
+
+      {/* Tail — forked, bass signature */}
+      <path d="M -64 0 C -72 -10 -96 -34 -94 -38 C -88 -32 -80 -10 -72 0 C -80 10 -88 32 -94 38 C -96 34 -72 10 -64 0 Z"
+        fill="url(#tailG)" />
+
+      {/* Dorsal fin — spiny anterior, soft posterior */}
+      <path d="M -12 -31 L -6 -60 L 4 -57 L 16 -65 L 28 -57 L 40 -48 L 48 -40 L 52 -31"
+        fill="#1E3824" stroke="#142018" strokeWidth={0.8} />
+      {/* Dorsal spines */}
+      {[-8,-2,10,22,34,44].map((sx, i) => (
+        <line key={i} x1={sx} y1={-31} x2={sx+2} y2={-60+i*5}
+          stroke="#142018" strokeWidth={1.5} />
+      ))}
+
+      {/* Pectoral fin */}
+      <ellipse cx={22} cy={14} rx={25} ry={10} fill="#1E3824" transform="rotate(-28,22,14)" />
+
+      {/* Pelvic fin */}
+      <path d="M 2 28 L 4 46 L 14 44 L 18 28" fill="#1E3824" />
+
+      {/* Anal fin */}
+      <path d="M -22 28 L -24 48 L -6 46 L -2 28" fill="#1E3824" />
+
+      {/* Eye — large, bass are sight predators */}
+      <circle cx={44} cy={-6} r={12} fill="white" />
+      <circle cx={44} cy={-6} r={9}  fill="url(#eyeG)" />
+      <circle cx={47} cy={-9} r={3.5} fill="white" />
+      {/* Pupil slit */}
+      <ellipse cx={44} cy={-6} rx={4} ry={6} fill="rgba(0,0,0,0.6)" />
+      {/* Eye ring */}
+      <circle cx={44} cy={-6} r={12} fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth={1} />
+
+      {/* Mouth — bass have famously large mouths */}
+      <path d="M 68 2 Q 75 8 72 16"  stroke="#0A1008" strokeWidth={3}   fill="none" strokeLinecap="round" />
+      <path d="M 66 -5 L 76 -2"       stroke="#0A1008" strokeWidth={2.5} fill="none" strokeLinecap="round" />
     </g>
 
+    {/* Subtle vignette */}
+    <rect width="420" height="420"
+      fill="none"
+      stroke="rgba(0,0,0,0.3)" strokeWidth={30}
+    />
+
     {/* Photo corner brackets */}
-    <path d="M 0 0 L 45 0 M 0 0 L 0 45" stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
-    <path d="M 420 0 L 375 0 M 420 0 L 420 45" stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
-    <path d="M 0 420 L 45 420 M 0 420 L 0 375" stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
+    <path d="M 0 0 L 45 0 M 0 0 L 0 45"    stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
+    <path d="M 420 0 L 375 0 M 420 0 L 420 45"   stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
+    <path d="M 0 420 L 45 420 M 0 420 L 0 375"   stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
     <path d="M 420 420 L 375 420 M 420 420 L 420 375" stroke={PRIMARY} strokeWidth={4} fill="none" strokeLinecap="round" />
   </svg>
 );

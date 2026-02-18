@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Camera, MapPin, Fish, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Camera, MapPin, Fish, Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getStorageUrl } from '@/utils/storage';
 
@@ -32,7 +32,6 @@ const FALLBACK_POINTS: Record<string, number> = {
 const Capture = () => {
   const [species, setSpecies] = useState("");
   const [locationName, setLocationName] = useState("");
-  const [country, setCountry] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [image, setImage] = useState<File | null>(null);
@@ -52,10 +51,7 @@ const Capture = () => {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
       const data = await response.json();
       const city = data.address.city || data.address.town || data.address.village || data.address.county;
-      const countryName = data.address.country;
-      
       if (city) setLocationName(city);
-      if (countryName) setCountry(countryName);
     } catch (error) { 
       console.error("Geocoding error:", error); 
     }
@@ -92,8 +88,6 @@ const Capture = () => {
     loadSpeciesPoints();
   }, []);
 
-  const isAllowedRegion = country === "Canada" || country === "United States";
-
   const getFishPoints = (name: string): number => {
     const s = name.toLowerCase();
     // Exact match from DB
@@ -109,10 +103,6 @@ const Capture = () => {
 
   const handleCapture = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAllowedRegion) {
-      toast({ variant: "destructive", title: "Out of Bounds", description: "The Nation currently only supports Canada and the USA." });
-      return;
-    }
     setUploading(true);
 
     try {
@@ -163,15 +153,6 @@ const Capture = () => {
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6 text-left">
       <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Verify Catch</h1>
       
-      {!isAllowedRegion && country && (
-        <Card className="p-4 bg-red-500/10 border-red-500/20 flex items-start gap-3">
-          <AlertTriangle className="text-red-500 shrink-0" size={20} />
-          <p className="text-[10px] font-black uppercase text-red-500 leading-tight">
-            Location detected as {country}. The Nation is currently exclusive to North America.
-          </p>
-        </Card>
-      )}
-
       <form onSubmit={handleCapture} className="space-y-6">
         <Card className="relative aspect-square flex flex-col items-center justify-center border-2 border-dashed bg-muted overflow-hidden rounded-[40px]">
           {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Camera size={48} className="text-muted-foreground opacity-20" />}
@@ -202,14 +183,14 @@ const Capture = () => {
             )}
           </div>
           <div className="relative">
-            <MapPin className={`absolute left-3 top-3 ${isAllowedRegion ? 'text-primary' : 'text-red-500'}`} size={18} />
-            <Input className={`pl-10 h-12 bg-card border-none rounded-2xl font-bold ${isAllowedRegion ? 'text-primary' : 'text-red-500'}`} value={locationName || (isLocating ? "Locating..." : "Unknown")} readOnly />
+            <MapPin className="absolute left-3 top-3 text-primary" size={18} />
+            <Input className="pl-10 h-12 bg-card border-none rounded-2xl font-bold text-primary" value={locationName || (isLocating ? "Locating..." : "Unknown")} readOnly />
           </div>
         </div>
 
         <Button 
           type="submit" 
-          disabled={uploading || !isAllowedRegion || isLocating} 
+          disabled={uploading || isLocating}
           className="w-full h-14 text-lg font-black italic uppercase rounded-2xl shadow-lg"
         >
           {uploading ? <Loader2 className="animate-spin" /> : "Verify & Submit"}

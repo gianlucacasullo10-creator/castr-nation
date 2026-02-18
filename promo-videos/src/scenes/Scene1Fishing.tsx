@@ -28,7 +28,7 @@ const wavePath = (frame: number, off: number = 0): string => {
   ].join(' ');
 };
 
-// ─── Splash (SVG — looks fine) ────────────────────────────────────────────────
+// ─── Splash ────────────────────────────────────────────────────────────────────
 const Splash: React.FC<{x: number; y: number; lf: number}> = ({x, y, lf}) => {
   const prog = interpolate(lf, [0, 38], [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
   const r1 = prog * 105;
@@ -64,15 +64,19 @@ export const Scene1Fishing: React.FC = () => {
 
   // ── Fish arc: frames 88–138 ──────────────────────────────────────────────
   const fishProg = interpolate(frame, [88, 138], [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
-  // Position as % of 1080×1920 canvas (for CSS absolute positioning)
   const fishXpct = ((435 + Math.sin(fishProg * Math.PI * 0.5) * 65) / 1080) * 100;
   const fishYpct = ((WATER_Y - Math.sin(fishProg * Math.PI) * 400) / 1920) * 100;
   const fishRot  = interpolate(fishProg, [0, 0.3, 0.7, 1], [20, -10, -30, 15]);
   const fishOp   = interpolate(frame, [88, 95, 132, 140], [0, 1, 1, 0], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
 
-  // ── Fisherman casting motion ──────────────────────────────────────────────
-  // Subtle tilt: lean back (wind-up) → snap forward (cast)
-  const castRot = interpolate(frame, [0, 25, 50, 80], [-4, -14, -14, 8], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  // ── Fishing rod animation ─────────────────────────────────────────────────
+  // Wind up → hold → release → fish strikes (rod snaps back)
+  const rodAngle = interpolate(
+    frame, [0, 20, 50, 80, 88, 100],
+    [-2, -10, -10, -3, 9, 5],
+    {extrapolateLeft:'clamp', extrapolateRight:'clamp'},
+  );
+  const totalRodAngle = rodAngle + Math.sin(frame * 0.09) * 1.5;
 
   // Star fade (dim toward orange horizon)
   const starAlpha = (sy: number) => Math.max(0, 1 - sy / 460);
@@ -80,7 +84,7 @@ export const Scene1Fishing: React.FC = () => {
   return (
     <AbsoluteFill style={{opacity: fadeIn}}>
 
-      {/* ── SVG: sky, sun, water, waves, shore ─────────────────────────── */}
+      {/* ── SVG: sky, sun, water, waves, shore, rod ──────────────────────── */}
       <svg style={{position:'absolute',inset:0}} viewBox="0 0 1080 1920" width="100%" height="100%">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -141,7 +145,7 @@ export const Scene1Fishing: React.FC = () => {
         <path d={wavePath(frame)}     fill="#1C3A4E" opacity={0.88} />
         <path d={wavePath(frame, 12)} fill="#244A62" opacity={0.45} />
 
-        {/* Shore / bank behind fisherman */}
+        {/* Shore / bank */}
         <path d="M 580 1062 Q 720 1040 920 1054 L 1080 1050 L 1080 1180 L 580 1180 Z" fill="#0C1C2E" />
         <path d="M 640 1062 Q 760 1044 940 1056 L 1080 1052 L 1080 1110 L 640 1110 Z" fill="#0A1828" />
         <ellipse cx={840} cy={1072} rx={40} ry={16} fill="#08141E" />
@@ -152,23 +156,31 @@ export const Scene1Fishing: React.FC = () => {
         {frame >= 88 && frame <= 126 && (
           <Splash x={435} y={WATER_Y} lf={frame - 88} />
         )}
-      </svg>
 
-      {/* ── Fisherman emoji (silhouetted) ──────────────────────────────── */}
-      {/* brightness(0) = pure black silhouette; the sunrise behind it sells the look */}
-      <div style={{
-        position: 'absolute',
-        right: '9%',
-        bottom: '41%',
-        fontSize: 290,
-        lineHeight: 1,
-        userSelect: 'none',
-        transformOrigin: 'bottom center',
-        transform: `rotate(${castRot}deg)`,
-        filter: 'brightness(0) saturate(0)',
-      }}>
-        🎣
-      </div>
+        {/*
+          Fishing rod — pivot at (990, 1068) on shore.
+          In local space (translated to pivot):
+            butt→mid  : (0,0)    → (-130,-186)   thick dark segment
+            mid→tip   : (-130,186) → (-390,-557)  tapering to fine tip
+          Fishing line hangs from tip to water surface.
+        */}
+        <g transform={`translate(990,1068) rotate(${totalRodAngle})`}>
+          {/* Butt / lower section — thick */}
+          <line x1={0} y1={0} x2={-130} y2={-186}
+            stroke="#040A10" strokeWidth={10} strokeLinecap="round" />
+          {/* Mid section */}
+          <line x1={-124} y1={-177} x2={-280} y2={-400}
+            stroke="#060E18" strokeWidth={6} strokeLinecap="round" />
+          {/* Tip section — thin */}
+          <line x1={-274} y1={-392} x2={-390} y2={-557}
+            stroke="#0C1E30" strokeWidth={2.5} strokeLinecap="round" />
+          {/* Fishing line — subtle white thread from tip to water */}
+          <line x1={-390} y1={-557} x2={-562} y2={-12}
+            stroke="rgba(220,235,255,0.32)" strokeWidth={1.4} />
+          {/* Tiny lure dot at water entry */}
+          <circle cx={-562} cy={-12} r={5} fill="rgba(71,200,224,0.55)" />
+        </g>
+      </svg>
 
       {/* ── Fish emoji (silhouetted, jumping in arc) ────────────────────── */}
       {frame >= 88 && frame <= 140 && (

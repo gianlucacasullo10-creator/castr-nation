@@ -9,7 +9,7 @@ const TEXT    = '#E8F4FA';
 
 // ─── Fish emoji + pulsing AI scan rings inside the camera viewfinder ──────────
 const MiniBass: React.FC<{frame: number}> = ({frame}) => {
-  const lf        = Math.max(0, frame - 67);
+  const lf        = Math.max(0, frame - 52);
   const ringScale = 1 + Math.sin(lf * 0.18) * 0.06;
   const ringOp    = 0.55 + Math.sin(lf * 0.14) * 0.2;
 
@@ -72,26 +72,26 @@ export const Scene2Scan: React.FC = () => {
   const phoneSpr   = spring({frame: Math.max(0, frame - 12), fps, config: {damping: 18, stiffness: 110}});
   const phoneTransY = interpolate(phoneSpr, [0, 1], [540, 0]);
 
-  const reticle      = interpolate(frame, [40, 65],    [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
-  const shutterFlash = interpolate(frame, [62, 67, 74],[0, 1, 0], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
-  const captured     = frame >= 67;
+  const reticle      = interpolate(frame, [25, 50],    [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  const shutterFlash = interpolate(frame, [47, 52, 59],[0, 1, 0], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  const captured     = frame >= 52;
 
   const speciesStr = 'Largemouth Bass';
   const charsShown = Math.min(
     speciesStr.length,
-    Math.floor(interpolate(frame, [72, 108], [0, speciesStr.length], {extrapolateLeft:'clamp', extrapolateRight:'clamp'})),
+    Math.floor(interpolate(frame, [57, 93], [0, speciesStr.length], {extrapolateLeft:'clamp', extrapolateRight:'clamp'})),
   );
   const typed  = speciesStr.slice(0, charsShown);
-  const cursor = frame >= 72 && frame < 108 && Math.floor(frame / 8) % 2 === 0;
+  const cursor = frame >= 57 && frame < 93 && Math.floor(frame / 8) % 2 === 0;
 
-  const locGlow = interpolate(frame, [95, 108], [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  const locGlow = interpolate(frame, [80, 93], [0, 1], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
 
-  const btnPressSpr = spring({frame: Math.max(0, frame - 112), fps, config: {damping: 7, stiffness: 380}});
-  const btnScale    = frame >= 112 ? interpolate(btnPressSpr, [0, 0.6, 1], [1, 0.9, 1]) : 1;
-  const btnSuccess  = frame >= 116;
+  const btnPressSpr = spring({frame: Math.max(0, frame - 97), fps, config: {damping: 7, stiffness: 380}});
+  const btnScale    = frame >= 97 ? interpolate(btnPressSpr, [0, 0.6, 1], [1, 0.9, 1]) : 1;
+  const btnSuccess  = frame >= 101;
 
-  const trophyFlash = interpolate(frame, [114, 120, 128], [0, 0.35, 0], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
-  const fadeOut     = interpolate(frame, [120, 135],       [0, 1],       {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  const trophyFlash = interpolate(frame, [99, 105, 113], [0, 0.35, 0], {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
+  const fadeOut     = interpolate(frame, [105, 120],       [0, 1],       {extrapolateLeft:'clamp', extrapolateRight:'clamp'});
 
   return (
     <AbsoluteFill style={{background: NAVY, opacity: bgOpacity}}>

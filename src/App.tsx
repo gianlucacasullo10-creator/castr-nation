@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import BottomNav from "./components/BottomNav";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import Capture from "./pages/Capture";
 import Leaderboards from "./pages/Leaderboards";
@@ -69,22 +70,24 @@ const App = () => {
         <BrowserRouter>
           <div className="min-h-screen bg-background pb-20">
             <div className="page-transition">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/capture" element={<Capture />} />
-                <Route path="/leaderboards" element={<Leaderboards />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/inventory" element={<Inventory />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/profile/:id" element={<PublicProfile />} />
-                <Route path="/clubs" element={<Clubs />} />
-                <Route path="/achievements" element={<Achievements />} />
-                <Route path="/castrs-pro" element={<CastrsPro />} />
-                <Route path="/tournaments" element={<Tournaments />} />
-                <Route path="/admin/review" element={<AdminReview />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/capture" element={<Capture />} />
+                  <Route path="/leaderboards" element={<Leaderboards />} />
+                  <Route path="/shop" element={<Shop />} />
+                  <Route path="/inventory" element={<Inventory />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile/:id" element={<PublicProfile />} />
+                  <Route path="/clubs" element={<Clubs />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/castrs-pro" element={<CastrsPro />} />
+                  <Route path="/tournaments" element={<Tournaments />} />
+                  <Route path="/admin/review" element={<AdminReview />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
             </div>
 
             {globalShowUpload && (

@@ -17,6 +17,18 @@ const FISH_SPECIES = [
   "Yellow Perch", "Common Carp", "Striped Bass", "Bullhead"
 ].sort();
 
+// Fallback points used when the DB hasn't been seeded yet
+const FALLBACK_POINTS: Record<string, number> = {
+  "muskellunge (muskie)": 150,
+  "walleye": 90,
+  "smallmouth bass": 85,
+  "largemouth bass": 75,
+  "northern pike": 50,
+  "spotted bass": 50,
+  "striped bass": 50,
+  "lake trout": 30,
+};
+
 const Capture = () => {
   const [species, setSpecies] = useState("");
   const [locationName, setLocationName] = useState("");
@@ -26,6 +38,7 @@ const Capture = () => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [speciesPointsMap, setSpeciesPointsMap] = useState<Record<string, number>>({});
   
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -60,14 +73,37 @@ const Capture = () => {
     }
   }, []);
 
+  // Load species points from DB; fall back to hardcoded values if table is empty
+  useEffect(() => {
+    const loadSpeciesPoints = async () => {
+      const { data } = await supabase
+        .from('fish_species')
+        .select('name, points')
+        .not('points', 'is', null);
+
+      if (data && data.length > 0) {
+        const map: Record<string, number> = {};
+        data.forEach((s: any) => {
+          map[s.name.toLowerCase()] = s.points;
+        });
+        setSpeciesPointsMap(map);
+      }
+    };
+    loadSpeciesPoints();
+  }, []);
+
   const isAllowedRegion = country === "Canada" || country === "United States";
 
-  const getFishPoints = (name: string) => {
+  const getFishPoints = (name: string): number => {
     const s = name.toLowerCase();
-    if (s.includes("muskie")) return 150;
-    if (s.includes("smallmouth")) return 85;
-    if (s.includes("largemouth")) return 75;
-    if (s.includes("walleye")) return 90;
+    // Exact match from DB
+    if (speciesPointsMap[s]) return speciesPointsMap[s];
+    // Partial match from DB
+    const dbMatch = Object.entries(speciesPointsMap).find(([key]) => s.includes(key) || key.includes(s));
+    if (dbMatch) return dbMatch[1];
+    // Fallback to hardcoded values while DB is being seeded
+    const fallbackMatch = Object.entries(FALLBACK_POINTS).find(([key]) => s.includes(key) || key.includes(s));
+    if (fallbackMatch) return fallbackMatch[1];
     return 25;
   };
 

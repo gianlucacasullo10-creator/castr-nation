@@ -97,8 +97,8 @@ const Index = () => {
         setUserProfile(profile);
       }
 
-      const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false });
-      const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
+      const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false }).limit(100);
+      const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(100);
       const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title');
       if (profilesError) console.error('Profiles fetch error:', profilesError);
       const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
@@ -287,6 +287,11 @@ const Index = () => {
       toast({ variant: "destructive", title: "Comment Required", description: "Please enter a comment" });
       return;
     }
+
+    if (commentText.trim().length > 300) {
+      toast({ variant: "destructive", title: "Too Long", description: "Comments must be 300 characters or less." });
+      return;
+    }
     
     if (!currentUser || !currentUser.id) {
       toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to comment" });
@@ -294,19 +299,14 @@ const Index = () => {
     }
 
     try {
-      console.log('Posting comment...', { userId: currentUser.id, itemId, type });
-      
       const column = type === 'CATCH' ? 'catch_id' : 'activity_id';
-      const { error } = await supabase.from('comments').insert([{ 
-        user_id: currentUser.id, 
-        [column]: itemId, 
-        comment_text: commentText.trim() 
+      const { error } = await supabase.from('comments').insert([{
+        user_id: currentUser.id,
+        [column]: itemId,
+        comment_text: commentText.trim()
       }]);
-      
-      if (error) {
-        console.error('Comment error:', error);
-        throw error;
-      }
+
+      if (error) throw error;
       
       setCommentText("");
       setActiveCommentId(null);
@@ -316,7 +316,6 @@ const Index = () => {
       fetchUnifiedFeed(false);
       toast({ title: "Comment Posted!" });
     } catch (error: any) {
-      console.error('Failed to post comment:', error);
       toast({ variant: "destructive", title: "Post Failed", description: error.message || "Could not post comment" });
     }
   };
@@ -327,7 +326,7 @@ const Index = () => {
     const confirmDelete = window.confirm('Are you sure you want to delete this post?');
     if (!confirmDelete) return;
 
-    const isAdmin = currentUser.email === 'gianlucacasullo10@gmail.com';
+    const isAdmin = userProfile?.is_admin === true;
 
     try {
       if (itemType === 'CATCH') {
@@ -521,7 +520,7 @@ const Index = () => {
                 </div>
 
                 {/* Delete button - show for post owner OR admin */}
-                {(currentUser?.id === item.user_id || currentUser?.email === 'gianlucacasullo10@gmail.com') && (
+                {(currentUser?.id === item.user_id || userProfile?.is_admin === true) && (
                   <button
                     onClick={() => handleDeletePost(item.id, item.itemType)}
                     className="text-red-500/50 hover:text-red-500 transition-colors p-2"

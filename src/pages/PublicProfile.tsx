@@ -67,10 +67,6 @@ const PublicProfile = () => {
           .single();
 
         if (profileError) throw profileError;
-        
-        console.log('URL id:', id);
-        console.log('Profile data:', profileData);
-        console.log('Profile user_id:', profileData?.user_id);
 
         // 2. Fetch Catch Stats & Data
         const { data: catchData } = await supabase
@@ -87,9 +83,7 @@ const PublicProfile = () => {
           .eq('user_id', id)
           .eq('is_equipped', true);
         
-        console.log('Gear query for user_id:', id);
-        console.log('Gear data:', gearData);
-        console.log('Gear error:', gearError);
+        if (gearError) console.error('Gear fetch error:', gearError);
 
         // 4. Fetch Friend Count
         const { count } = await supabase

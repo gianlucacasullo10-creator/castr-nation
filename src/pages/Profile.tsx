@@ -138,31 +138,21 @@ const Profile = () => {
     setIsUpdatingName(true);
     
     try {
-      console.log('Starting name update...');
-      console.log('Profile ID:', profile.id);
-      console.log('New name:', tempName.trim());
-      
       const { error } = await supabase
         .from('profiles')
         .update({ display_name: tempName.trim() })
         .eq('id', profile.id);
 
-      console.log('Update error:', error);
-
-      if (error) {
-        console.error('Name update error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       setProfile({ ...profile, display_name: tempName.trim() });
       setIsEditingName(false);
       toast({ title: "Name Updated!" });
     } catch (error: any) {
-      console.error('Full error:', error);
-      toast({ 
-        variant: "destructive", 
-        title: "Update Failed", 
-        description: error.message || "Could not update name. Check console for details." 
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Could not update name."
       });
     } finally {
       setIsUpdatingName(false);
@@ -171,29 +161,20 @@ const Profile = () => {
 
   const equipTitle = async (titleName: string) => {
     try {
-      console.log('Equipping title:', titleName);
-      console.log('Profile ID:', profile.id);
-      
       const { error } = await supabase
         .from('profiles')
         .update({ equipped_title: titleName })
         .eq('id', profile.id);
 
-      console.log('Title update error:', error);
-
-      if (error) {
-        console.error('Title update error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       setProfile({ ...profile, equipped_title: titleName });
       toast({ title: "Identity Updated", description: `Equipped: ${titleName}` });
     } catch (error: any) {
-      console.error('Failed to equip title:', error);
-      toast({ 
-        variant: "destructive", 
-        title: "Update Failed", 
-        description: error.message || "Could not equip title. Check console for details." 
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Could not equip title."
       });
     }
   };

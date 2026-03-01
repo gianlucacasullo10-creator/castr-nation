@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Package, Sparkles, Tv, Trophy } from "lucide-react";
 import CaseOpening from "@/components/CaseOpening";
 import { checkAchievementsAfterCaseOpen } from "@/utils/achievementTracker";
+import { useProStatus } from "@/hooks/useProStatus";
 
 const CASE_PRICE = 500; // Points per case
 
@@ -18,6 +19,7 @@ const Shop = () => {
   const [wonItem, setWonItem] = useState<any>(null);
   const [watchingAd, setWatchingAd] = useState(false);
   const { toast } = useToast();
+  const { isPro } = useProStatus();
 
   useEffect(() => {
     fetchUserData();
@@ -37,6 +39,25 @@ const Shop = () => {
       setUserProfile(profile);
     }
     setLoading(false);
+  };
+
+  const getEffectiveLootTable = (lootTable: any[]) => {
+    if (!isPro) return lootTable;
+    return lootTable.map(item =>
+      item.rarity === "common"
+        ? item
+        : { ...item, drop_weight: item.drop_weight * 2 }
+    );
+  };
+
+  const weightedPick = (table: any[]) => {
+    const total = table.reduce((sum, item) => sum + item.drop_weight, 0);
+    let random = Math.random() * total;
+    for (const item of table) {
+      random -= item.drop_weight;
+      if (random <= 0) return item;
+    }
+    return table[0];
   };
 
   const openCase = async () => {
@@ -60,18 +81,9 @@ const Shop = () => {
 
       if (lootError) throw lootError;
 
-      // Weighted random selection
-      const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
-      let random = Math.random() * totalWeight;
-
-      let selectedItem = lootTable[0];
-      for (const item of lootTable) {
-        random -= item.drop_weight;
-        if (random <= 0) {
-          selectedItem = item;
-          break;
-        }
-      }
+      // Weighted random selection (2x odds for non-common if pro)
+      const effectiveTable = getEffectiveLootTable(lootTable);
+      const selectedItem = weightedPick(effectiveTable);
 
       // Add to inventory FIRST — only spend points if this succeeds
       const { data: newInventoryItem, error: inventoryError } = await supabase
@@ -143,18 +155,9 @@ const Shop = () => {
 
         if (lootError) throw lootError;
 
-        // Weighted random selection
-        const totalWeight = lootTable.reduce((sum, item) => sum + item.drop_weight, 0);
-        let random = Math.random() * totalWeight;
-        
-        let selectedItem = lootTable[0];
-        for (const item of lootTable) {
-          random -= item.drop_weight;
-          if (random <= 0) {
-            selectedItem = item;
-            break;
-          }
-        }
+        // Weighted random selection (2x odds for non-common if pro)
+        const effectiveTable = getEffectiveLootTable(lootTable);
+        const selectedItem = weightedPick(effectiveTable);
 
         // Add to inventory
         const { error: inventoryError } = await supabase
@@ -304,32 +307,40 @@ const Shop = () => {
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
-          {/* Rewarded Ad Button - Liquid Glass */}
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity" />
-            <Button
-              onClick={handleWatchAd}
-              disabled={watchingAd || opening}
-              variant="outline"
-              className="relative w-full h-14 rounded-2xl bg-white/[0.06] backdrop-blur-sm border-2 border-white/20 hover:bg-white/[0.12] hover:border-white/30 text-white font-black uppercase text-sm disabled:opacity-50 transition-all"
-            >
-              {watchingAd ? (
-                <>
-                  <Loader2 className="animate-spin mr-2" size={20} />
-                  Loading Ad...
-                </>
-              ) : (
-                <>
-                  <Tv className="mr-2" size={20} />
-                  Watch Ad - Free Case
-                </>
-              )}
-            </Button>
-          </div>
-          
-          <p className="text-center text-[10px] text-muted-foreground font-medium">
-            Watch a short ad to open a case for free!
-          </p>
+          {isPro ? (
+            <p className="text-center text-sm font-black uppercase text-primary py-2">
+              ⭐ Pro: 2x drop rates active
+            </p>
+          ) : (
+            <>
+              {/* Rewarded Ad Button - Liquid Glass */}
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/30 to-pink-500/30 rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity" />
+                <Button
+                  onClick={handleWatchAd}
+                  disabled={watchingAd || opening}
+                  variant="outline"
+                  className="relative w-full h-14 rounded-2xl bg-white/[0.06] backdrop-blur-sm border-2 border-white/20 hover:bg-white/[0.12] hover:border-white/30 text-white font-black uppercase text-sm disabled:opacity-50 transition-all"
+                >
+                  {watchingAd ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" size={20} />
+                      Loading Ad...
+                    </>
+                  ) : (
+                    <>
+                      <Tv className="mr-2" size={20} />
+                      Watch Ad - Free Case
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <p className="text-center text-[10px] text-muted-foreground font-medium">
+                Watch a short ad to open a case for free!
+              </p>
+            </>
+          )}
         </div>
       </Card>
 

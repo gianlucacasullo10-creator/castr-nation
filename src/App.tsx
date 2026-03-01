@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { initRevenueCat } from "@/lib/revenuecat";
 import BottomNav from "./components/BottomNav";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -26,9 +27,47 @@ import AdminReview from "@/pages/AdminReview";
 
 const queryClient = new QueryClient();
 
+async function checkWeeklyLegendaryDrop(accessToken: string) {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const res = await fetch(`${supabaseUrl}/functions/v1/grant-weekly-legendary`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const json = await res.json();
+    if (json.granted) {
+      console.log("Weekly legendary drop granted:", json.item);
+    }
+  } catch (err) {
+    console.warn("Weekly legendary check failed:", err);
+  }
+}
+
 const App = () => {
   const { toast } = useToast();
   const [globalShowUpload, setGlobalShowUpload] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          await initRevenueCat(session.user.id);
+
+          // Check pro status then trigger weekly drop
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_pro")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile?.is_pro && session.access_token) {
+            checkWeeklyLegendaryDrop(session.access_token);
+          }
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const channel = supabase

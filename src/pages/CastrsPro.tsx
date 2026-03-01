@@ -2,36 +2,83 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  Crown, 
-  Zap, 
-  Gift, 
-  Sparkles, 
+import { useProStatus } from "@/hooks/useProStatus";
+import { getOfferings, purchasePackage, restorePurchases } from "@/lib/revenuecat";
+import { Capacitor } from "@capacitor/core";
+import {
+  Crown,
+  Zap,
+  Gift,
+  Sparkles,
   TrendingUp,
   CheckCircle2,
-  X
+  X,
+  RotateCcw
 } from "lucide-react";
 
 const CastrsPro = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, loading } = useProStatus();
 
   const handleSubscribe = async () => {
-    setIsProcessing(true);
-    
-    // TODO: Connect to payment platform (RevenueCat, Stripe, etc.)
-    // For now, just show a placeholder
-    
-    setTimeout(() => {
+    if (!Capacitor.isNativePlatform()) {
       toast({
-        title: "Coming Soon!",
-        description: "CASTRS Pro subscriptions will be available soon. Stay tuned!",
+        title: "Native App Required",
+        description: "Subscriptions are available in the iOS app.",
       });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const offering = await getOfferings();
+      if (!offering?.monthly) {
+        toast({
+          variant: "destructive",
+          title: "Unavailable",
+          description: "Subscription not available right now. Please try again.",
+        });
+        return;
+      }
+
+      await purchasePackage(offering.monthly);
+
+      toast({
+        title: "Welcome to CASTRS Pro! ⭐",
+        description: "Your subscription is now active.",
+      });
+      navigate("/profile");
+    } catch (err: any) {
+      if (err?.userCancelled) return;
+      toast({
+        variant: "destructive",
+        title: "Purchase Failed",
+        description: err?.message || "Something went wrong. Please try again.",
+      });
+    } finally {
       setIsProcessing(false);
-    }, 1000);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toast({ title: "Native App Required", description: "Restore is available in the iOS app." });
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      await restorePurchases();
+      toast({ title: "Purchases Restored", description: "Your subscription status has been updated." });
+      navigate("/profile");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Restore Failed", description: err?.message });
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const proFeatures = [
@@ -83,43 +130,69 @@ const CastrsPro = () => {
         </Button>
       </div>
 
-      {/* Hero Card */}
-      <Card className="relative overflow-hidden border-none rounded-[32px] bg-gradient-to-br from-yellow-500/20 via-primary/20 to-purple-500/20 p-8 border-2 border-primary/30">
-        <div className="absolute top-0 right-0 opacity-10">
-          <Crown size={200} />
-        </div>
-        
-        <div className="relative z-10 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 bg-black/20 px-6 py-2 rounded-full">
-            <Crown className="text-yellow-500" size={20} />
-            <span className="text-sm font-black uppercase text-white">Premium Membership</span>
+      {/* Already Pro State */}
+      {!loading && isPro && (
+        <Card className="relative overflow-hidden border-none rounded-[32px] bg-gradient-to-br from-yellow-500/20 via-primary/20 to-purple-500/20 p-8 border-2 border-primary/30 text-center space-y-4">
+          <div className="absolute top-0 right-0 opacity-10">
+            <Crown size={200} />
           </div>
-          
-          <h2 className="text-4xl font-black italic uppercase tracking-tighter">
-            Level Up Your Game
-          </h2>
-          
-          <p className="text-foreground/80 font-medium">
-            Get exclusive perks, better odds, and premium features
-          </p>
+          <div className="relative z-10 space-y-3">
+            <Crown className="text-yellow-500 mx-auto" size={48} />
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter">
+              You're a Pro Member ⭐
+            </h2>
+            <p className="text-foreground/80 font-medium">
+              All premium perks are active on your account.
+            </p>
+            <Button
+              onClick={() => navigate("/profile")}
+              className="w-full h-12 rounded-2xl bg-gradient-to-r from-yellow-500 to-primary text-black font-black uppercase text-sm"
+            >
+              Back to Profile
+            </Button>
+          </div>
+        </Card>
+      )}
 
-          <div className="pt-4">
-            <div className="text-5xl font-black text-primary mb-2">$4.99</div>
-            <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-              Per Month
+      {/* Hero Card (non-pro) */}
+      {(loading || !isPro) && (
+        <Card className="relative overflow-hidden border-none rounded-[32px] bg-gradient-to-br from-yellow-500/20 via-primary/20 to-purple-500/20 p-8 border-2 border-primary/30">
+          <div className="absolute top-0 right-0 opacity-10">
+            <Crown size={200} />
+          </div>
+
+          <div className="relative z-10 text-center space-y-4">
+            <div className="inline-flex items-center gap-2 bg-black/20 px-6 py-2 rounded-full">
+              <Crown className="text-yellow-500" size={20} />
+              <span className="text-sm font-black uppercase text-white">Premium Membership</span>
+            </div>
+
+            <h2 className="text-4xl font-black italic uppercase tracking-tighter">
+              Level Up Your Game
+            </h2>
+
+            <p className="text-foreground/80 font-medium">
+              Get exclusive perks, better odds, and premium features
+            </p>
+
+            <div className="pt-4">
+              <div className="text-5xl font-black text-primary mb-2">$4.99</div>
+              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                Per Month
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Features Grid */}
       <div className="space-y-3">
         <h3 className="text-sm font-black uppercase text-muted-foreground px-2">
           Pro Features
         </h3>
-        
+
         {proFeatures.map((feature, index) => (
-          <Card 
+          <Card
             key={index}
             className="p-4 rounded-2xl border-2 border-muted hover:border-primary/30 transition-all"
           >
@@ -135,6 +208,7 @@ const CastrsPro = () => {
                   {feature.description}
                 </p>
               </div>
+              {isPro && <CheckCircle2 size={18} className="text-primary shrink-0 mt-1" />}
             </div>
           </Card>
         ))}
@@ -145,7 +219,7 @@ const CastrsPro = () => {
         <h3 className="text-sm font-black uppercase text-center mb-4">
           Free vs Pro
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Free</p>
@@ -155,7 +229,7 @@ const CastrsPro = () => {
               <div className="text-xs">No bonuses</div>
             </div>
           </div>
-          
+
           <div>
             <p className="text-xs font-bold text-primary uppercase mb-2">Pro ⭐</p>
             <div className="space-y-2">
@@ -167,31 +241,43 @@ const CastrsPro = () => {
         </div>
       </Card>
 
-      {/* CTA Buttons */}
-      <div className="space-y-3 pt-4">
-        <Button
-          onClick={handleSubscribe}
-          disabled={isProcessing}
-          className="w-full h-14 rounded-2xl bg-gradient-to-r from-yellow-500 to-primary hover:from-yellow-600 hover:to-primary/90 text-black font-black uppercase text-sm shadow-[0_8px_30px_rgba(34,211,238,0.4)]"
-        >
-          {isProcessing ? (
-            "Processing..."
-          ) : (
-            <>
-              <Crown className="mr-2" size={20} />
-              Upgrade to Pro
-            </>
-          )}
-        </Button>
+      {/* CTA Buttons (non-pro only) */}
+      {!isPro && (
+        <div className="space-y-3 pt-4">
+          <Button
+            onClick={handleSubscribe}
+            disabled={isProcessing || loading}
+            className="w-full h-14 rounded-2xl bg-gradient-to-r from-yellow-500 to-primary hover:from-yellow-600 hover:to-primary/90 text-black font-black uppercase text-sm shadow-[0_8px_30px_rgba(34,211,238,0.4)]"
+          >
+            {isProcessing ? (
+              "Processing..."
+            ) : (
+              <>
+                <Crown className="mr-2" size={20} />
+                Upgrade to Pro — $4.99/mo
+              </>
+            )}
+          </Button>
 
-        <Button
-          onClick={() => navigate(-1)}
-          variant="outline"
-          className="w-full h-12 rounded-2xl font-bold uppercase text-xs"
-        >
-          Maybe Later
-        </Button>
-      </div>
+          <Button
+            onClick={handleRestore}
+            disabled={isRestoring || isProcessing}
+            variant="ghost"
+            className="w-full h-10 rounded-2xl font-bold uppercase text-xs text-muted-foreground"
+          >
+            <RotateCcw size={14} className="mr-2" />
+            {isRestoring ? "Restoring..." : "Restore Purchases"}
+          </Button>
+
+          <Button
+            onClick={() => navigate(-1)}
+            variant="outline"
+            className="w-full h-12 rounded-2xl font-bold uppercase text-xs"
+          >
+            Maybe Later
+          </Button>
+        </div>
+      )}
 
       {/* Footer Note */}
       <p className="text-center text-xs text-muted-foreground pt-4">

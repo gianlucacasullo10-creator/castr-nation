@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: #070F1A;
+    }
+    #root {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #070F1A;
+    }
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="root">
+
+  <!-- ─── SCENE 1: Hook ───────────────────────────────────────────────── -->
+  <div class="scene" id="s1">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,rgba(71,200,224,0.18) 0%,transparent 60%);"></div>
+    <svg style="position:absolute;inset:0;" viewBox="0 0 1080 1920" width="1080" height="1920">
+      <circle cx="540" cy="920" r="380" stroke="rgba(71,200,224,0.06)" stroke-width="1" fill="none"/>
+      <circle cx="540" cy="920" r="540" stroke="rgba(71,200,224,0.035)" stroke-width="1" fill="none"/>
+      <circle cx="540" cy="920" r="700" stroke="rgba(71,200,224,0.02)" stroke-width="1" fill="none"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 80px;">
+      <div id="s1-l1" style="opacity:0;transform:scale(0.3);text-align:center;font-size:136px;font-weight:900;font-style:italic;color:#fff;text-transform:uppercase;line-height:0.92;letter-spacing:-3px;text-shadow:0 0 80px rgba(71,200,224,0.25);">YOUR<br>CATCHES.</div>
+      <div id="s1-l2" style="opacity:0;transform:scale(0.3);text-align:center;font-size:160px;font-weight:900;font-style:italic;color:#47C8E0;text-transform:uppercase;line-height:0.92;letter-spacing:-4px;margin-top:24px;text-shadow:0 0 100px rgba(71,200,224,0.5);">RANKED.</div>
+      <div id="s1-sub" style="opacity:0;margin-top:72px;font-size:36px;font-weight:600;color:rgba(255,255,255,0.45);letter-spacing:5px;text-align:center;text-transform:uppercase;">The Social Fishing Network</div>
+    </div>
+  </div>
+
+  <!-- ─── SCENE 2: Snap Log Share ─────────────────────────────────────── -->
+  <div class="scene" id="s2">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(71,200,224,0.13) 0%,transparent 55%);"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;padding:0 80px;padding-top:200px;">
+
+      <!-- Headline -->
+      <div id="s2-snap"  style="opacity:0;transform:scale(0.3);font-size:120px;font-weight:900;font-style:italic;color:#fff;text-transform:uppercase;line-height:0.88;letter-spacing:-2px;">SNAP.</div>
+      <div id="s2-log"   style="opacity:0;transform:scale(0.3);font-size:120px;font-weight:900;font-style:italic;color:#47C8E0;text-transform:uppercase;line-height:0.88;letter-spacing:-2px;">LOG.</div>
+      <div id="s2-share" style="opacity:0;transform:scale(0.3);font-size:120px;font-weight:900;font-style:italic;color:#fff;text-transform:uppercase;line-height:0.88;letter-spacing:-2px;">SHARE.</div>
+
+      <!-- Catch card -->
+      <div id="s2-card" style="opacity:0;transform:translateY(90px);margin-top:64px;width:100%;border-radius:28px;background:rgba(10,24,42,0.97);border:1px solid rgba(71,200,224,0.22);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+        <!-- Image area -->
+        <div style="width:100%;height:360px;background:linear-gradient(145deg,#071929 0%,#0C3554 50%,#071929 100%);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <img src="fish.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:130px;opacity:0.5;filter:drop-shadow(0 0 30px rgba(71,200,224,0.3));">🎣</div>
+          <!-- Location pill -->
+          <div style="position:absolute;bottom:20px;left:24px;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);border-radius:24px;padding:10px 22px;display:flex;align-items:center;gap:10px;">
+            <span style="color:#47C8E0;font-size:22px;">📍</span>
+            <span style="color:#fff;font-size:26px;font-weight:600;">Lake Michigan, IL</span>
+          </div>
+          <!-- XP badge -->
+          <div style="position:absolute;top:20px;right:24px;background:rgba(245,160,32,0.18);border:1.5px solid rgba(245,160,32,0.5);border-radius:24px;padding:8px 20px;">
+            <span style="color:#F5A020;font-size:26px;font-weight:800;font-style:italic;">+120 XP</span>
+          </div>
+        </div>
+        <!-- Card body -->
+        <div style="padding:36px 40px 40px;">
+          <div style="font-size:54px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:10px;">Largemouth Bass</div>
+          <div style="font-size:32px;color:rgba(255,255,255,0.45);margin-bottom:32px;">4.2 lbs · 21 in</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;gap:32px;">
+              <span style="color:rgba(255,255,255,0.4);font-size:30px;font-weight:500;">❤ 24</span>
+              <span style="color:rgba(255,255,255,0.4);font-size:30px;font-weight:500;">💬 8</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px;">
+              <span id="s2-pts" style="font-size:72px;font-weight:900;font-style:italic;color:#F5A020;line-height:1;text-shadow:0 0 40px rgba(245,160,32,0.4);">+0</span>
+              <span style="font-size:32px;font-weight:800;color:#F5C218;letter-spacing:4px;">PTS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SCENE 3: Compete ─────────────────────────────────────────────── -->
+  <div class="scene" id="s3">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 28%,rgba(71,200,224,0.12) 0%,transparent 55%);"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;padding:0 80px;padding-top:190px;">
+
+      <!-- Headline -->
+      <div id="s3-l1" style="opacity:0;transform:scale(0.3);font-size:120px;font-weight:900;font-style:italic;color:#fff;text-transform:uppercase;line-height:0.88;letter-spacing:-2px;">CLIMB</div>
+      <div id="s3-l2" style="opacity:0;transform:scale(0.3);font-size:120px;font-weight:900;font-style:italic;color:#47C8E0;text-transform:uppercase;line-height:0.88;letter-spacing:-2px;margin-bottom:8px;">THE BOARD.</div>
+      <div id="s3-sub" style="opacity:0;font-size:34px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase;margin-bottom:64px;">Weekly leaderboards</div>
+
+      <!-- Leaderboard rows -->
+      <div style="width:100%;display:flex;flex-direction:column;gap:22px;">
+
+        <!-- #1 Gold -->
+        <div id="s3-r1" style="opacity:0;transform:translateX(-70px);width:100%;border-radius:22px;background:rgba(245,194,24,0.07);border:1px solid rgba(245,194,24,0.22);padding:30px 36px;display:flex;align-items:center;gap:22px;">
+          <div style="font-size:40px;font-weight:900;color:#F5C218;width:64px;text-align:center;font-style:italic;">#1</div>
+          <div style="font-size:46px;width:56px;text-align:center;">🥇</div>
+          <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#1B4A6B,#47C8E0);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;flex-shrink:0;">JM</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:38px;font-weight:700;color:#fff;white-space:nowrap;">Jake M.</div>
+            <div style="margin-top:10px;height:8px;border-radius:4px;background:rgba(245,194,24,0.12);overflow:hidden;">
+              <div id="s3-fill1" style="height:100%;width:0%;background:linear-gradient(90deg,#F5C218,#F5A020);border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:44px;font-weight:900;color:#F5C218;font-style:italic;">2,450</div>
+            <div style="font-size:22px;color:rgba(255,255,255,0.35);letter-spacing:3px;margin-top:2px;">PTS</div>
+          </div>
+        </div>
+
+        <!-- #2 Silver -->
+        <div id="s3-r2" style="opacity:0;transform:translateX(-70px);width:100%;border-radius:22px;background:rgba(148,163,184,0.06);border:1px solid rgba(148,163,184,0.18);padding:30px 36px;display:flex;align-items:center;gap:22px;">
+          <div style="font-size:40px;font-weight:900;color:#94A3B8;width:64px;text-align:center;font-style:italic;">#2</div>
+          <div style="font-size:46px;width:56px;text-align:center;">🥈</div>
+          <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#2D4A5B,#7AABBA);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;flex-shrink:0;">SK</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:38px;font-weight:700;color:#fff;white-space:nowrap;">Sarah K.</div>
+            <div style="margin-top:10px;height:8px;border-radius:4px;background:rgba(148,163,184,0.1);overflow:hidden;">
+              <div id="s3-fill2" style="height:100%;width:0%;background:linear-gradient(90deg,#94A3B8,#64748B);border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:44px;font-weight:900;color:#94A3B8;font-style:italic;">2,100</div>
+            <div style="font-size:22px;color:rgba(255,255,255,0.35);letter-spacing:3px;margin-top:2px;">PTS</div>
+          </div>
+        </div>
+
+        <!-- #3 You (highlighted) -->
+        <div id="s3-r3" style="opacity:0;transform:translateX(-70px);width:100%;border-radius:22px;background:rgba(71,200,224,0.1);border:2px solid rgba(71,200,224,0.4);padding:30px 36px;display:flex;align-items:center;gap:22px;box-shadow:0 0 40px rgba(71,200,224,0.08);">
+          <div style="font-size:40px;font-weight:900;color:#47C8E0;width:64px;text-align:center;font-style:italic;">#3</div>
+          <div style="font-size:46px;width:56px;text-align:center;">🎣</div>
+          <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#47C8E0,#0D3A5C);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;">YOU</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:38px;font-weight:700;color:#47C8E0;white-space:nowrap;">You</div>
+            <div style="margin-top:10px;height:8px;border-radius:4px;background:rgba(71,200,224,0.12);overflow:hidden;">
+              <div id="s3-fill3" style="height:100%;width:0%;background:linear-gradient(90deg,#47C8E0,#27A9B8);border-radius:4px;"></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:44px;font-weight:900;color:#47C8E0;font-style:italic;">1,850</div>
+            <div style="font-size:22px;color:rgba(255,255,255,0.35);letter-spacing:3px;margin-top:2px;">PTS</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SCENE 4: Logo outro ─────────────────────────────────────────── -->
+  <div class="scene" id="s4">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 44%,rgba(71,200,224,0.22) 0%,transparent 55%);"></div>
+    <svg style="position:absolute;inset:0;" viewBox="0 0 1080 1920" width="1080" height="1920">
+      <circle cx="540" cy="900" r="280" stroke="rgba(71,200,224,0.08)" stroke-width="1" fill="none"/>
+      <circle cx="540" cy="900" r="420" stroke="rgba(71,200,224,0.05)" stroke-width="1" fill="none"/>
+      <circle cx="540" cy="900" r="580" stroke="rgba(71,200,224,0.03)" stroke-width="1" fill="none"/>
+      <circle cx="540" cy="900" r="740" stroke="rgba(71,200,224,0.015)" stroke-width="1" fill="none"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0 80px;">
+      <!-- Logo -->
+      <div id="s4-logo" style="opacity:0;transform:scale(0.7);width:300px;height:300px;border-radius:52px;overflow:hidden;box-shadow:0 0 100px rgba(71,200,224,0.28),0 0 200px rgba(71,200,224,0.1);">
+        <img src="og-image.png" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='linear-gradient(135deg,#0D3352,#47C8E0)';this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:110px\'>🎣</div>'">
+      </div>
+      <!-- App name -->
+      <div id="s4-name" style="opacity:0;margin-top:60px;font-size:120px;font-weight:900;font-style:italic;color:#fff;text-transform:uppercase;letter-spacing:-4px;line-height:1;text-shadow:0 0 80px rgba(71,200,224,0.3);">CASTRS</div>
+      <!-- URL -->
+      <div id="s4-url" style="opacity:0;margin-top:12px;font-size:38px;font-weight:700;color:#47C8E0;letter-spacing:6px;text-transform:uppercase;">castrs.app</div>
+      <!-- Platform line -->
+      <div id="s4-platform" style="opacity:0;margin-top:44px;font-size:30px;font-weight:500;color:rgba(255,255,255,0.4);letter-spacing:4px;text-transform:uppercase;">iOS · Android</div>
+      <!-- CTA -->
+      <div id="s4-cta" style="opacity:0;margin-top:52px;border:2px solid #47C8E0;border-radius:64px;padding:22px 80px;box-shadow:0 0 40px rgba(71,200,224,0.15);">
+        <span style="font-size:38px;font-weight:800;color:#47C8E0;letter-spacing:2px;text-transform:uppercase;">Join the Waitlist · Link in Bio</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ─── Utilities ───────────────────────────────────────────────────────────────
+function clamp(x, a, b)       { return Math.max(a, Math.min(b, x)); }
+function lerp(a, b, t)        { return a + (b - a) * t; }
+function progress(t, s, e)    { return clamp((t - s) / (e - s), 0, 1); }
+function easeOut(p)           { return 1 - Math.pow(1 - p, 3); }
+function easeIn(p)            { return Math.pow(p, 3); }
+
+function springVal(tMs, delayMs, damping, stiffness) {
+  const ts = Math.max(0, tMs - delayMs) / 1000;
+  if (ts <= 0) return 0;
+  const omega = Math.sqrt(stiffness);
+  const zeta  = damping / (2 * omega);
+  if (zeta < 1) {
+    const wd = omega * Math.sqrt(1 - zeta * zeta);
+    return 1 - Math.exp(-zeta * omega * ts) *
+      (Math.cos(wd * ts) + (zeta * omega / wd) * Math.sin(wd * ts));
+  }
+  return Math.max(0, 1 - Math.exp(-omega * ts) * (1 + omega * ts));
+}
+
+// Slam in: spring scale + quick opacity fade
+function slam(el, t, delayMs) {
+  const s = springVal(t, delayMs, 6, 200);
+  el.style.opacity  = clamp(s * 3, 0, 1);
+  el.style.transform = `scale(${s})`;
+}
+
+// Slide from left
+function slideLeft(el, t, delayMs) {
+  const p = easeOut(progress(t, delayMs, delayMs + 550));
+  el.style.opacity   = p;
+  el.style.transform = `translateX(${lerp(-70, 0, p)}px)`;
+}
+
+// Slide from bottom
+function slideUp(el, t, delayMs) {
+  const p = easeOut(progress(t, delayMs, delayMs + 700));
+  el.style.opacity   = p;
+  el.style.transform = `translateY(${lerp(90, 0, p)}px)`;
+}
+
+// Simple fade in
+function fadeIn(el, t, startMs, endMs) {
+  el.style.opacity = easeOut(progress(t, startMs, endMs));
+}
+
+// Scale + fade in for logo
+function scaleIn(el, t, delayMs) {
+  const p = easeOut(progress(t, delayMs, delayMs + 900));
+  el.style.opacity   = p;
+  el.style.transform = `scale(${lerp(0.65, 1, p)})`;
+}
+
+// Scene envelope with fade in/out
+function envelope(t, startMs, endMs, fadeMs) {
+  if (t <= startMs) return 0;
+  if (t < startMs + fadeMs) return easeOut(progress(t, startMs, startMs + fadeMs));
+  if (t > endMs - fadeMs)   return 1 - easeIn(progress(t, endMs - fadeMs, endMs));
+  return 1;
+}
+
+// ─── Scene timing ────────────────────────────────────────────────────────────
+const S1_START = 0,     S1_END = 3600;
+const S2_START = 3100,  S2_END = 8200;
+const S3_START = 7700,  S3_END = 12700;
+const S4_START = 12200, S4_END = 18000;  // s4 ends beyond total — holds to black
+
+// ─── DOM refs ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+// ─── renderFrame ─────────────────────────────────────────────────────────────
+window.renderFrame = function(t) {
+
+  // ── Scene 1: Hook ──────────────────────────────────────────────────────
+  $('s1').style.opacity = envelope(t, S1_START, S1_END, 350);
+  slam($('s1-l1'), t, 0);
+  slam($('s1-l2'), t, 280);
+  fadeIn($('s1-sub'), t, 700, 1400);
+
+  // ── Scene 2: Snap Log Share ────────────────────────────────────────────
+  $('s2').style.opacity = envelope(t, S2_START, S2_END, 400);
+  slam($('s2-snap'),  t, S2_START + 0);
+  slam($('s2-log'),   t, S2_START + 230);
+  slam($('s2-share'), t, S2_START + 460);
+  slideUp($('s2-card'), t, S2_START + 820);
+  // Points count-up
+  const ptsP = easeOut(progress(t, S2_START + 1450, S2_START + 2600));
+  $('s2-pts').textContent = '+' + Math.round(ptsP * 120);
+
+  // ── Scene 3: Compete ──────────────────────────────────────────────────
+  $('s3').style.opacity = envelope(t, S3_START, S3_END, 400);
+  slam($('s3-l1'), t, S3_START + 0);
+  slam($('s3-l2'), t, S3_START + 220);
+  fadeIn($('s3-sub'), t, S3_START + 500, S3_START + 900);
+  slideLeft($('s3-r1'), t, S3_START + 750);
+  slideLeft($('s3-r2'), t, S3_START + 980);
+  slideLeft($('s3-r3'), t, S3_START + 1210);
+  // Bar fill
+  $('s3-fill1').style.width = (easeOut(progress(t, S3_START + 1100, S3_START + 2400)) * 92) + '%';
+  $('s3-fill2').style.width = (easeOut(progress(t, S3_START + 1300, S3_START + 2600)) * 79) + '%';
+  $('s3-fill3').style.width = (easeOut(progress(t, S3_START + 1500, S3_START + 2800)) * 69) + '%';
+
+  // ── Scene 4: Logo outro ────────────────────────────────────────────────
+  $('s4').style.opacity = envelope(t, S4_START, S4_END, 450);
+  scaleIn($('s4-logo'),    t, S4_START + 0);
+  fadeIn($('s4-name'),     t, S4_START + 500,  S4_START + 1100);
+  fadeIn($('s4-url'),      t, S4_START + 850,  S4_START + 1450);
+  fadeIn($('s4-platform'), t, S4_START + 1200, S4_START + 1700);
+  fadeIn($('s4-cta'),      t, S4_START + 1550, S4_START + 2200);
+};
+
+// Init at t=0
+window.renderFrame(0);
+</script>
+</body>
+</html>

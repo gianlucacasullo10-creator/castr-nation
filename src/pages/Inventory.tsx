@@ -104,8 +104,7 @@ const Inventory = () => {
           .from('inventory')
           .update({ is_equipped: false })
           .eq('user_id', currentUser.id)
-          .eq('item_type', itemType)
-          .eq('is_equipped', true);
+          .eq('item_type', itemType);
 
         if (unequipError) throw unequipError;
 
@@ -119,8 +118,6 @@ const Inventory = () => {
 
         await checkAchievementsAfterEquip(currentUser.id);
       }
-
-      fetchInventory();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -128,6 +125,7 @@ const Inventory = () => {
         description: error.message
       });
     } finally {
+      await fetchInventory();
       setEquipLoading(null);
     }
   };

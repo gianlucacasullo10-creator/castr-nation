@@ -165,6 +165,12 @@ const PublicProfile = () => {
           </p>
         </div>
 
+        {profile.is_pro && (
+          <div className="inline-flex items-center gap-1 px-4 py-1 bg-gradient-to-r from-yellow-500/20 to-primary/20 border border-primary/30 rounded-full mt-3">
+            <span className="text-xs font-black uppercase text-primary tracking-wider">⭐ Pro Member</span>
+          </div>
+        )}
+
         {/* Friend Count */}
         <div className="flex items-center justify-center gap-2 mt-4 text-muted-foreground">
           <Users size={14} />

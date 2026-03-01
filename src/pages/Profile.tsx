@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import GearImage from "@/components/GearImage";
 import FriendsManager from "@/components/FriendsManager";
 import { getStorageUrl } from '@/utils/storage';
+import { useProStatus } from "@/hooks/useProStatus";
 import { 
   Loader2, 
   Trophy, 
@@ -41,6 +42,7 @@ const Profile = () => {
   const [showFriendsManager, setShowFriendsManager] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro } = useProStatus();
 
   const BASE_TITLES = [
     { name: "OG CASTR", icon: "⚡", description: "Alpha Member Status" },
@@ -195,14 +197,20 @@ const Profile = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-black italic tracking-tighter text-primary uppercase">Angler ID</h1>
         <div className="flex gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate("/castrs-pro")}
-            className="text-xs font-black uppercase bg-gradient-to-r from-yellow-500/20 to-primary/20 hover:from-yellow-500/30 hover:to-primary/30"
-          >
-            ⭐ Pro
-          </Button>
+          {isPro ? (
+            <Badge className="bg-gradient-to-r from-yellow-500/30 to-primary/30 text-primary border-primary/30 font-black text-xs px-3 py-1 rounded-full">
+              ⭐ Pro
+            </Badge>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/castrs-pro")}
+              className="text-xs font-black uppercase bg-gradient-to-r from-yellow-500/20 to-primary/20 hover:from-yellow-500/30 hover:to-primary/30"
+            >
+              ⭐ Pro
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="sm"

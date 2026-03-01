@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { SignInWithApple, type SignInWithAppleOptions } from "@capacitor-community/apple-sign-in";
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -15,9 +17,16 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const AppleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.35.74 3.17.8 1.21-.24 2.37-.93 3.67-.84 1.55.12 2.72.72 3.47 1.84-3.18 1.91-2.43 5.79.48 6.9-.57 1.52-1.32 3.02-2.79 4.18zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+  </svg>
+);
+
 const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,6 +85,41 @@ const Auth = () => {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const options: SignInWithAppleOptions = {
+        clientId: "com.castrs.app",
+        redirectURI: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
+        scopes: "email name",
+        nonce: crypto.randomUUID(),
+      };
+
+      const { response } = await SignInWithApple.authorize(options);
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: response.identityToken,
+        nonce: options.nonce,
+      });
+
+      if (error) throw error;
+      navigate("/");
+    } catch (err: any) {
+      // User cancelled — no toast needed
+      if (err?.message?.toLowerCase().includes("cancel")) return;
+      toast({
+        title: "Apple Sign-In Error",
+        description: err?.message || "Something went wrong.",
+        variant: "destructive",
+      });
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  const isNative = Capacitor.isNativePlatform();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm space-y-8">
@@ -90,10 +134,30 @@ const Auth = () => {
           </p>
         </div>
         <div className="bg-card border-2 border-primary/20 rounded-3xl p-8 shadow-xl space-y-4">
+
+          {/* Sign in with Apple — shown on native iOS, required by App Store */}
+          {isNative && (
+            <Button
+              type="button"
+              onClick={handleAppleSignIn}
+              disabled={appleLoading || loading || googleLoading}
+              className="w-full h-12 rounded-2xl bg-black hover:bg-gray-900 text-white font-bold text-sm shadow flex items-center justify-center gap-3"
+            >
+              {appleLoading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <AppleIcon />
+                  Continue with Apple
+                </>
+              )}
+            </Button>
+          )}
+
           <Button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
+            disabled={googleLoading || loading || appleLoading}
             className="w-full h-12 rounded-2xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-sm shadow border border-gray-200 flex items-center justify-center gap-3"
           >
             {googleLoading ? (
@@ -105,11 +169,13 @@ const Auth = () => {
               </>
             )}
           </Button>
+
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs font-bold text-muted-foreground uppercase">or</span>
             <div className="flex-1 h-px bg-border" />
           </div>
+
           <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
             <Input
               type="email"

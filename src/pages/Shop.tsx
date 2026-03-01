@@ -8,6 +8,7 @@ import { Loader2, Package, Sparkles, Tv, Trophy } from "lucide-react";
 import CaseOpening from "@/components/CaseOpening";
 import { checkAchievementsAfterCaseOpen } from "@/utils/achievementTracker";
 import { useProStatus } from "@/hooks/useProStatus";
+import { showRewardedAd } from "@/lib/admob";
 
 const CASE_PRICE = 500; // Points per case
 
@@ -142,62 +143,63 @@ const Shop = () => {
 
   const handleWatchAd = async () => {
     setWatchingAd(true);
-    // TODO: Integrate with AdMob/Unity Ads SDK
-    // For now, simulate ad watching
-    
-    // Simulate 3 second ad
-    setTimeout(async () => {
-      try {
-        // Get loot table
-        const { data: lootTable, error: lootError } = await supabase
-          .from('gear_loot_table')
-          .select('*');
+    try {
+      const rewarded = await showRewardedAd();
 
-        if (lootError) throw lootError;
-
-        // Weighted random selection (2x odds for non-common if pro)
-        const effectiveTable = getEffectiveLootTable(lootTable);
-        const selectedItem = weightedPick(effectiveTable);
-
-        // Add to inventory
-        const { error: inventoryError } = await supabase
-          .from('inventory')
-          .insert([{
-            user_id: currentUser.id,
-            item_type: selectedItem.item_type,
-            item_name: selectedItem.item_name,
-            rarity: selectedItem.rarity,
-            bonus_percentage: selectedItem.bonus_percentage,
-            image_url: selectedItem.image_url, // ✅ ADDED
-            is_equipped: false
-          }]);
-
-        if (inventoryError) throw inventoryError;
-
-        // Check achievements
-        await checkAchievementsAfterCaseOpen(currentUser.id);
-
-        // BATCH STATE UPDATES
-        setWonItem(selectedItem);
-        setOpening(true);
-
-        toast({ 
-          title: "Free Case Opened!", 
-          description: "Thanks for watching the ad!" 
-        });
-        
-        fetchUserData();
-      } catch (error: any) {
-        console.error('Ad reward error:', error);
+      if (!rewarded) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: error.message
+          title: "Ad Not Completed",
+          description: "Watch the full ad to earn a free case.",
         });
-      } finally {
-        setWatchingAd(false);
+        return;
       }
-    }, 3000);
+
+      // Ad completed — open a free case
+      const { data: lootTable, error: lootError } = await supabase
+        .from('gear_loot_table')
+        .select('*');
+
+      if (lootError) throw lootError;
+
+      const effectiveTable = getEffectiveLootTable(lootTable);
+      const selectedItem = weightedPick(effectiveTable);
+
+      const { error: inventoryError } = await supabase
+        .from('inventory')
+        .insert([{
+          user_id: currentUser.id,
+          item_type: selectedItem.item_type,
+          item_name: selectedItem.item_name,
+          rarity: selectedItem.rarity,
+          bonus_percentage: selectedItem.bonus_percentage,
+          image_url: selectedItem.image_url,
+          is_equipped: false
+        }]);
+
+      if (inventoryError) throw inventoryError;
+
+      await checkAchievementsAfterCaseOpen(currentUser.id);
+
+      setWonItem(selectedItem);
+      setOpening(true);
+
+      toast({
+        title: "Free Case Opened!",
+        description: "Thanks for watching the ad!"
+      });
+
+      fetchUserData();
+    } catch (error: any) {
+      console.error('Ad reward error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    } finally {
+      setWatchingAd(false);
+    }
   };
 
   if (loading) {

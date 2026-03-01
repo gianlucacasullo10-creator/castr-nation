@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { initRevenueCat } from "@/lib/revenuecat";
+import { initAdMob } from "@/lib/admob";
 import BottomNav from "./components/BottomNav";
 import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -61,6 +62,7 @@ const App = () => {
       async (event, session) => {
         if (session?.user) {
           await initRevenueCat(session.user.id);
+          await initAdMob();
 
           // Check pro status then trigger weekly drop
           const { data: profile } = await supabase

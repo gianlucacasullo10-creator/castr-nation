@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { initRevenueCat } from "@/lib/revenuecat";
 import BottomNav from "./components/BottomNav";
+import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import Capture from "./pages/Capture";
@@ -46,6 +47,14 @@ async function checkWeeklyLegendaryDrop(accessToken: string) {
 const App = () => {
   const { toast } = useToast();
   const [globalShowUpload, setGlobalShowUpload] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => {
+    return !localStorage.getItem("hasSeenSplash");
+  });
+
+  const handleSplashComplete = () => {
+    localStorage.setItem("hasSeenSplash", "1");
+    setShowSplash(false);
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -106,6 +115,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
         <BrowserRouter>
           <div className="min-h-screen bg-background pb-20">
             <div className="page-transition">

@@ -316,16 +316,97 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
     onComplete();
   };
 
+  // Full-screen catch result shown after successful verification
+  if (aiResult && previewUrl) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-300 sm:max-w-md sm:mx-auto sm:right-0 sm:left-0">
+        {/* Photo fills top portion */}
+        <div className="relative h-[60%]">
+          <img src={previewUrl} className="w-full h-full object-cover" alt="Your catch" />
+          {/* Dark gradient at bottom of photo */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black to-transparent" />
+          {/* X button */}
+          <button
+            onClick={handleSuccessComplete}
+            className="absolute top-12 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/80 transition-colors"
+          >
+            <X size={22} />
+          </button>
+          {/* Verified badge on photo */}
+          <div className="absolute top-12 left-4 flex items-center gap-1.5 bg-primary/90 px-3 py-1.5 rounded-full">
+            <CheckCircle2 size={14} className="text-black" />
+            <span className="text-black text-[10px] font-black uppercase tracking-wider">Verified</span>
+          </div>
+        </div>
+
+        {/* Result info */}
+        <div className="px-6 pt-6 pb-8 space-y-5">
+          {/* Species + weight */}
+          <div>
+            <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-none">
+              {aiResult.species}
+            </h2>
+            {aiResult.estimated_weight > 0 && (
+              <p className="text-sm font-bold text-white/50 mt-1">~{aiResult.estimated_weight} lbs</p>
+            )}
+          </div>
+
+          {/* Points */}
+          <div className="flex items-baseline gap-2">
+            <span className="text-6xl font-black italic text-primary leading-none">+{aiResult.points}</span>
+            <span className="text-lg font-black uppercase text-primary/70">pts</span>
+          </div>
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
+            {aiResult.quality_multiplier > 1.3 && (
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 font-black text-xs px-3 py-1">
+                🔥 {aiResult.quality_multiplier}× TROPHY
+              </Badge>
+            )}
+            {aiResult.quality_multiplier >= 1.8 && (
+              <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-xs px-3 py-1">
+                ⚡ LEGENDARY
+              </Badge>
+            )}
+            {selectedTournament && (
+              <Badge className="bg-white/10 text-white border-white/20 font-black text-xs px-3 py-1">
+                <Trophy size={12} className="mr-1" /> TOURNAMENT ENTRY
+              </Badge>
+            )}
+          </div>
+
+          {/* CTA */}
+          <Button
+            onClick={handleSuccessComplete}
+            className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase text-sm shadow-[0_8px_30px_rgba(34,211,238,0.4)] active:scale-95 transition-transform"
+          >
+            View on Feed →
+          </Button>
+        </div>
+
+        {/* Achievement Notifications */}
+        {unlockedAchievements.map((achievement) => (
+          <AchievementNotification
+            key={achievement.id}
+            achievement={achievement}
+            onClose={() => {
+              setUnlockedAchievements(prev => prev.filter(a => a.id !== achievement.id));
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col p-5 animate-in fade-in sm:max-w-md sm:mx-auto sm:right-0 sm:left-0">
-      
+
       <div className="flex justify-between items-center mb-6 pt-2">
         <h2 className="text-xl font-black italic uppercase text-primary tracking-tighter">New Catch</h2>
-        {!aiResult && (
-          <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
-            <X size={24} />
-          </button>
-        )}
+        <button onClick={onComplete} className="p-2 text-white/50 hover:text-white transition-colors">
+          <X size={24} />
+        </button>
       </div>
 
       {!previewUrl ? (
@@ -338,11 +419,11 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
         </label>
       ) : (
         <div className="flex-1 flex flex-col gap-5 overflow-hidden">
-          
+
           <div className="relative aspect-square w-full rounded-[32px] overflow-hidden border border-white/10 bg-muted">
             <img src={previewUrl} className="w-full h-full object-cover" alt="Catch preview" />
-            
-            {isAnalyzing && !aiResult && !errorResult && (
+
+            {isAnalyzing && !errorResult && (
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
                 <Loader2 className="animate-spin text-primary mb-3" size={32} />
                 <p className="text-primary font-black text-xs uppercase italic tracking-tighter">{scanStatus}</p>
@@ -356,41 +437,10 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                 <p className="text-sm font-medium leading-relaxed mb-4">{errorResult}</p>
               </div>
             )}
-
-            {aiResult && (
-              <div className="absolute inset-0 bg-primary flex flex-col items-center justify-center text-black p-6 animate-in zoom-in-95">
-                <CheckCircle2 size={48} className="mb-3" />
-                <h3 className="text-2xl font-black italic uppercase text-center leading-none mb-2">{aiResult.species}</h3>
-                {aiResult.estimated_weight > 0 && (
-                  <p className="text-sm font-bold opacity-70 mb-3">~{aiResult.estimated_weight} lbs</p>
-                )}
-                <p className="text-4xl font-black uppercase tracking-tighter mb-2">+{aiResult.points} PTS</p>
-                {aiResult.quality_multiplier > 1.3 && (
-                  <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1 mb-2">
-                    🔥 {aiResult.quality_multiplier}× TROPHY
-                  </Badge>
-                )}
-                {aiResult.quality_multiplier >= 1.8 && (
-                  <p className="text-xs font-black uppercase mt-1 opacity-80">LEGENDARY CATCH!</p>
-                )}
-                {selectedTournament && (
-                  <Badge className="bg-black/20 text-black border-none font-black text-xs px-3 py-1 mt-2">
-                    <Trophy size={12} className="mr-1" /> TOURNAMENT ENTRY
-                  </Badge>
-                )}
-                
-                <Button
-                  onClick={handleSuccessComplete}
-                  className="mt-6 bg-black text-white hover:bg-black/80 font-black uppercase text-sm px-8 h-12 rounded-2xl active:scale-95 transition-transform"
-                >
-                  Continue →
-                </Button>
-              </div>
-            )}
           </div>
 
-          {/* Tournament Selection (only show if there are active tournaments and no result yet) */}
-          {!aiResult && !errorResult && activeTournaments.length > 0 && (
+          {/* Tournament Selection */}
+          {!errorResult && activeTournaments.length > 0 && (
             <div className="bg-muted/30 rounded-2xl p-4 border border-muted">
               <div className="flex items-center gap-2 mb-3">
                 <Trophy size={16} className="text-primary" />
@@ -400,8 +450,8 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                 <button
                   onClick={() => setSelectedTournament(null)}
                   className={`w-full p-3 rounded-xl text-left text-xs font-bold transition-colors ${
-                    selectedTournament === null 
-                      ? 'bg-primary text-black' 
+                    selectedTournament === null
+                      ? 'bg-primary text-black'
                       : 'bg-muted hover:bg-muted/70'
                   }`}
                 >
@@ -412,8 +462,8 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
                     key={tournament.id}
                     onClick={() => setSelectedTournament(tournament.id)}
                     className={`w-full p-3 rounded-xl text-left text-xs font-bold transition-colors ${
-                      selectedTournament === tournament.id 
-                        ? 'bg-primary text-black' 
+                      selectedTournament === tournament.id
+                        ? 'bg-primary text-black'
                         : 'bg-muted hover:bg-muted/70'
                     }`}
                   >
@@ -434,14 +484,14 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
 
           <div className="mt-auto pb-4">
             {errorResult ? (
-              <Button 
+              <Button
                 onClick={handleTryAgain}
                 className="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase text-sm shadow-[0_8px_30px_rgba(220,38,38,0.3)] active:scale-95 transition-transform"
               >
                 <Camera className="mr-2" size={20} /> Take New Photo
               </Button>
-            ) : !isAnalyzing && !aiResult && (
-              <Button 
+            ) : !isAnalyzing && (
+              <Button
                 onClick={startAIAuthentication}
                 className="w-full h-14 rounded-2xl bg-primary text-black font-black italic uppercase text-sm shadow-[0_8px_30px_rgb(var(--primary)/0.3)] active:scale-95 transition-transform"
               >
@@ -453,7 +503,7 @@ const CatchUpload = ({ onComplete }: { onComplete: () => void }) => {
       )}
 
       {/* Achievement Notifications */}
-      {unlockedAchievements.map((achievement, index) => (
+      {unlockedAchievements.map((achievement) => (
         <AchievementNotification
           key={achievement.id}
           achievement={achievement}

@@ -140,8 +140,8 @@ const App = () => {
             </div>
 
             {globalShowUpload && (
-              <CatchUpload 
-                key={Date.now()}
+              <CatchUpload
+                key="catch-upload"
                 onComplete={() => {
                   setGlobalShowUpload(false);
                   setTimeout(() => {

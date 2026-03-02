@@ -85,56 +85,78 @@ const Index = () => {
   const fetchUnifiedFeed = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+
+      // Run auth + catches + activities in parallel
+      const [{ data: { user } }, catchResult, activityResult] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase
+          .from('catches')
+          .select('*, profiles(id, display_name, avatar_url, equipped_title)')
+          .order('created_at', { ascending: false })
+          .limit(30),
+        supabase
+          .from('activities')
+          .select('*, profiles(id, display_name, avatar_url, equipped_title)')
+          .eq('activity_type', 'achievement')
+          .order('created_at', { ascending: false })
+          .limit(10),
+      ]);
+
       setCurrentUser(user);
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, display_name, avatar_url, equipped_title')
-          .eq('id', user.id)
-          .single();
-        setUserProfile(profile);
-      }
+      // Fetch current user profile + likes + comments in parallel
+      // Only fetch likes/comments for the catches we actually loaded
+      const catchIds = (catchResult.data || []).map((c: any) => c.id);
+      const activityIds = (activityResult.data || []).map((a: any) => a.id);
 
-      const { data: catches } = await supabase.from('catches').select('*').order('created_at', { ascending: false }).limit(100);
-      const { data: activities } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(100);
-      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, display_name, avatar_url, equipped_title');
-      if (profilesError) console.error('Profiles fetch error:', profilesError);
-      const { data: likes } = await supabase.from('likes').select('catch_id, user_id');
-      const { data: comments } = await supabase.from('comments').select('*, profiles(display_name, avatar_url)').order('created_at', { ascending: true });
+      const [profileResult, likesResult, commentsResult] = await Promise.all([
+        user
+          ? supabase.from('profiles').select('id, display_name, avatar_url, equipped_title, is_admin').eq('id', user.id).single()
+          : Promise.resolve({ data: null }),
+        catchIds.length > 0
+          ? supabase.from('likes').select('catch_id, user_id').in('catch_id', catchIds)
+          : Promise.resolve({ data: [] }),
+        catchIds.length > 0 || activityIds.length > 0
+          ? supabase
+              .from('comments')
+              .select('*, profiles(display_name, avatar_url)')
+              .or(
+                [
+                  catchIds.length > 0 ? `catch_id.in.(${catchIds.join(',')})` : null,
+                  activityIds.length > 0 ? `activity_id.in.(${activityIds.join(',')})` : null,
+                ].filter(Boolean).join(',')
+              )
+              .order('created_at', { ascending: true })
+          : Promise.resolve({ data: [] }),
+      ]);
 
-      const profileMap = (profiles || []).reduce((acc: any, p) => { acc[p.id] = p; return acc; }, {});
+      if (profileResult.data) setUserProfile(profileResult.data);
 
-      const catchPosts = (catches || []).map(c => ({ 
-        ...c, 
-        itemType: 'CATCH', 
-        profiles: profileMap[c.user_id],
-        likes: (likes || []).filter(l => l.catch_id === c.id),
-        comments: (comments || []).filter(com => com.catch_id === c.id),
-        image_url: c.image_url 
-          ? (c.image_url.startsWith('http') 
-              ? c.image_url 
-              : getStorageUrl('catch_photos', c.image_url))
-          : null
+      const likes = likesResult.data || [];
+      const comments = commentsResult.data || [];
+
+      const catchPosts = (catchResult.data || []).map((c: any) => ({
+        ...c,
+        itemType: 'CATCH',
+        likes: likes.filter((l: any) => l.catch_id === c.id),
+        comments: comments.filter((com: any) => com.catch_id === c.id),
+        image_url: c.image_url
+          ? (c.image_url.startsWith('http') ? c.image_url : getStorageUrl('catch_photos', c.image_url))
+          : null,
       }));
 
-      const achievementPosts = (activities || [])
-        .filter(a => a.activity_type === 'achievement')
-        .map(a => ({ 
-          ...a, 
-          itemType: 'ACTIVITY', 
-          profiles: profileMap[a.user_id],
-          comments: (comments || []).filter(com => com.activity_id === a.id)
-        }));
+      const achievementPosts = (activityResult.data || []).map((a: any) => ({
+        ...a,
+        itemType: 'ACTIVITY',
+        comments: comments.filter((com: any) => com.activity_id === a.id),
+      }));
 
       const mixed: any[] = [];
       let achievementIndex = 0;
       let nextAchievementAt = Math.floor(Math.random() * 3) + 5;
 
-      catchPosts.forEach((catchPost, index) => {
+      catchPosts.forEach((catchPost: any, index: number) => {
         mixed.push(catchPost);
-        
         if (index + 1 === nextAchievementAt && achievementIndex < achievementPosts.length) {
           mixed.push(achievementPosts[achievementIndex]);
           achievementIndex++;
@@ -148,7 +170,6 @@ const Index = () => {
       }
 
       mixed.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
       setFeedItems(mixed);
     } catch (error: any) {
       console.error("Feed Error:", error.message);

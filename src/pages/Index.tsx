@@ -91,12 +91,12 @@ const Index = () => {
         supabase.auth.getUser(),
         supabase
           .from('catches')
-          .select('*, profiles(id, display_name, avatar_url, equipped_title)')
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(30),
         supabase
           .from('activities')
-          .select('*, profiles(id, display_name, avatar_url, equipped_title)')
+          .select('*')
           .eq('activity_type', 'achievement')
           .order('created_at', { ascending: false })
           .limit(10),
@@ -104,12 +104,23 @@ const Index = () => {
 
       setCurrentUser(user);
 
-      // Fetch current user profile + likes + comments in parallel
-      // Only fetch likes/comments for the catches we actually loaded
-      const catchIds = (catchResult.data || []).map((c: any) => c.id);
-      const activityIds = (activityResult.data || []).map((a: any) => a.id);
+      const catches = catchResult.data || [];
+      const activities = activityResult.data || [];
+      const catchIds = catches.map((c: any) => c.id);
+      const activityIds = activities.map((a: any) => a.id);
 
-      const [profileResult, likesResult, commentsResult] = await Promise.all([
+      // Collect all unique user_ids we need profiles for
+      const userIds = [...new Set([
+        ...catches.map((c: any) => c.user_id),
+        ...activities.map((a: any) => a.user_id),
+        ...(user ? [user.id] : []),
+      ])].filter(Boolean) as string[];
+
+      // Fetch profiles, likes, comments all in parallel — scoped to loaded IDs
+      const [profilesResult, currentProfileResult, likesResult, commentsResult] = await Promise.all([
+        userIds.length > 0
+          ? supabase.from('profiles').select('id, display_name, avatar_url, equipped_title').in('id', userIds)
+          : Promise.resolve({ data: [] }),
         user
           ? supabase.from('profiles').select('id, display_name, avatar_url, equipped_title, is_admin').eq('id', user.id).single()
           : Promise.resolve({ data: null }),
@@ -130,14 +141,16 @@ const Index = () => {
           : Promise.resolve({ data: [] }),
       ]);
 
-      if (profileResult.data) setUserProfile(profileResult.data);
+      if (currentProfileResult.data) setUserProfile(currentProfileResult.data);
 
+      const profileMap = (profilesResult.data || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
       const likes = likesResult.data || [];
       const comments = commentsResult.data || [];
 
-      const catchPosts = (catchResult.data || []).map((c: any) => ({
+      const catchPosts = catches.map((c: any) => ({
         ...c,
         itemType: 'CATCH',
+        profiles: profileMap[c.user_id],
         likes: likes.filter((l: any) => l.catch_id === c.id),
         comments: comments.filter((com: any) => com.catch_id === c.id),
         image_url: c.image_url
@@ -145,9 +158,10 @@ const Index = () => {
           : null,
       }));
 
-      const achievementPosts = (activityResult.data || []).map((a: any) => ({
+      const achievementPosts = activities.map((a: any) => ({
         ...a,
         itemType: 'ACTIVITY',
+        profiles: profileMap[a.user_id],
         comments: comments.filter((com: any) => com.activity_id === a.id),
       }));
 

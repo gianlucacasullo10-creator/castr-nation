@@ -1,4 +1,4 @@
-const CACHE_NAME = 'castrs-v3';
+const CACHE_NAME = 'castrs-v4';
 const urlsToCache = [
   '/',
   '/index.html',

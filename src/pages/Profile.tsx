@@ -211,13 +211,13 @@ const Profile = () => {
               ⭐ Pro
             </Button>
           )}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => navigate("/achievements")}
             className="text-xs font-black uppercase"
           >
-            🏆 Badges
+            Badges
           </Button>
           <Button variant="ghost" size="icon" onClick={() => supabase.auth.signOut().then(() => navigate("/auth"))}>
             <LogOut size={20} className="text-muted-foreground" />

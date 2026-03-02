@@ -411,11 +411,11 @@ const Index = () => {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => navigate("/tournaments")}
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="rounded-full font-black uppercase text-xs px-4 h-8"
           >
-            🏆 Events
+            Events
           </Button>
           
           {!currentUser && (

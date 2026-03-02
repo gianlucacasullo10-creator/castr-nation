@@ -120,8 +120,8 @@ const PublicProfile = () => {
     </div>
   );
 
-  const equippedRod = equippedGear.find(g => g.item_type === 'rod');
-  const equippedLure = equippedGear.find(g => g.item_type === 'lure');
+  const equippedRod = equippedGear.find(g => g.item_type?.toLowerCase() === 'rod');
+  const equippedLure = equippedGear.find(g => g.item_type?.toLowerCase() === 'lure');
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] pb-24 pt-6 px-4 max-w-md mx-auto space-y-6 animate-in fade-in duration-500">

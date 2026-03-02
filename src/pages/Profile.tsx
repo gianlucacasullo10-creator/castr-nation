@@ -189,8 +189,8 @@ const Profile = () => {
     </div>
   );
 
-  const equippedRod = equippedGear.find(g => g.item_type === 'rod');
-  const equippedLure = equippedGear.find(g => g.item_type === 'lure');
+  const equippedRod = equippedGear.find(g => g.item_type?.toLowerCase() === 'rod');
+  const equippedLure = equippedGear.find(g => g.item_type?.toLowerCase() === 'lure');
 
   return (
     <div className="pb-24 pt-8 px-4 max-w-md mx-auto space-y-8">

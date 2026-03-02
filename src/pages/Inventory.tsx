@@ -104,7 +104,7 @@ const Inventory = () => {
           .from('inventory')
           .update({ is_equipped: false })
           .eq('user_id', currentUser.id)
-          .eq('item_type', itemType);
+          .ilike('item_type', itemType);
 
         if (unequipError) throw unequipError;
 

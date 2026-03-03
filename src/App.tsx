@@ -29,6 +29,27 @@ const CastrsPro = lazy(() => import("./pages/CastrsPro"));
 const Tournaments = lazy(() => import("./pages/Tournaments"));
 const AdminReview = lazy(() => import("@/pages/AdminReview"));
 
+// Prefetch all page chunks in the background after initial render so subsequent
+// tab navigations are instant (chunks are already in browser cache / service worker).
+function prefetchPages() {
+  const pages = [
+    () => import("./pages/Index"),
+    () => import("./pages/Leaderboards"),
+    () => import("./pages/Shop"),
+    () => import("./pages/Inventory"),
+    () => import("./pages/Clubs"),
+    () => import("./pages/Profile"),
+    () => import("./pages/Achievements"),
+    () => import("./pages/Capture"),
+    () => import("./pages/CastrsPro"),
+    () => import("./pages/Tournaments"),
+    () => import("./pages/Auth"),
+    () => import("./pages/PublicProfile"),
+  ];
+  // Stagger slightly so the initial render isn't competing for bandwidth
+  pages.forEach((load, i) => setTimeout(load, i * 100));
+}
+
 const queryClient = new QueryClient();
 
 async function checkWeeklyLegendaryDrop(accessToken: string) {
@@ -81,6 +102,9 @@ const App = () => {
     );
     return () => subscription.unsubscribe();
   }, []);
+
+  // Kick off background prefetch of all page chunks after mount
+  useEffect(() => { prefetchPages(); }, []);
 
   useEffect(() => {
     const channel = supabase

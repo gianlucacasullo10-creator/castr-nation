@@ -16,7 +16,7 @@ const ImageZoom = ({ src, alt, className }: ImageZoomProps) => {
         className={className}
         onClick={() => setIsZoomed(true)}
       >
-        <img src={src} alt={alt} className="w-full h-full object-cover cursor-pointer" loading="lazy" />
+        <img src={src} alt={alt} className="w-full h-full object-cover cursor-pointer" />
       </div>
 
       {isZoomed && (

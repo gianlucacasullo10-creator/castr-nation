@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,21 +11,23 @@ import { initAdMob } from "@/lib/admob";
 import BottomNav from "./components/BottomNav";
 import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
-import Index from "./pages/Index";
-import Capture from "./pages/Capture";
-import Leaderboards from "./pages/Leaderboards";
-import Profile from "./pages/Profile";
-import Clubs from "./pages/Clubs";
-import Shop from "./pages/Shop";
-import Inventory from "./pages/Inventory";
-import Auth from "./pages/Auth";
-import PublicProfile from "./pages/PublicProfile"; 
-import NotFound from "./pages/NotFound";
 import CatchUpload from "./components/CatchUpload";
-import Achievements from "./pages/Achievements";
-import CastrsPro from "./pages/CastrsPro";
-import Tournaments from "./pages/Tournaments";
-import AdminReview from "@/pages/AdminReview";
+
+// Lazy load all pages — only the current route's JS is downloaded on first load
+const Index = lazy(() => import("./pages/Index"));
+const Capture = lazy(() => import("./pages/Capture"));
+const Leaderboards = lazy(() => import("./pages/Leaderboards"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Clubs = lazy(() => import("./pages/Clubs"));
+const Shop = lazy(() => import("./pages/Shop"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Auth = lazy(() => import("./pages/Auth"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const CastrsPro = lazy(() => import("./pages/CastrsPro"));
+const Tournaments = lazy(() => import("./pages/Tournaments"));
+const AdminReview = lazy(() => import("@/pages/AdminReview"));
 
 const queryClient = new QueryClient();
 
@@ -122,6 +124,7 @@ const App = () => {
           <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
             <div className="page-transition">
               <ErrorBoundary>
+                <Suspense fallback={<div className="min-h-screen bg-background" />}>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
@@ -138,6 +141,7 @@ const App = () => {
                   <Route path="/admin/review" element={<AdminReview />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
               </ErrorBoundary>
             </div>
 

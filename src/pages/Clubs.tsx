@@ -408,30 +408,50 @@ const Clubs = () => {
   const fetchClubDetails = async (club: any) => {
     setLoading(true);
     try {
-      const { data: allMemberships } = await supabase.from('club_members').select('user_id, club_id');
-      const { data: allCatches } = await supabase.from('catches').select('user_id, points');
+      // Fetch only members of this specific club
+      const { data: clubMemberships } = await supabase
+        .from('club_members')
+        .select('user_id, created_at')
+        .eq('club_id', club.id);
 
-      const clubScoreMap: Record<string, number> = {};
-      allMemberships?.forEach(m => {
-        const userPoints = allCatches?.filter(c => c.user_id === m.user_id).reduce((sum, c) => sum + (c.points || 0), 0) || 0;
-        clubScoreMap[m.club_id] = (clubScoreMap[m.club_id] || 0) + userPoints;
-      });
-
-      const regionalClubs = clubs.filter(c => c.region === club.region).map(c => ({ ...c, score: clubScoreMap[c.id] || 0 })).sort((a, b) => b.score - a.score);
-      const rank = regionalClubs.findIndex(c => c.id === club.id) + 1;
-      setRegionalRank(rank);
-
-      const currentClubMemberIds = allMemberships?.filter(m => m.club_id === club.id).map(m => m.user_id) || [];
+      const currentClubMemberIds = clubMemberships?.map(m => m.user_id) || [];
       setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
 
-      const { data: profiles } = await supabase.from('profiles').select('*');
-      const memberStats = (profiles || []).filter(p => currentClubMemberIds.includes(p.id))
-        .map(p => ({
-          ...p,
-          totalPoints: (allCatches || []).filter(c => c.user_id === p.id).reduce((acc, curr) => acc + (curr.points || 0), 0)
-        })).sort((a, b) => b.totalPoints - a.totalPoints);
+      // Fetch catches only for this club's members
+      const { data: memberCatches } = currentClubMemberIds.length > 0
+        ? await supabase.from('catches').select('user_id, points').in('user_id', currentClubMemberIds)
+        : { data: [] };
 
-      setTotalPoints(clubScoreMap[club.id] || 0);
+      const clubTotal = (memberCatches || []).reduce((sum, c) => sum + (c.points || 0), 0);
+      setTotalPoints(clubTotal);
+
+      // Compute regional rank — fetch member IDs for same-region clubs, then sum catches
+      const regionalClubs = clubs.filter(c => c.region === club.region && c.id !== club.id);
+      let rank = 1;
+      for (const rc of regionalClubs) {
+        const { data: rcMembers } = await supabase
+          .from('club_members').select('user_id').eq('club_id', rc.id);
+        const rcMemberIds = rcMembers?.map(m => m.user_id) || [];
+        if (rcMemberIds.length === 0) continue;
+        const { data: rcCatches } = await supabase
+          .from('catches').select('points').in('user_id', rcMemberIds);
+        const rcTotal = (rcCatches || []).reduce((sum, c) => sum + (c.points || 0), 0);
+        if (rcTotal > clubTotal) rank++;
+      }
+      setRegionalRank(rank);
+
+      // Fetch profiles for this club's members only
+      const { data: profiles } = currentClubMemberIds.length > 0
+        ? await supabase.from('profiles').select('*').in('id', currentClubMemberIds)
+        : { data: [] };
+
+      const memberStats = (profiles || []).map(p => ({
+        ...p,
+        totalPoints: (memberCatches || [])
+          .filter(c => c.user_id === p.id)
+          .reduce((acc, curr) => acc + (curr.points || 0), 0)
+      })).sort((a, b) => b.totalPoints - a.totalPoints);
+
       setClubMembers(memberStats);
       setSelectedClub(club);
       setEditName(club.name);

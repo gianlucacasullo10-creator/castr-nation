@@ -29,6 +29,30 @@ const FALLBACK_POINTS: Record<string, number> = {
   "lake trout": 30,
 };
 
+// Resize + re-encode to JPEG before uploading so feed images load fast.
+// Caps the longer side at 1200px and uses 78% quality — typical result
+// is 150–350 KB vs 3–8 MB for a raw phone photo.
+function compressImage(file: File, maxPx = 1200, quality = 0.78): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => resolve(new File([blob!], "catch.jpg", { type: "image/jpeg" })),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.src = url;
+  });
+}
+
 const Capture = () => {
   const [species, setSpecies] = useState("");
   const [locationName, setLocationName] = useState("");
@@ -111,8 +135,9 @@ const Capture = () => {
 
       let imageUrl = "";
       if (image) {
+        const compressed = await compressImage(image);
         const filePath = `${user.id}/${Math.random()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from('catch_photos').upload(filePath, image);
+        const { error: uploadError } = await supabase.storage.from('catch_photos').upload(filePath, compressed);
         if (uploadError) throw uploadError;
         imageUrl = getStorageUrl('catch_photos', filePath);
       }

@@ -480,7 +480,7 @@ const Index = () => {
         </div>
       </div>
 
-      {feedItems.map((item) => {
+      {feedItems.map((item, index) => {
         const isLiked = item.likes?.some((l: any) => l.user_id === currentUser?.id);
 
         return (
@@ -517,10 +517,11 @@ const Index = () => {
               </div>
             ) : (
               <div className="aspect-square relative overflow-hidden">
-                <ImageZoom 
-                  src={item.image_url} 
-                  alt="Catch" 
+                <ImageZoom
+                  src={item.image_url}
+                  alt="Catch"
                   className="aspect-square relative overflow-hidden"
+                  priority={index < 3}
                 />
                 <Badge className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white border-none font-black italic text-[10px] px-3 py-1 uppercase pointer-events-none z-10">AI Verified</Badge>
               </div>

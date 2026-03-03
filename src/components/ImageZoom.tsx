@@ -5,9 +5,10 @@ interface ImageZoomProps {
   src: string;
   alt: string;
   className?: string;
+  priority?: boolean; // true for first visible images — eager + high fetchpriority
 }
 
-const ImageZoom = ({ src, alt, className }: ImageZoomProps) => {
+const ImageZoom = ({ src, alt, className, priority = false }: ImageZoomProps) => {
   const [isZoomed, setIsZoomed] = useState(false);
 
   return (
@@ -16,7 +17,13 @@ const ImageZoom = ({ src, alt, className }: ImageZoomProps) => {
         className={className}
         onClick={() => setIsZoomed(true)}
       >
-        <img src={src} alt={alt} className="w-full h-full object-cover cursor-pointer" />
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover cursor-pointer"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+        />
       </div>
 
       {isZoomed && (

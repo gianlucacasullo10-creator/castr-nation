@@ -3,6 +3,26 @@ import App from "./App.tsx";
 import "./index.css";
 import { Analytics } from "@vercel/analytics/react";
 
+// Auto-reload when a Vite chunk fails to load (happens after new Vercel deployments
+// when the user has the old app open and navigates to a lazily-loaded route).
+function isChunkError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message || "";
+  return (
+    err.name === "ChunkLoadError" ||
+    msg.includes("Failed to fetch dynamically imported module") ||
+    msg.includes("Importing a module script failed") ||
+    msg.includes("Loading chunk") ||
+    msg.includes("dynamically imported module")
+  );
+}
+window.addEventListener("unhandledrejection", (event) => {
+  if (isChunkError(event.reason)) {
+    event.preventDefault();
+    window.location.reload();
+  }
+});
+
 createRoot(document.getElementById("root")!).render(
   <>
     <App />

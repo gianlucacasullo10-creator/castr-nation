@@ -44,18 +44,32 @@ const Profile = () => {
   const { toast } = useToast();
   const { isPro } = useProStatus();
 
-  const BASE_TITLES = [
-    { name: "OG CASTR", icon: "⚡", description: "Alpha Member Status" },
-    { name: "Beginner", icon: "🎣", description: "The Journey Begins" },
-    { name: "Novice Castr", icon: "🐣", description: "Default Status" }
-  ];
+  const TITLE_RARITY_STYLES = {
+    common:    { activeBg: "bg-gradient-to-r from-gray-500/20 to-gray-600/10",    border: "border-gray-400/60",    glow: "shadow-[0_0_18px_rgba(156,163,175,0.35)]", iconBg: "bg-gray-500/20",    badge: "bg-gray-500 text-white",        label: "text-gray-400" },
+    rare:      { activeBg: "bg-gradient-to-r from-blue-500/20 to-cyan-500/10",     border: "border-blue-400/60",    glow: "shadow-[0_0_20px_rgba(59,130,246,0.45)]",  iconBg: "bg-blue-500/20",    badge: "bg-blue-500 text-white",        label: "text-blue-400" },
+    epic:      { activeBg: "bg-gradient-to-r from-purple-500/20 to-pink-500/10",   border: "border-purple-400/60",  glow: "shadow-[0_0_24px_rgba(168,85,247,0.5)]",   iconBg: "bg-purple-500/20",  badge: "bg-purple-500 text-white",      label: "text-purple-400" },
+    legendary: { activeBg: "bg-gradient-to-r from-yellow-500/20 to-amber-500/10", border: "border-yellow-400/70",  glow: "shadow-[0_0_30px_rgba(234,179,8,0.65)]",   iconBg: "bg-yellow-500/20",  badge: "bg-yellow-500 text-black",      label: "text-yellow-400" },
+  };
 
-  const CHALLENGE_TITLES = [
-    { name: "Musky Magician", icon: "🪄", description: "Catch a Musky", check: (c: any[]) => c.some(f => f.species?.toLowerCase().includes('musk')) },
-    { name: "Walleye Wizard", icon: "🧙", description: "Catch a Walleye", check: (c: any[]) => c.some(f => f.species?.toLowerCase().includes('walley')) },
-    { name: "Ruler of Pikes", icon: "👑", description: "Catch 3 Pikes", check: (c: any[]) => c.filter(f => f.species?.toLowerCase().includes('pike')).length >= 3 },
-    { name: "Smallmouth Smasher", icon: "💥", description: "Catch 3 Smallmouths", check: (c: any[]) => c.filter(f => f.species?.toLowerCase().includes('smallmouth')).length >= 3 },
-    { name: "That's a Biggie", icon: "🐋", description: "Catch a 500+ PT fish", check: (c: any[]) => c.some(f => f.points >= 500) },
+  const ALL_TITLES = [
+    // Always unlocked — common
+    { name: "Beginner",           icon: "🎣", description: "The journey begins",             rarity: "common",    check: (_: any[]) => true },
+    { name: "Novice Castr",       icon: "🐣", description: "Still learning the ropes",       rarity: "common",    check: (_: any[]) => true },
+    // Catch-count milestones
+    { name: "Fingerling",         icon: "🐟", description: "Catch 3 fish",                   rarity: "common",    check: (c: any[]) => c.length >= 3 },
+    { name: "On the Hook",        icon: "🪝", description: "Catch 5 fish",                   rarity: "common",    check: (c: any[]) => c.length >= 5 },
+    { name: "Hookset Hero",       icon: "🎯", description: "Catch 10 fish",                  rarity: "rare",      check: (c: any[]) => c.length >= 10 },
+    // Species titles — rare
+    { name: "Walleye Wizard",     icon: "🧙", description: "Catch a Walleye",                rarity: "rare",      check: (c: any[]) => c.some((f: any) => f.species?.toLowerCase().includes('walley')) },
+    { name: "Ruler of Pikes",     icon: "👑", description: "Catch 3 Pikes",                  rarity: "rare",      check: (c: any[]) => c.filter((f: any) => f.species?.toLowerCase().includes('pike')).length >= 3 },
+    { name: "Smallmouth Smasher", icon: "💥", description: "Catch 3 Smallmouths",            rarity: "rare",      check: (c: any[]) => c.filter((f: any) => f.species?.toLowerCase().includes('smallmouth')).length >= 3 },
+    // Epic tier
+    { name: "Musky Magician",     icon: "🪄", description: "Catch a Muskellunge",             rarity: "epic",      check: (c: any[]) => c.some((f: any) => f.species?.toLowerCase().includes('musk')) },
+    { name: "Trophy Hunter",      icon: "🏆", description: "Catch 20 fish",                  rarity: "epic",      check: (c: any[]) => c.length >= 20 },
+    { name: "That's a Biggie",    icon: "🐋", description: "Catch a 75+ point fish",         rarity: "epic",      check: (c: any[]) => c.some((f: any) => f.points >= 75) },
+    // Legendary tier
+    { name: "Legend of the Lake", icon: "🌊", description: "Catch 50 fish",                  rarity: "legendary", check: (c: any[]) => c.length >= 50 },
+    { name: "OG CASTR",           icon: "⚡", description: "Alpha member status",            rarity: "legendary", check: (_: any[]) => true },
   ];
 
   const fetchProfileData = async () => {
@@ -80,11 +94,7 @@ const Profile = () => {
       setCatches(currentCatches);
       setEquippedGear(gearData || []);
 
-      const earnedChallenges = CHALLENGE_TITLES
-        .filter(t => t.check(currentCatches))
-        .map(t => t.name);
-      
-      setUnlockedTitles([...BASE_TITLES.map(b => b.name), ...earnedChallenges]);
+      setUnlockedTitles(ALL_TITLES.filter(t => t.check(currentCatches)).map(t => t.name));
     } finally { setLoading(false); }
   };
 
@@ -446,51 +456,51 @@ const Profile = () => {
 
       {/* Title Vault */}
       <div className="space-y-4">
-        <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground px-2">Title Vault</h3>
-        
-        <div className="space-y-2 mb-6 text-left">
-          {BASE_TITLES.map((t) => (
-            <div 
-              key={t.name}
-              onClick={() => equipTitle(t.name)}
-              className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                profile?.equipped_title === t.name ? "border-primary bg-primary/5" : "border-muted bg-card hover:border-primary/30"
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <span className="text-xl">{t.icon}</span>
-                <div>
-                  <p className="text-xs font-black uppercase italic leading-none">{t.name}</p>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Heritage Status</p>
-                </div>
-              </div>
-              {profile?.equipped_title === t.name && <CheckCircle2 size={18} className="text-primary" />}
-            </div>
-          ))}
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-black uppercase italic tracking-widest text-muted-foreground">Title Vault</h3>
+          <span className="text-[10px] font-black text-primary">{unlockedTitles.length}/{ALL_TITLES.length} Unlocked</span>
         </div>
 
         <div className="space-y-2 text-left">
-          <p className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] px-2 mb-2">Earned Achievements</p>
-          {CHALLENGE_TITLES.map((t) => {
+          {ALL_TITLES.map((t) => {
             const isUnlocked = unlockedTitles.includes(t.name);
             const isEquipped = profile?.equipped_title === t.name;
+            const rs = TITLE_RARITY_STYLES[t.rarity as keyof typeof TITLE_RARITY_STYLES];
 
             return (
-              <div 
+              <div
                 key={t.name}
                 onClick={() => isUnlocked && equipTitle(t.name)}
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
-                  isEquipped ? "border-primary bg-primary/5" : isUnlocked ? "border-muted bg-card hover:border-primary/30 cursor-pointer" : "bg-muted/10 opacity-30 grayscale cursor-not-allowed"
+                className={`flex items-center gap-4 p-4 rounded-[20px] border-2 transition-all ${
+                  isEquipped
+                    ? `${rs.activeBg} ${rs.border} ${rs.glow} cursor-pointer`
+                    : isUnlocked
+                    ? `bg-card border-muted hover:${rs.border} cursor-pointer`
+                    : 'bg-muted/5 border-muted/20 opacity-40 grayscale cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-4">
-                  <span className="text-xl">{isUnlocked ? t.icon : "🔒"}</span>
-                  <div>
-                    <p className="text-xs font-black uppercase italic leading-none">{t.name}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{t.description}</p>
-                  </div>
+                {/* Icon bubble */}
+                <div className={`w-11 h-11 flex items-center justify-center rounded-2xl shrink-0 text-xl ${isUnlocked ? rs.iconBg : 'bg-muted/30'}`}>
+                  {isUnlocked ? t.icon : '🔒'}
                 </div>
-                {isEquipped && <CheckCircle2 size={18} className="text-primary" />}
+
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-black uppercase italic leading-none ${isEquipped ? rs.label : 'text-foreground'}`}>
+                    {t.name}
+                  </p>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 truncate">
+                    {t.description}
+                  </p>
+                </div>
+
+                {/* Right side */}
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${rs.badge}`}>
+                    {t.rarity}
+                  </span>
+                  {isEquipped && <CheckCircle2 size={14} className="text-primary" />}
+                </div>
               </div>
             );
           })}

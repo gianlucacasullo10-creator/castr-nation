@@ -23,6 +23,7 @@ import {
   LogOut
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { checkAndUnlockAchievements } from "@/utils/achievementTracker";
 
 const Clubs = () => {
   const navigate = useNavigate();
@@ -163,6 +164,7 @@ const Clubs = () => {
       setIsMember(true);
       fetchClubDetails(selectedClub);
       toast({ title: "SQUAD JOINED", description: "Welcome to the ranks." });
+      checkAndUnlockAchievements(currentUser.id);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Join Failed", description: error.message });
     }

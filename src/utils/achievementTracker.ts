@@ -38,17 +38,8 @@ export const checkAndUnlockAchievements = async (userId: string) => {
     if (catchesError) console.error('Catches fetch error:', catchesError);
     console.log('🎣 Total catches:', catches?.length || 0);
 
-    // Fetch user's likes received - use simpler query to avoid join issues
-    const { data: userCatches, error: userCatchesError } = await supabase
-      .from('catches')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (userCatchesError) {
-      console.error('User catches fetch error:', userCatchesError);
-    }
-
-    const catchIds = userCatches?.map(c => c.id) || [];
+    // Reuse already-fetched catches for IDs
+    const catchIds = catches?.map(c => c.id) || [];
     
     const { data: likesReceived, error: likesError } = await supabase
       .from('likes')
@@ -188,17 +179,17 @@ export const checkAndUnlockAchievements = async (userId: string) => {
           break;
 
         case 'catch_500_points':
-          const catch500 = catches?.filter(c => c.points >= 500).length || 0;
-          shouldUnlock = catch500 >= 1;
-          progress = Math.min((catch500 / 1) * 100, 100);
-          console.log(`  📊 Progress: ${catch500}/1 fish worth 500+ pts (${progress}%)`);
+          const totalPts500 = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+          shouldUnlock = totalPts500 >= 500;
+          progress = Math.min((totalPts500 / 500) * 100, 100);
+          console.log(`  📊 Progress: ${totalPts500}/500 total catch pts (${progress}%)`);
           break;
 
         case 'catch_1000_points':
-          const catch1000 = catches?.filter(c => c.points >= 1000).length || 0;
-          shouldUnlock = catch1000 >= 1;
-          progress = Math.min((catch1000 / 1) * 100, 100);
-          console.log(`  📊 Progress: ${catch1000}/1 fish worth 1000+ pts (${progress}%)`);
+          const totalPts1000 = catches?.reduce((sum, c) => sum + (c.points || 0), 0) || 0;
+          shouldUnlock = totalPts1000 >= 1000;
+          progress = Math.min((totalPts1000 / 1000) * 100, 100);
+          console.log(`  📊 Progress: ${totalPts1000}/1000 total catch pts (${progress}%)`);
           break;
 
         case 'catch_3_locations':
@@ -291,8 +282,9 @@ export const checkAndUnlockAchievements = async (userId: string) => {
         case 'catch_7_day_streak':
           // Check if user has catches on 7 consecutive days
           if (catches && catches.length >= 7) {
+            // Use ISO date-only strings (YYYY-MM-DD) so lexicographic sort = chronological sort
             const catchDates = catches
-              .map(c => new Date(c.created_at).toDateString())
+              .map(c => c.created_at.slice(0, 10))
               .filter((date, index, self) => self.indexOf(date) === index)
               .sort();
             

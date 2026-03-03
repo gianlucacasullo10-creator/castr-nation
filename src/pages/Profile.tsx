@@ -60,13 +60,13 @@ const Profile = () => {
     { name: "On the Hook",        icon: "🪝", description: "Catch 5 fish",                   rarity: "common",    check: (c: any[]) => c.length >= 5 },
     { name: "Hookset Hero",       icon: "🎯", description: "Catch 10 fish",                  rarity: "rare",      check: (c: any[]) => c.length >= 10 },
     // Species titles — rare
-    { name: "Walleye Wizard",     icon: "🧙", description: "Catch a Walleye",                rarity: "rare",      check: (c: any[]) => c.some((f: any) => f.species?.toLowerCase().includes('walley')) },
-    { name: "Ruler of Pikes",     icon: "👑", description: "Catch 3 Pikes",                  rarity: "rare",      check: (c: any[]) => c.filter((f: any) => f.species?.toLowerCase().includes('pike')).length >= 3 },
-    { name: "Smallmouth Smasher", icon: "💥", description: "Catch 3 Smallmouths",            rarity: "rare",      check: (c: any[]) => c.filter((f: any) => f.species?.toLowerCase().includes('smallmouth')).length >= 3 },
+    { name: "Walleye Wizard",     icon: "🧙", description: "Catch a Walleye",                rarity: "rare",      check: (c: any[]) => c.some((f: any) => (f.species || '').toLowerCase().includes('walley')) },
+    { name: "Ruler of Pikes",     icon: "👑", description: "Catch 3 Pikes",                  rarity: "rare",      check: (c: any[]) => c.filter((f: any) => (f.species || '').toLowerCase().includes('pike')).length >= 3 },
+    { name: "Smallmouth Smasher", icon: "💥", description: "Catch 3 Smallmouths",            rarity: "rare",      check: (c: any[]) => c.filter((f: any) => (f.species || '').toLowerCase().includes('smallmouth')).length >= 3 },
     // Epic tier
-    { name: "Musky Magician",     icon: "🪄", description: "Catch a Muskellunge",             rarity: "epic",      check: (c: any[]) => c.some((f: any) => f.species?.toLowerCase().includes('musk')) },
+    { name: "Musky Magician",     icon: "🪄", description: "Catch a Muskellunge",             rarity: "epic",      check: (c: any[]) => c.some((f: any) => (f.species || '').toLowerCase().includes('musk')) },
     { name: "Trophy Hunter",      icon: "🏆", description: "Catch 20 fish",                  rarity: "epic",      check: (c: any[]) => c.length >= 20 },
-    { name: "That's a Biggie",    icon: "🐋", description: "Catch a 75+ point fish",         rarity: "epic",      check: (c: any[]) => c.some((f: any) => f.points >= 75) },
+    { name: "That's a Biggie",    icon: "🐋", description: "Catch a 75+ point fish",         rarity: "epic",      check: (c: any[]) => c.some((f: any) => (f.points || 0) >= 75) },
     // Legendary tier
     { name: "Legend of the Lake", icon: "🌊", description: "Catch 50 fish",                  rarity: "legendary", check: (c: any[]) => c.length >= 50 },
     { name: "OG CASTR",           icon: "⚡", description: "Alpha member status",            rarity: "legendary", check: (_: any[]) => true },
@@ -78,24 +78,30 @@ const Profile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/auth"); return; }
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      const { data: catchData } = await supabase.from('catches').select('*').eq('user_id', user.id);
-      
-      // Fetch equipped gear
-      const { data: gearData } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_equipped', true);
-      
+      // Run all three queries in parallel
+      const [{ data: profileData }, { data: catchData }, { data: gearData }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('catches').select('*').eq('user_id', user.id),
+        supabase.from('inventory').select('*').eq('user_id', user.id).eq('is_equipped', true),
+      ]);
+
       const currentCatches = catchData || [];
       setProfile(profileData);
       setTempName(profileData?.display_name || "");
       setCatches(currentCatches);
       setEquippedGear(gearData || []);
 
-      setUnlockedTitles(ALL_TITLES.filter(t => t.check(currentCatches)).map(t => t.name));
-    } finally { setLoading(false); }
+      try {
+        setUnlockedTitles(ALL_TITLES.filter(t => t.check(currentCatches)).map(t => t.name));
+      } catch (titleErr) {
+        console.warn('Title check error:', titleErr);
+        setUnlockedTitles(['Beginner', 'Novice Castr', 'OG CASTR']);
+      }
+    } catch (err) {
+      console.error('fetchProfileData error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

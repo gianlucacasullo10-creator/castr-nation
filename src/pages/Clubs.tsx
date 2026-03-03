@@ -179,6 +179,23 @@ const Clubs = () => {
       return;
     }
 
+    // Enforce one-club-at-a-time
+    const { data: existingMembership } = await supabase
+      .from('club_members')
+      .select('club_id, clubs(name)')
+      .eq('user_id', currentUser.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingMembership) {
+      toast({
+        variant: "destructive",
+        title: "Already in a Club",
+        description: `Leave ${(existingMembership.clubs as any)?.name || 'your current club'} before creating a new one.`
+      });
+      return;
+    }
+
     setCreatingClub(true);
     try {
       // Create the club
@@ -225,6 +242,24 @@ const Clubs = () => {
   const joinClub = async () => {
     if (!currentUser || !selectedClub) return;
     try {
+      // Enforce one-club-at-a-time
+      const { data: existingMembership } = await supabase
+        .from('club_members')
+        .select('club_id, clubs(name)')
+        .eq('user_id', currentUser.id)
+        .neq('club_id', selectedClub.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingMembership) {
+        toast({
+          variant: "destructive",
+          title: "Already in a Club",
+          description: `Leave ${(existingMembership.clubs as any)?.name || 'your current club'} before joining another.`
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('club_members')
         .insert([{ club_id: selectedClub.id, user_id: currentUser.id }]);
@@ -240,6 +275,41 @@ const Clubs = () => {
   const leaveClub = async () => {
     if (!currentUser || !selectedClub) return;
     try {
+      const isLeader = currentUser.id === selectedClub.created_by;
+
+      if (isLeader) {
+        // Find next oldest member to transfer leadership to
+        const { data: remainingMembers } = await supabase
+          .from('club_members')
+          .select('user_id, created_at')
+          .eq('club_id', selectedClub.id)
+          .neq('user_id', currentUser.id)
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        if (remainingMembers && remainingMembers.length > 0) {
+          // Transfer leadership to next oldest member
+          const { error: transferError } = await supabase
+            .from('clubs')
+            .update({ created_by: remainingMembers[0].user_id })
+            .eq('id', selectedClub.id);
+          if (transferError) throw transferError;
+        } else {
+          // No other members — disband the club
+          const { error: deleteClubError } = await supabase
+            .from('clubs')
+            .delete()
+            .eq('id', selectedClub.id);
+          if (deleteClubError) throw deleteClubError;
+          setIsMember(false);
+          setSelectedClub(null);
+          setView('INFO');
+          fetchClubs();
+          toast({ title: "CLUB DISBANDED", description: "You were the last member." });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('club_members')
         .delete()
@@ -247,8 +317,10 @@ const Clubs = () => {
         .eq('user_id', currentUser.id);
       if (error) throw error;
       setIsMember(false);
-      toast({ title: "FREE AGENT", description: "You have left the club." });
-      // Go back to club list
+      toast({
+        title: isLeader ? "LEADERSHIP TRANSFERRED" : "FREE AGENT",
+        description: isLeader ? "Next oldest member is now leader." : "You have left the club."
+      });
       setSelectedClub(null);
       setView('INFO');
       fetchClubs();
@@ -717,15 +789,14 @@ const Clubs = () => {
                     <Users size={18} className="mr-2" /> Join Squad
                   </Button>
                 ) : (
-                  currentUser?.id !== selectedClub.created_by && (
-                    <Button 
-                      variant="outline" 
-                      onClick={leaveClub} 
-                      className="w-full h-12 rounded-2xl border-2 border-red-500/30 text-red-500 hover:bg-red-500/10 font-black uppercase italic text-xs"
-                    >
-                      <LogOut size={16} className="mr-2" /> Leave Club
-                    </Button>
-                  )
+                  <Button
+                    variant="outline"
+                    onClick={leaveClub}
+                    className="w-full h-12 rounded-2xl border-2 border-red-500/30 text-red-500 hover:bg-red-500/10 font-black uppercase italic text-xs"
+                  >
+                    <LogOut size={16} className="mr-2" />
+                    {currentUser?.id === selectedClub.created_by ? 'Leave & Transfer Leadership' : 'Leave Club'}
+                  </Button>
                 )}
               </div>
 
@@ -746,7 +817,7 @@ const Clubs = () => {
                     >
                       <div className="flex items-center gap-4 text-left">
                         <div className="flex flex-col items-center w-6">
-                           {index === 0 ? <Crown size={14} className="text-yellow-500" /> : <span className="text-xs font-black text-muted-foreground">{index + 1}</span>}
+                           {member.id === selectedClub.created_by ? <Crown size={14} className="text-yellow-500" /> : <span className="text-xs font-black text-muted-foreground">{index + 1}</span>}
                         </div>
                         <Avatar className="h-12 w-12 border-2 border-primary/20">
                           <AvatarImage src={member.avatar_url} />

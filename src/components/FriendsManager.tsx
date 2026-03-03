@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  X, 
-  Search, 
-  UserPlus, 
-  Users, 
-  Check, 
-  XCircle, 
+import {
+  X,
+  Search,
+  UserPlus,
+  Users,
+  Check,
+  XCircle,
   Loader2,
   Trophy
 } from "lucide-react";
@@ -64,7 +64,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
         return;
       }
 
-      const friendIds = friendships.map(f => 
+      const friendIds = friendships.map(f =>
         f.user_id === user.id ? f.friend_id : f.user_id
       );
 
@@ -103,7 +103,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
 
   const searchUsers = async () => {
     if (!searchQuery.trim() || !currentUserId) return;
-    
+
     setLoading(true);
     try {
       const { data: profiles } = await supabase
@@ -124,7 +124,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
         .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
 
       const enrichedProfiles = profiles.map(profile => {
-        const friendship = existingFriendships?.find(f => 
+        const friendship = existingFriendships?.find(f =>
           f.user_id === profile.id || f.friend_id === profile.id
         );
         return {
@@ -203,11 +203,11 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#f5f5f5] flex justify-center overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-background flex justify-center overflow-hidden">
       <div className="relative h-dvh w-full max-w-md overflow-y-auto">
-        
+
         <div className="flex flex-col space-y-6 pb-24 pt-4 px-4">
-          {/* Header - Centered like Tournaments */}
+          {/* Header */}
           <div className="text-center pt-2">
             <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none">
               Friends
@@ -217,22 +217,22 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             </p>
           </div>
 
-          {/* Close Button - Positioned top right */}
-          <button 
+          {/* Close Button */}
+          <button
             onClick={onClose}
-            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/5 hover:bg-black/10 transition-colors flex items-center justify-center z-30"
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-foreground/10 hover:bg-foreground/15 transition-colors flex items-center justify-center z-30"
           >
-            <X size={20} className="text-gray-500" />
+            <X size={20} className="text-muted-foreground" />
           </button>
 
-          {/* Info Card - Matching Tournaments style */}
+          {/* Info Card */}
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 p-6 rounded-[32px]">
             <div className="flex items-start gap-4">
               <div className="bg-primary/20 p-3 rounded-2xl shrink-0">
                 <Users className="text-primary" size={24} />
               </div>
               <div>
-                <h3 className="font-black uppercase text-sm mb-1 text-gray-800">Your Network</h3>
+                <h3 className="font-black uppercase text-sm mb-1 text-foreground">Your Network</h3>
                 <p className="text-xs text-muted-foreground font-medium leading-relaxed">
                   Connect with fellow anglers, compete on friend leaderboards, and share your catches!
                 </p>
@@ -248,9 +248,9 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                 onClick={() => setActiveTab(tab)}
                 variant={activeTab === tab ? 'default' : 'outline'}
                 className={`flex-1 font-black uppercase text-[10px] h-11 rounded-2xl relative ${
-                  activeTab === tab 
-                    ? 'bg-primary text-black hover:bg-primary/90' 
-                    : 'bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50'
+                  activeTab === tab
+                    ? 'bg-primary text-black hover:bg-primary/90'
+                    : 'bg-background border-2 border-border text-muted-foreground hover:bg-muted/50'
                 }`}
               >
                 {tab === 'friends' && <Users size={14} className="mr-1" />}
@@ -278,14 +278,14 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             {activeTab === 'friends' && !loading && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {friends.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white border-2 border-dashed border-gray-200">
-                    <Users className="mx-auto mb-3 text-gray-300" size={48} />
-                    <p className="text-gray-500 font-bold">No friends yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Search for anglers to connect with!</p>
+                  <Card className="p-12 text-center rounded-[32px] bg-card border-2 border-dashed border-border">
+                    <Users className="mx-auto mb-3 text-muted-foreground/40" size={48} />
+                    <p className="text-muted-foreground font-bold">No friends yet</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">Search for anglers to connect with!</p>
                   </Card>
                 ) : (
                   friends.map(friend => (
-                    <Card key={friend.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
+                    <Card key={friend.id} className="p-4 rounded-[24px] bg-card border-2 border-border">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2 border-primary/20">
                           <AvatarImage src={friend.avatar_url} />
@@ -294,7 +294,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm text-gray-800">{friend.display_name}</p>
+                          <p className="font-black uppercase text-sm text-foreground">{friend.display_name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Trophy size={12} className="text-primary" />
                             <p className="text-xs text-muted-foreground font-bold">
@@ -306,7 +306,7 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           onClick={() => removeFriend(friend.id)}
                           variant="ghost"
                           size="sm"
-                          className="text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 h-8 rounded-xl"
+                          className="text-[10px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-500/10 h-8 rounded-xl"
                         >
                           Remove
                         </Button>
@@ -321,14 +321,14 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             {activeTab === 'requests' && !loading && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {pendingRequests.length === 0 ? (
-                  <Card className="p-12 text-center rounded-[32px] bg-white border-2 border-dashed border-gray-200">
-                    <UserPlus className="mx-auto mb-3 text-gray-300" size={48} />
-                    <p className="text-gray-500 font-bold">No pending requests</p>
-                    <p className="text-xs text-gray-400 mt-1">Friend requests will appear here</p>
+                  <Card className="p-12 text-center rounded-[32px] bg-card border-2 border-dashed border-border">
+                    <UserPlus className="mx-auto mb-3 text-muted-foreground/40" size={48} />
+                    <p className="text-muted-foreground font-bold">No pending requests</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">Friend requests will appear here</p>
                   </Card>
                 ) : (
                   pendingRequests.map(request => (
-                    <Card key={request.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
+                    <Card key={request.id} className="p-4 rounded-[24px] bg-card border-2 border-border">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2 border-primary/20">
                           <AvatarImage src={request.profiles?.avatar_url} />
@@ -337,22 +337,22 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm text-gray-800">{request.profiles?.display_name}</p>
+                          <p className="font-black uppercase text-sm text-foreground">{request.profiles?.display_name}</p>
                           <p className="text-[10px] text-muted-foreground uppercase font-bold">Wants to connect</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button 
-                            onClick={() => acceptFriendRequest(request.id)} 
-                            size="sm" 
+                          <Button
+                            onClick={() => acceptFriendRequest(request.id)}
+                            size="sm"
                             className="bg-green-500 hover:bg-green-600 h-9 w-9 p-0 rounded-full"
                           >
                             <Check size={16} />
                           </Button>
-                          <Button 
-                            onClick={() => rejectFriendRequest(request.id)} 
-                            size="sm" 
-                            variant="outline" 
-                            className="text-red-500 border-red-200 hover:bg-red-50 h-9 w-9 p-0 rounded-full"
+                          <Button
+                            onClick={() => rejectFriendRequest(request.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-red-500 border-red-200 hover:bg-red-500/10 h-9 w-9 p-0 rounded-full"
                           >
                             <XCircle size={16} />
                           </Button>
@@ -373,11 +373,11 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-                    className="flex-1 bg-white border-2 border-gray-200 text-gray-800 placeholder:text-gray-400 text-xs font-bold h-12 rounded-2xl focus:border-primary"
+                    className="flex-1 bg-background border-2 border-border text-foreground placeholder:text-muted-foreground text-xs font-bold h-12 rounded-2xl focus:border-primary"
                   />
-                  <Button 
-                    onClick={searchUsers} 
-                    disabled={loading} 
+                  <Button
+                    onClick={searchUsers}
+                    disabled={loading}
                     className="h-12 px-5 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black"
                   >
                     <Search size={18} />
@@ -386,23 +386,23 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
 
                 <div className="space-y-3">
                   {searchResults.length === 0 && searchQuery && !loading && (
-                    <Card className="p-8 text-center rounded-[32px] bg-white border-2 border-gray-100">
-                      <p className="text-gray-500 font-bold text-sm">No users found</p>
-                      <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
+                    <Card className="p-8 text-center rounded-[32px] bg-card border-2 border-border">
+                      <p className="text-muted-foreground font-bold text-sm">No users found</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">Try a different search term</p>
                     </Card>
                   )}
-                  
+
                   {searchResults.map(user => (
-                    <Card key={user.id} className="p-4 rounded-[24px] bg-white border-2 border-gray-100">
+                    <Card key={user.id} className="p-4 rounded-[24px] bg-card border-2 border-border">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 border-2 border-gray-200">
+                        <Avatar className="h-12 w-12 border-2 border-border">
                           <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback className="bg-gray-100 text-gray-600 font-black">
+                          <AvatarFallback className="bg-muted text-muted-foreground font-black">
                             {user.display_name?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="font-black uppercase text-sm text-gray-800 tracking-wide">
+                          <p className="font-black uppercase text-sm text-foreground tracking-wide">
                             {user.display_name}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -413,17 +413,17 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
                           </div>
                         </div>
                         {user.friendshipStatus === 'accepted' ? (
-                          <Badge className="bg-green-100 text-green-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
+                          <Badge className="bg-green-500/10 text-green-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
                             Friends
                           </Badge>
                         ) : user.friendshipStatus === 'pending' ? (
-                          <Badge className="bg-yellow-100 text-yellow-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
+                          <Badge className="bg-yellow-500/10 text-yellow-600 border-none uppercase text-[9px] font-black px-3 py-1 rounded-full">
                             Pending
                           </Badge>
                         ) : (
-                          <Button 
-                            onClick={() => sendFriendRequest(user.id)} 
-                            size="sm" 
+                          <Button
+                            onClick={() => sendFriendRequest(user.id)}
+                            size="sm"
                             className="font-black uppercase text-[10px] h-9 px-4 rounded-full bg-primary hover:bg-primary/90 text-black"
                           >
                             <UserPlus size={12} className="mr-1" />

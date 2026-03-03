@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentLeaderboard from "@/components/TournamentLeaderboard";
-import { 
-  Trophy, 
-  Calendar, 
-  Users, 
+import TournamentRewardPopup from "@/components/TournamentRewardPopup";
+import {
+  Trophy,
+  Calendar,
+  Users,
   Gift,
-  ExternalLink,
   Loader2,
   CheckCircle2,
   BarChart3
@@ -31,6 +31,16 @@ interface Tournament {
   status: string;
   participant_count?: number;
   is_joined?: boolean;
+  rewards_distributed?: boolean;
+}
+
+interface TournamentReward {
+  id: string;
+  tournament_id: string;
+  rank_position: number;
+  reward_description: string;
+  points_granted: number;
+  tournament_name?: string;
 }
 
 const Tournaments = () => {
@@ -41,12 +51,25 @@ const Tournaments = () => {
   const [joiningTournament, setJoiningTournament] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<string | null>(null);
+  const [pendingRewards, setPendingRewards] = useState<TournamentReward[]>([]);
 
-  // Get current user
+  // Get current user and immediately check for unclaimed rewards
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id || null);
+
+      if (user?.id) {
+        const { data: rewards } = await supabase
+          .from("tournament_rewards")
+          .select("id, tournament_id, rank_position, reward_description, points_granted")
+          .eq("user_id", user.id)
+          .is("claimed_at", null);
+
+        if (rewards && rewards.length > 0) {
+          setPendingRewards(rewards);
+        }
+      }
     };
     getUser();
   }, []);
@@ -56,6 +79,12 @@ const Tournaments = () => {
     fetchTournaments();
   }, [userId]);
 
+  // After tournaments load, trigger distribution for ended tournaments
+  useEffect(() => {
+    if (!userId || tournaments.length === 0) return;
+    triggerRewardDistribution();
+  }, [userId, tournaments.length]);
+
   // Update time every second for countdown
   useEffect(() => {
     const interval = setInterval(() => {
@@ -64,14 +93,59 @@ const Tournaments = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const checkUnclaimedRewards = async () => {
+    if (!userId) return;
+    const { data: rewards, error } = await supabase
+      .from("tournament_rewards")
+      .select("id, tournament_id, rank_position, reward_description, points_granted")
+      .eq("user_id", userId)
+      .is("claimed_at", null);
+
+    if (error) { console.warn("checkUnclaimedRewards error:", error); return; }
+
+    if (rewards && rewards.length > 0) {
+      setPendingRewards(rewards);
+    }
+  };
+
+  const triggerRewardDistribution = async () => {
+    if (!userId) return;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+
+    const endedUndistributed = tournaments.filter(
+      (t) =>
+        new Date(t.end_date) <= new Date() &&
+        !t.rewards_distributed &&
+        t.is_joined
+    );
+
+    for (const t of endedUndistributed) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${supabaseUrl}/functions/v1/distribute-tournament-rewards`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ tournament_id: t.id }),
+        });
+        // Re-check rewards after distribution
+        await checkUnclaimedRewards();
+      } catch (err) {
+        console.warn("distribute-tournament-rewards failed:", err);
+      }
+    }
+  };
+
   const fetchTournaments = async () => {
     try {
       setLoading(true);
       
-      // Get all tournaments
+      // Get all tournaments (including rewards_distributed flag)
       const { data: tournamentsData, error: tournamentsError } = await supabase
         .from('tournaments')
-        .select('*')
+        .select('*, rewards_distributed')
         .order('start_date', { ascending: false });
 
       if (tournamentsError) throw tournamentsError;
@@ -492,6 +566,14 @@ const Tournaments = () => {
           tournamentId={showLeaderboard}
           tournamentName={tournaments.find(t => t.id === showLeaderboard)?.name || "Tournament"}
           onClose={() => setShowLeaderboard(null)}
+        />
+      )}
+
+      {/* Tournament Reward Popup */}
+      {pendingRewards.length > 0 && (
+        <TournamentRewardPopup
+          rewards={pendingRewards}
+          onClose={() => setPendingRewards([])}
         />
       )}
     </div>

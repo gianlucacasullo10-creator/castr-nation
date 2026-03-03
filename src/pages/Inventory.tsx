@@ -85,7 +85,7 @@ const Inventory = () => {
   };
 
   const equipItem = async (itemId: string, itemType: string, currentlyEquipped: boolean) => {
-    if (!currentUser || equipLoading) return;
+    if (!currentUser || equipLoading === itemId) return;
 
     setEquipLoading(itemId);
     try {

@@ -119,7 +119,7 @@ const App = () => {
         <Sonner />
         {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
         <BrowserRouter>
-          <div className="min-h-screen bg-background pb-20">
+          <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
             <div className="page-transition">
               <ErrorBoundary>
                 <Routes>
@@ -146,10 +146,9 @@ const App = () => {
                 key="catch-upload"
                 onComplete={() => {
                   setGlobalShowUpload(false);
-                  setTimeout(() => {
-                    window.location.href = '/';
-                  }, 500);
-                }} 
+                  // Soft refresh — no WebView reload
+                  window.dispatchEvent(new Event('feedRefresh'));
+                }}
               />
             )}
 

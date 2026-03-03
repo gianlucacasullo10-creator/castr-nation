@@ -194,11 +194,19 @@ const Index = () => {
 
   useEffect(() => {
     fetchUnifiedFeed();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null);
-      if (session?.user) fetchUnifiedFeed(false);
+      // Only re-fetch on explicit sign-in/out, not on token refresh or initial session
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchUnifiedFeed(false);
+      }
     });
-    return () => subscription.unsubscribe();
+    const handleFeedRefresh = () => fetchUnifiedFeed(false);
+    window.addEventListener('feedRefresh', handleFeedRefresh);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('feedRefresh', handleFeedRefresh);
+    };
   }, []);
 
   // Pull to refresh handlers

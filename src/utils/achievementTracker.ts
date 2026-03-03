@@ -14,7 +14,6 @@ export const checkAndUnlockAchievements = async (userId: string) => {
   const unlockedAchievements: any[] = [];
 
   try {
-    console.log('🔍 Starting achievement check for user:', userId);
 
     // Verify user exists - use minimal query
     const { data: profile, error: profileError } = await supabase

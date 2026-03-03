@@ -1,26 +1,12 @@
 import UIKit
 import Capacitor
-import RevenueCat
-import GoogleMobileAds
-                                                                                                                                                                                                                
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
-        Purchases.configure(
-            with: Configuration
-                .builder(withAPIKey: "test_glLWvnoxkVFpdUPrOcNneSxfrYN")
-                .build()
-        )
-        #if DEBUG
-        Purchases.logLevel = .debug
-        #endif
-
-        GADMobileAds.sharedInstance().start(completionHandler: nil)
-
         return true
     }
 

@@ -5,11 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getStorageUrl } from '@/utils/storage';
-import { 
-  Trophy, 
-  Medal, 
-  Loader2, 
-  X, 
+import {
+  Trophy,
+  Medal,
+  Loader2,
+  X,
   RefreshCw,
   ChevronDown,
   ChevronUp
@@ -54,15 +54,13 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   useEffect(() => {
     fetchCurrentUser();
     fetchLeaderboard();
-    
-    // Lock body scroll when modal opens
+
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
     document.body.style.height = '100%';
-    
+
     return () => {
-      // Restore body scroll when modal closes
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
@@ -83,7 +81,6 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
         setLoading(true);
       }
 
-      // Fetch only approved tournament catches
       const { data, error } = await supabase
         .from('tournament_catches')
         .select(`
@@ -102,16 +99,13 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
       if (error) throw error;
 
       if (data) {
-        // Assign ranks based on size_score (1 = highest)
         const rankedData = data.map((entry, index) => ({
           ...entry,
           rank_position: index + 1
         }));
-
         setRankings(rankedData);
       }
 
-      // Get pending count
       const { count: pending } = await supabase
         .from('tournament_catches')
         .select('*', { count: 'exact', head: true })
@@ -120,7 +114,6 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
 
       setPendingCount(pending || 0);
 
-      // Get total submissions count
       const { count: total } = await supabase
         .from('tournament_catches')
         .select('*', { count: 'exact', head: true })
@@ -165,7 +158,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
 
   if (loading) {
     return (
-      <div className="fixed inset-[-50px] z-[200] bg-black flex items-center justify-center">
+      <div className="fixed inset-0 z-[200] bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-primary" size={48} />
           <p className="font-black italic uppercase text-primary text-sm">Loading Rankings...</p>
@@ -175,12 +168,12 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
   }
 
   return (
-    <div className="fixed inset-[-50px] z-[200] bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-black" />
-      <div className="relative h-screen w-screen overflow-y-auto pt-2">
+    <div className="fixed inset-0 z-[200] bg-background overflow-hidden">
+      <div className="relative h-full w-full overflow-y-auto">
         <div className="max-w-md mx-auto px-4 space-y-4 pb-8">
+
           {/* Header */}
-          <div className="flex items-start justify-between pt-8 sticky top-0 bg-black z-10 pb-4 -mx-4 px-4">
+          <div className="flex items-start justify-between pt-8 sticky top-0 bg-background z-10 pb-4 -mx-4 px-4 border-b border-border">
             <div className="flex-1">
               <h2 className="text-3xl font-black italic uppercase text-primary tracking-tighter leading-none">
                 Leaderboard
@@ -195,15 +188,15 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                 disabled={refreshing}
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 rounded-full hover:bg-white/10"
+                className="h-10 w-10 p-0 rounded-full hover:bg-muted"
               >
                 <RefreshCw className={`text-primary ${refreshing ? 'animate-spin' : ''}`} size={20} />
               </Button>
-              <button 
+              <button
                 onClick={onClose}
-                className="h-10 w-10 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center"
+                className="h-10 w-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
               >
-                <X size={24} className="text-white/70" />
+                <X size={24} className="text-muted-foreground" />
               </button>
             </div>
           </div>
@@ -269,18 +262,18 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                   const prize = getPrizeForRank(rank);
 
                   return (
-                    <Card 
+                    <Card
                       key={entry.id}
                       className={`flex items-center p-4 gap-3 rounded-[32px] border-2 overflow-hidden transition-all ${
-                        isCurrentUser 
-                          ? "bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary shadow-[0_8px_30px_rgba(34,211,238,0.3)]" 
-                          : rank === 1 
-                          ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/40 shadow-[0_8px_30px_rgba(234,179,8,0.2)]" 
+                        isCurrentUser
+                          ? "bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary shadow-[0_8px_30px_rgba(34,211,238,0.3)]"
+                          : rank === 1
+                          ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/40"
                           : rank === 2
-                          ? "bg-gradient-to-r from-slate-400/20 to-slate-500/20 border-slate-400/40 shadow-[0_8px_30px_rgba(148,163,184,0.2)]"
+                          ? "bg-gradient-to-r from-slate-400/20 to-slate-500/20 border-slate-400/40"
                           : rank === 3
-                          ? "bg-gradient-to-r from-amber-700/20 to-amber-800/20 border-amber-700/40 shadow-[0_8px_30px_rgba(180,83,9,0.2)]"
-                          : "bg-card/50 border-muted hover:border-primary/30"
+                          ? "bg-gradient-to-r from-amber-700/20 to-amber-800/20 border-amber-700/40"
+                          : "bg-card border-border hover:border-primary/30"
                       }`}
                     >
                       {/* Rank */}
@@ -291,7 +284,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
                       {/* Profile */}
                       <Avatar className="h-10 w-10 border-2 border-primary/20 shrink-0">
                         <AvatarImage src={entry.user.avatar_url} />
-                        <AvatarFallback className="font-black text-xs">
+                        <AvatarFallback className="font-black text-xs bg-muted text-muted-foreground">
                           {entry.user.display_name?.charAt(0) || "C"}
                         </AvatarFallback>
                       </Avatar>
@@ -307,7 +300,7 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-black italic text-sm leading-none uppercase truncate">
+                        <p className="font-black italic text-sm leading-none uppercase truncate text-foreground">
                           {entry.user.display_name}
                         </p>
                         <p className="text-xs text-muted-foreground font-bold truncate mt-1">
@@ -357,7 +350,6 @@ const TournamentLeaderboard = ({ tournamentId, tournamentName, onClose }: Tourna
             </>
           )}
 
-          {/* Bottom spacing */}
           <div className="h-8" />
         </div>
       </div>

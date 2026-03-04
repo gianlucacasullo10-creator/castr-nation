@@ -84,19 +84,20 @@ const App = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          await initRevenueCat(session.user.id);
-          await initAdMob();
+          // Fire SDK inits and pro check in parallel — none block rendering
+          initRevenueCat(session.user.id);
+          initAdMob();
 
-          // Check pro status then trigger weekly drop
-          const { data: profile } = await supabase
+          supabase
             .from("profiles")
             .select("is_pro")
             .eq("id", session.user.id)
-            .single();
-
-          if (profile?.is_pro && session.access_token) {
-            checkWeeklyLegendaryDrop(session.access_token);
-          }
+            .single()
+            .then(({ data: profile }) => {
+              if (profile?.is_pro && session.access_token) {
+                checkWeeklyLegendaryDrop(session.access_token);
+              }
+            });
         }
       }
     );

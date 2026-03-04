@@ -112,13 +112,24 @@ const App = () => {
   // Handle deep links for OAuth callbacks (e.g. Google sign-in on native)
   useEffect(() => {
     CapApp.addListener("appUrlOpen", async ({ url }) => {
-      if (url.startsWith("com.castrs.app://login-callback")) {
-        const urlObj = new URL(url.replace("com.castrs.app://login-callback", "https://placeholder.com/"));
-        const code = urlObj.searchParams.get("code");
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
-        }
-        await Browser.close();
+      if (!url.startsWith("com.castrs.app://login-callback")) return;
+      await Browser.close();
+
+      // Implicit flow: tokens arrive in the hash fragment
+      const hash = url.split("#")[1] ?? "";
+      const params = new URLSearchParams(hash);
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        await supabase.auth.setSession({ access_token, refresh_token });
+        return;
+      }
+
+      // PKCE flow: code arrives as a query param
+      const query = url.split("?")[1] ?? "";
+      const code = new URLSearchParams(query).get("code");
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
       }
     });
   }, []);

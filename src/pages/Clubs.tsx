@@ -57,10 +57,29 @@ const Clubs = () => {
   const fetchClubs = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const [{ data: { user } }, { data }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('clubs').select('*'),
+      ]);
       setCurrentUser(user);
-      const { data } = await supabase.from('clubs').select('*');
-      setClubs(data || []);
+
+      // Fetch user's club membership so we can pin their club to the top
+      let userClubId: string | null = null;
+      if (user) {
+        const { data: membership } = await supabase
+          .from('club_members')
+          .select('club_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        userClubId = membership?.club_id ?? null;
+      }
+
+      const sorted = (data || []).sort((a, b) => {
+        if (a.id === userClubId) return -1;
+        if (b.id === userClubId) return 1;
+        return 0;
+      });
+      setClubs(sorted);
     } catch (err) {
       console.error('fetchClubs error:', err);
     } finally {

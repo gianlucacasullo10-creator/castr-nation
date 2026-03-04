@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { initRevenueCat } from "@/lib/revenuecat";
 import { initAdMob } from "@/lib/admob";
+import { App as CapApp } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import BottomNav from "./components/BottomNav";
 import SplashScreen from "./components/SplashScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -106,6 +108,20 @@ const App = () => {
 
   // Kick off background prefetch of all page chunks after mount
   useEffect(() => { prefetchPages(); }, []);
+
+  // Handle deep links for OAuth callbacks (e.g. Google sign-in on native)
+  useEffect(() => {
+    CapApp.addListener("appUrlOpen", async ({ url }) => {
+      if (url.startsWith("com.castrs.app://login-callback")) {
+        const urlObj = new URL(url.replace("com.castrs.app://login-callback", "https://placeholder.com/"));
+        const code = urlObj.searchParams.get("code");
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
+        }
+        await Browser.close();
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const channel = supabase

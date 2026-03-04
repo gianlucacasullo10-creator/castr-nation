@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { SignInWithApple, type SignInWithAppleOptions } from "@capacitor-community/apple-sign-in";
 
 const GoogleIcon = () => (
@@ -73,16 +74,25 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    const redirectTo = Capacitor.isNativePlatform()
+      ? "com.castrs.app://login-callback"
+      : `${window.location.origin}/`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo,
+        skipBrowserRedirect: Capacitor.isNativePlatform(),
       },
     });
     if (error) {
       toast({ title: "Google Sign-In Error", description: error.message, variant: "destructive" });
       setGoogleLoading(false);
+      return;
     }
+    if (Capacitor.isNativePlatform() && data.url) {
+      await Browser.open({ url: data.url });
+    }
+    setGoogleLoading(false);
   };
 
   const handleAppleSignIn = async () => {

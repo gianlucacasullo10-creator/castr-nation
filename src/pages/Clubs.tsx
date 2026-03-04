@@ -336,6 +336,14 @@ const Clubs = () => {
   const fetchClubDetails = async (club: any, knownUserId?: string) => {
     setLoading(true);
     try {
+      // Resolve user ID — prefer explicit arg, then state, then fresh auth call
+      let uid = knownUserId ?? currentUser?.id;
+      if (!uid) {
+        const { data: { user } } = await supabase.auth.getUser();
+        uid = user?.id;
+        if (user) setCurrentUser(user);
+      }
+
       // Fetch only members of this specific club
       const { data: clubMemberships } = await supabase
         .from('club_members')
@@ -343,8 +351,7 @@ const Clubs = () => {
         .eq('club_id', club.id);
 
       const currentClubMemberIds = clubMemberships?.map(m => m.user_id) || [];
-      const uid = knownUserId ?? currentUser?.id ?? '';
-      setIsMember(currentClubMemberIds.includes(uid));
+      setIsMember(currentClubMemberIds.includes(uid ?? ''));
 
       // Fetch catches only for this club's members
       const { data: memberCatches } = currentClubMemberIds.length > 0

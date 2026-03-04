@@ -87,12 +87,19 @@ const Clubs = () => {
       .maybeSingle();
 
     if (existingMembership) {
-      toast({
-        variant: "destructive",
-        title: "Already in a Club",
-        description: `Leave ${(existingMembership.clubs as any)?.name || 'your current club'} before creating a new one.`
-      });
-      return;
+      const clubName = (existingMembership.clubs as any)?.name;
+      // Orphaned membership — club no longer exists, clean it up silently
+      if (!clubName) {
+        await supabase.from('club_members').delete()
+          .eq('user_id', currentUser.id).eq('club_id', existingMembership.club_id);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Already in a Club",
+          description: `Leave ${clubName} before creating a new one.`
+        });
+        return;
+      }
     }
 
     setCreatingClub(true);
@@ -149,12 +156,19 @@ const Clubs = () => {
         .maybeSingle();
 
       if (existingMembership) {
-        toast({
-          variant: "destructive",
-          title: "Already in a Club",
-          description: `Leave ${(existingMembership.clubs as any)?.name || 'your current club'} before joining another.`
-        });
-        return;
+        const clubName = (existingMembership.clubs as any)?.name;
+        if (!clubName) {
+          // Orphaned membership — clean it up and continue
+          await supabase.from('club_members').delete()
+            .eq('user_id', currentUser.id).eq('club_id', existingMembership.club_id);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Already in a Club",
+            description: `Leave ${clubName} before joining another.`
+          });
+          return;
+        }
       }
 
       const { error } = await supabase

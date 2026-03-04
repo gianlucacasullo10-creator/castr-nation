@@ -211,10 +211,9 @@ const Clubs = () => {
       if (isLeader) {
         const { data: remainingMembers } = await supabase
           .from('club_members')
-          .select('user_id, created_at')
+          .select('user_id')
           .eq('club_id', selectedClub.id)
           .neq('user_id', currentUser.id)
-          .order('created_at', { ascending: true })
           .limit(1);
 
         if (remainingMembers && remainingMembers.length > 0) {
@@ -347,7 +346,7 @@ const Clubs = () => {
       // Fetch only members of this specific club
       const { data: clubMemberships } = await supabase
         .from('club_members')
-        .select('user_id, created_at')
+        .select('user_id')
         .eq('club_id', club.id);
 
       const currentClubMemberIds = clubMemberships?.map(m => m.user_id) || [];

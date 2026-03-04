@@ -134,7 +134,7 @@ const Clubs = () => {
       setShowCreateClub(false);
       fetchClubs();
 
-      setTimeout(() => fetchClubDetails(newClub), 500);
+      setTimeout(() => fetchClubDetails(newClub, currentUser.id), 500);
 
     } catch (error: any) {
       toast({ variant: "destructive", title: "Create Failed", description: error.message });
@@ -176,7 +176,7 @@ const Clubs = () => {
         .insert([{ club_id: selectedClub.id, user_id: currentUser.id }]);
       if (error) throw error;
       setIsMember(true);
-      fetchClubDetails(selectedClub);
+      fetchClubDetails(selectedClub, currentUser.id);
       toast({ title: "SQUAD JOINED", description: "Welcome to the ranks." });
       checkAndUnlockAchievements(currentUser.id);
     } catch (error: any) {
@@ -314,7 +314,7 @@ const Clubs = () => {
     }
   };
 
-  const fetchClubDetails = async (club: any) => {
+  const fetchClubDetails = async (club: any, knownUserId?: string) => {
     setLoading(true);
     try {
       // Fetch only members of this specific club
@@ -324,7 +324,8 @@ const Clubs = () => {
         .eq('club_id', club.id);
 
       const currentClubMemberIds = clubMemberships?.map(m => m.user_id) || [];
-      setIsMember(currentClubMemberIds.includes(currentUser?.id || ''));
+      const uid = knownUserId ?? currentUser?.id ?? '';
+      setIsMember(currentClubMemberIds.includes(uid));
 
       // Fetch catches only for this club's members
       const { data: memberCatches } = currentClubMemberIds.length > 0

@@ -283,6 +283,33 @@ const CastrsPro = () => {
       <p className="text-center text-xs text-muted-foreground pt-4">
         Cancel anytime. All core features remain free forever.
       </p>
+
+      {/* Legal links — required for subscription pages (App Store Guideline 3.1.2) */}
+      <div className="text-center text-xs text-muted-foreground space-y-1 pb-4">
+        <p>
+          Subscription renews automatically at $4.99/month until cancelled.{" "}
+          Manage or cancel in your Apple ID settings.
+        </p>
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <a
+            href="https://castr-nation.vercel.app/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            Privacy Policy
+          </a>
+          <span>·</span>
+          <a
+            href="https://castr-nation.vercel.app/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            Terms of Use
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

@@ -30,6 +30,9 @@ const Achievements = lazy(() => import("./pages/Achievements"));
 const CastrsPro = lazy(() => import("./pages/CastrsPro"));
 const Tournaments = lazy(() => import("./pages/Tournaments"));
 const AdminReview = lazy(() => import("@/pages/AdminReview"));
+const Support = lazy(() => import("./pages/Support"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 
 // Prefetch all page chunks in the background after initial render so subsequent
 // tab navigations are instant (chunks are already in browser cache / service worker).
@@ -86,9 +89,8 @@ const App = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          // Fire SDK inits and pro check in parallel — none block rendering
+          // Init RevenueCat with the authenticated user ID
           initRevenueCat(session.user.id);
-          initAdMob();
 
           supabase
             .from("profiles")
@@ -108,6 +110,10 @@ const App = () => {
 
   // Kick off background prefetch of all page chunks after mount
   useEffect(() => { prefetchPages(); }, []);
+
+  // Initialize AdMob (and trigger ATT prompt) on first app launch,
+  // regardless of login state — required by App Store guidelines.
+  useEffect(() => { initAdMob(); }, []);
 
   // Handle deep links for OAuth callbacks (e.g. Google sign-in on native)
   useEffect(() => {
@@ -191,6 +197,9 @@ const App = () => {
                   <Route path="/castrs-pro" element={<CastrsPro />} />
                   <Route path="/tournaments" element={<Tournaments />} />
                   <Route path="/admin/review" element={<AdminReview />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 </Suspense>

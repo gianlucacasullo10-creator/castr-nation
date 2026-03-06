@@ -4,6 +4,14 @@
 <dict>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3944372044734468~6953239664</string>
+	<key>NSCameraUsageDescription</key>
+	<string>CASTRS needs camera access to capture photos of your fish catches.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CASTRS needs photo library access to attach photos to your catch posts.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CASTRS needs permission to save photos to your library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CASTRS uses your location to tag where you caught your fish.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We use this to show you relevant ads that help keep the app free.</string>
 	<key>NSHumanReadableCopyright</key>

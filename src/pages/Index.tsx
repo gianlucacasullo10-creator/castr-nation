@@ -541,7 +541,7 @@ const Index = () => {
                 : 'bg-muted/60 text-muted-foreground hover:bg-muted'
             }`}
           >
-            {f === 'all' ? '🌍 All' : f === 'friends' ? '👥 Friends' : '📍 Nearby'}
+            {f === 'all' ? 'All' : f === 'friends' ? 'Friends' : 'Nearby'}
           </button>
         ))}
       </div>

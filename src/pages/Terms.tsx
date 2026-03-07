@@ -58,8 +58,8 @@ const Terms = () => {
             <h2 className="font-black uppercase text-sm">Contact</h2>
             <p className="text-muted-foreground">
               Questions about these terms?{" "}
-              <a href="mailto:support@castrs.app" className="text-primary font-bold underline">
-                support@castrs.app
+              <a href="mailto:castrs102@gmail.com" className="text-primary font-bold underline">
+                castrs102@gmail.com
               </a>
             </p>
           </section>

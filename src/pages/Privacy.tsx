@@ -54,7 +54,7 @@ const Privacy = () => {
           <section className="bg-card border-2 border-muted rounded-3xl p-6 space-y-3">
             <h2 className="font-black uppercase text-sm">Your Rights</h2>
             <p className="text-muted-foreground">
-              You may request access to, correction of, or deletion of your personal data at any time by contacting us at support@castrs.app. Account deletion requests are processed within 30 days.
+              You may request access to, correction of, or deletion of your personal data at any time by contacting us at castrs102@gmail.com. Account deletion requests are processed within 30 days.
             </p>
           </section>
 
@@ -62,8 +62,8 @@ const Privacy = () => {
             <h2 className="font-black uppercase text-sm">Contact</h2>
             <p className="text-muted-foreground">
               For privacy-related questions, contact us at:{" "}
-              <a href="mailto:support@castrs.app" className="text-primary font-bold underline">
-                support@castrs.app
+              <a href="mailto:castrs102@gmail.com" className="text-primary font-bold underline">
+                castrs102@gmail.com
               </a>
             </p>
           </section>

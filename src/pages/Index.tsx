@@ -33,6 +33,16 @@ const checkAchievementsAfterComment = async (userId: string) => {
   await checkAndUnlockAchievements(userId);
 };
 
+type FeedFilter = 'all' | 'friends' | 'nearby';
+
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const Index = () => {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +54,8 @@ const Index = () => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [friendIds, setFriendIds] = useState<string[]>([]);
   
   // Pull to refresh states
   const [pullDistance, setPullDistance] = useState(0);
@@ -192,14 +204,29 @@ const Index = () => {
     }
   };
 
+  const fetchFriendIds = async (userId: string) => {
+    const { data } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'accepted');
+    if (data) {
+      setFriendIds(data.map(f => f.user_id === userId ? f.friend_id : f.user_id));
+    }
+  };
+
   useEffect(() => {
     fetchUnifiedFeed();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null);
-      // Only re-fetch on explicit sign-in/out, not on token refresh or initial session
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         fetchUnifiedFeed(false);
+        if (session?.user) fetchFriendIds(session.user.id);
+        else setFriendIds([]);
       }
+    });
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) fetchFriendIds(user.id);
     });
     const handleFeedRefresh = () => fetchUnifiedFeed(false);
     window.addEventListener('feedRefresh', handleFeedRefresh);
@@ -397,6 +424,19 @@ const Index = () => {
     }
   };
 
+  const visibleItems = feedItems.filter(item => {
+    if (feedFilter === 'friends') {
+      return friendIds.includes(item.user_id) || item.user_id === currentUser?.id;
+    }
+    if (feedFilter === 'nearby' && userLocation) {
+      if (item.latitude && item.longitude) {
+        return getDistanceKm(userLocation.latitude, userLocation.longitude, item.latitude, item.longitude) <= 100;
+      }
+      return false;
+    }
+    return true;
+  });
+
   if (loading) return (
     <div className="pb-24 pt-4 px-4 max-w-md mx-auto space-y-6">
       <div className="flex justify-between items-center bg-background/80 backdrop-blur-md sticky top-0 z-50 py-2">
@@ -480,7 +520,36 @@ const Index = () => {
         </div>
       </div>
 
-      {feedItems.map((item, index) => {
+      {/* Feed filter pills */}
+      <div className="flex gap-2 pb-1">
+        {(['all', 'friends', 'nearby'] as FeedFilter[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setFeedFilter(f)}
+            className={`flex-1 h-9 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all ${
+              feedFilter === f
+                ? 'bg-primary text-black shadow-md'
+                : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {f === 'all' ? '🌍 All' : f === 'friends' ? '👥 Friends' : '📍 Nearby'}
+          </button>
+        ))}
+      </div>
+
+      {visibleItems.length === 0 && !loading && (
+        <div className="text-center py-16 text-muted-foreground space-y-2">
+          <p className="text-4xl">{feedFilter === 'friends' ? '👥' : '📍'}</p>
+          <p className="font-black uppercase text-sm">
+            {feedFilter === 'friends' ? 'No catches from friends yet' : 'No catches near you yet'}
+          </p>
+          <p className="text-xs">
+            {feedFilter === 'friends' ? 'Add friends to see their catches here' : 'Be the first to catch something nearby!'}
+          </p>
+        </div>
+      )}
+
+      {visibleItems.map((item, index) => {
         const isLiked = item.likes?.some((l: any) => l.user_id === currentUser?.id);
 
         return (

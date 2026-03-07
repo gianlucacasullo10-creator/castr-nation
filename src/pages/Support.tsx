@@ -17,10 +17,10 @@ const Support = () => {
               For any questions, issues, or feedback, email us at:
             </p>
             <a
-              href="mailto:support@castrs.app"
+              href="mailto:castrs102@gmail.com"
               className="text-primary font-bold text-sm underline"
             >
-              support@castrs.app
+              castrs102@gmail.com
             </a>
           </div>
 
@@ -51,7 +51,7 @@ const Support = () => {
             <div className="space-y-1">
               <p className="text-sm font-bold">How do I delete my account?</p>
               <p className="text-sm text-muted-foreground">
-                Email us at support@castrs.app with your account email and we'll delete your account and data within 30 days.
+                Email us at castrs102@gmail.com with your account email and we'll delete your account and data within 30 days.
               </p>
             </div>
           </div>

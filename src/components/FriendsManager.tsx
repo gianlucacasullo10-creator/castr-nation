@@ -101,6 +101,13 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
     }
   };
 
+  // Live search — fires 300 ms after the user stops typing
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    const timer = setTimeout(() => searchUsers(), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, currentUserId]);
+
   const searchUsers = async () => {
     if (!searchQuery.trim() || !currentUserId) return;
 
@@ -367,21 +374,17 @@ const FriendsManager = ({ onClose }: FriendsManagerProps) => {
             {/* Search Tab */}
             {activeTab === 'search' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex gap-2">
+                <div className="relative">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
-                    placeholder="Search username..."
+                    placeholder="Search by username..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
-                    className="flex-1 bg-background border-2 border-border text-foreground placeholder:text-muted-foreground text-xs font-bold h-12 rounded-2xl focus:border-primary"
+                    className="pl-10 bg-background border-2 border-border text-foreground placeholder:text-muted-foreground text-xs font-bold h-12 rounded-2xl focus:border-primary"
                   />
-                  <Button
-                    onClick={searchUsers}
-                    disabled={loading}
-                    className="h-12 px-5 rounded-2xl bg-primary hover:bg-primary/90 text-black font-black"
-                  >
-                    <Search size={18} />
-                  </Button>
+                  {loading && (
+                    <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+                  )}
                 </div>
 
                 <div className="space-y-3">

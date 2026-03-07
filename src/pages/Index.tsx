@@ -56,6 +56,8 @@ const Index = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
   
   // Pull to refresh states
   const [pullDistance, setPullDistance] = useState(0);
@@ -142,7 +144,7 @@ const Index = () => {
         catchIds.length > 0 || activityIds.length > 0
           ? supabase
               .from('comments')
-              .select('*, profiles(display_name, avatar_url)')
+              .select('id, user_id, catch_id, activity_id, comment_text, parent_comment_id, created_at, profiles(display_name, avatar_url)')
               .or(
                 [
                   catchIds.length > 0 ? `catch_id.in.(${catchIds.join(',')})` : null,
@@ -352,19 +354,23 @@ const Index = () => {
     }
   };
 
-  const handleSendComment = async (itemId: string, type: string) => {
-    if (!commentText.trim()) {
-      toast({ variant: "destructive", title: "Comment Required", description: "Please enter a comment" });
-      return;
-    }
+  const handleSendComment = async (
+    itemId: string,
+    type: string,
+    parentCommentId?: string | null
+  ) => {
+    const text = parentCommentId ? replyText : commentText;
 
-    if (commentText.trim().length > 300) {
-      toast({ variant: "destructive", title: "Too Long", description: "Comments must be 300 characters or less." });
+    if (!text.trim()) {
+      toast({ variant: "destructive", title: "Write something first" });
       return;
     }
-    
-    if (!currentUser || !currentUser.id) {
-      toast({ variant: "destructive", title: "Not Logged In", description: "Please log in to comment" });
+    if (text.trim().length > 300) {
+      toast({ variant: "destructive", title: "Too Long", description: "Max 300 characters." });
+      return;
+    }
+    if (!currentUser?.id) {
+      toast({ variant: "destructive", title: "Not Logged In" });
       return;
     }
 
@@ -373,20 +379,23 @@ const Index = () => {
       const { error } = await supabase.from('comments').insert([{
         user_id: currentUser.id,
         [column]: itemId,
-        comment_text: commentText.trim()
+        comment_text: text.trim(),
+        ...(parentCommentId ? { parent_comment_id: parentCommentId } : {}),
       }]);
-
       if (error) throw error;
-      
-      setCommentText("");
-      setActiveCommentId(null);
-      
+
+      if (parentCommentId) {
+        setReplyText("");
+        setActiveReplyId(null);
+      } else {
+        setCommentText("");
+        setActiveCommentId(null);
+      }
+
       await checkAchievementsAfterComment(currentUser.id);
-      
       fetchUnifiedFeed(false);
-      toast({ title: "Comment Posted!" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Post Failed", description: error.message || "Could not post comment" });
+      toast({ variant: "destructive", title: "Post Failed", description: error.message });
     }
   };
 
@@ -643,61 +652,139 @@ const Index = () => {
                 )}
               </div>
 
-              {item.comments?.length > 0 && (
-                <div className="space-y-3 pt-2 text-left">
-                  {item.comments
-                    .slice(0, expandedComments.has(item.id) ? item.comments.length : 3)
-                    .map((comment: any) => (
-                      <div key={comment.id} className="flex gap-2 items-start animate-in fade-in duration-300">
-                        <Avatar 
-                          className="h-5 w-5 border border-primary/20 cursor-pointer"
-                          onClick={() => navigate(`/profile/${comment.user_id}`)}
-                        >
-                          <AvatarImage src={comment.profiles?.avatar_url} />
-                          <AvatarFallback className="text-[8px]">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="bg-muted/50 p-2 rounded-2xl rounded-tl-none flex-1">
-                          <p 
-                            className="text-[9px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline inline-block"
-                            onClick={() => navigate(`/profile/${comment.user_id}`)}
-                          >
-                            {comment.profiles?.display_name}
-                          </p>
-                          <p className="text-[11px] font-medium leading-tight text-foreground/80">{comment.comment_text}</p>
-                        </div>
-                      </div>
-                    ))}
-                  
-                  {item.comments.length > 3 && (
-                    <button
-                      onClick={() => {
-                        setExpandedComments(prev => {
-                          const newSet = new Set(prev);
-                          if (newSet.has(item.id)) {
-                            newSet.delete(item.id);
-                          } else {
-                            newSet.add(item.id);
-                          }
-                          return newSet;
-                        });
-                      }}
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      {expandedComments.has(item.id) 
-                        ? 'Show less' 
-                        : `Show ${item.comments.length - 3} more comment${item.comments.length - 3 === 1 ? '' : 's'}`
-                      }
-                    </button>
-                  )}
-                </div>
-              )}
+              {(() => {
+                const topLevel = (item.comments || []).filter((c: any) => !c.parent_comment_id);
+                const getReplies = (parentId: string) =>
+                  (item.comments || []).filter((c: any) => c.parent_comment_id === parentId);
+                const isExpanded = expandedComments.has(item.id);
+                const visibleTop = isExpanded ? topLevel : topLevel.slice(0, 3);
+                const hiddenCount = topLevel.length - 3;
 
+                return topLevel.length > 0 ? (
+                  <div className="space-y-1 pt-2 text-left">
+                    {visibleTop.map((comment: any) => {
+                      const replies = getReplies(comment.id);
+                      const isReplying = activeReplyId === comment.id;
+                      return (
+                        <div key={comment.id} className="animate-in fade-in duration-200">
+                          {/* Top-level comment */}
+                          <div className="flex gap-2 items-start py-1">
+                            <Avatar
+                              className="h-7 w-7 border border-primary/20 cursor-pointer shrink-0 mt-0.5"
+                              onClick={() => navigate(`/profile/${comment.user_id}`)}
+                            >
+                              <AvatarImage src={comment.profiles?.avatar_url} />
+                              <AvatarFallback className="text-[9px] font-black">{comment.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="bg-muted/60 px-3 py-2 rounded-2xl rounded-tl-sm">
+                                <p
+                                  className="text-[10px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline"
+                                  onClick={() => navigate(`/profile/${comment.user_id}`)}
+                                >
+                                  {comment.profiles?.display_name}
+                                </p>
+                                <p className="text-xs font-medium leading-snug text-foreground/90 break-words">{comment.comment_text}</p>
+                              </div>
+                              {currentUser && (
+                                <button
+                                  onClick={() => {
+                                    setActiveReplyId(isReplying ? null : comment.id);
+                                    setReplyText("");
+                                  }}
+                                  className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary ml-2 mt-1 transition-colors"
+                                >
+                                  {isReplying ? "Cancel" : "Reply"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Replies */}
+                          {replies.length > 0 && (
+                            <div className="ml-9 space-y-1 border-l-2 border-primary/10 pl-3">
+                              {replies.map((reply: any) => (
+                                <div key={reply.id} className="flex gap-2 items-start py-1 animate-in fade-in duration-200">
+                                  <Avatar
+                                    className="h-6 w-6 border border-primary/20 cursor-pointer shrink-0 mt-0.5"
+                                    onClick={() => navigate(`/profile/${reply.user_id}`)}
+                                  >
+                                    <AvatarImage src={reply.profiles?.avatar_url} />
+                                    <AvatarFallback className="text-[8px] font-black">{reply.profiles?.display_name?.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="bg-muted/40 px-3 py-2 rounded-2xl rounded-tl-sm flex-1 min-w-0">
+                                    <p
+                                      className="text-[10px] font-black uppercase text-primary italic leading-none mb-1 cursor-pointer hover:underline"
+                                      onClick={() => navigate(`/profile/${reply.user_id}`)}
+                                    >
+                                      {reply.profiles?.display_name}
+                                    </p>
+                                    <p className="text-xs font-medium leading-snug text-foreground/90 break-words">{reply.comment_text}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Inline reply input */}
+                          {isReplying && (
+                            <div className="ml-9 flex gap-2 pt-1 pb-1 animate-in slide-in-from-top-1 duration-150">
+                              <Input
+                                placeholder={`Reply to ${comment.profiles?.display_name}...`}
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendComment(item.id, item.itemType, comment.id);
+                                  }
+                                }}
+                                className="h-9 bg-muted border-none rounded-xl text-xs font-bold"
+                                autoFocus
+                              />
+                              <Button
+                                size="icon"
+                                onClick={() => handleSendComment(item.id, item.itemType, comment.id)}
+                                className="h-9 w-9 rounded-xl bg-primary text-black shrink-0"
+                              >
+                                <Send size={14} />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Collapse / expand */}
+                    {topLevel.length > 3 && (
+                      <button
+                        onClick={() => setExpandedComments(prev => {
+                          const s = new Set(prev);
+                          s.has(item.id) ? s.delete(item.id) : s.add(item.id);
+                          return s;
+                        })}
+                        className="text-[11px] font-black text-primary hover:underline pl-1 pt-1"
+                      >
+                        {isExpanded ? "Show less" : `Show ${hiddenCount} more comment${hiddenCount === 1 ? '' : 's'}`}
+                      </button>
+                    )}
+                  </div>
+                ) : null;
+              })()}
+
+              {/* New top-level comment input */}
               {activeCommentId === item.id && (
-                <div className="flex gap-2 pt-2 animate-in slide-in-from-top-2 duration-200">
+                <div className="flex gap-2 pt-1 animate-in slide-in-from-top-2 duration-200">
                   <Input
                     placeholder="Add to the conversation..."
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendComment(item.id, item.itemType);
+                      }
+                    }}
                     className="h-10 bg-muted border-none rounded-xl text-xs font-bold"
                     autoFocus
                   />
